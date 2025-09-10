@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yo-kai Watch Cond Parser</title>
+</head>
+<body style="font-family:monospace;padding:10px">
+  <h2>Yo-kai Watch Cond Parser</h2>
+  <textarea id="input" placeholder="Paste hex or base64 here" style="width:100%;min-height:120px"></textarea><br>
+  <button id="parseBtn">Parse Hex</button>
+  <button onclick="
+    const s = atob(document.getElementById('input').value); // final finishing touch since im releasing this
+    const hex = Array.from(s).map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join(' ');
+    document.getElementById('input').value = hex;
+    document.getElementById('parseBtn').click();
+  ">Parse Base64</button>
+
+  <button id="sampleBtn">Load Sample</button>
+  <button id="clearBtn">Clear</button>
+  <label style="margin-left:8px"><input type="checkbox" id="expectTerm78"> Only accept 0x78 terminator</label>
+  <label style="margin-left:8px"><input type="checkbox" id="strictMode"> Strict mode (stop on first warning)</label>
+
+  <pre id="log" style="background:#f8f8f8;padding:6px;overflow:auto;max-height:200px"></pre>
+  <div id="tree" style="white-space:pre-wrap;margin-top:6px"></div>
+  <h3>Pseudocode Output</h3>
+  <pre id="pseudo" style="background:#f8f8f8;padding:6px;overflow:auto;min-height:80px;white-space:pre-wrap"></pre>
+
+  <script> /* ive made so many changes - im too lazy to write comments (sorry :<); not even sarcastic ones laughing at my code >>:(( */
+    let ver = 1;
+    const el = id => document.getElementById(id);
+    const hexChars = /^[0-9a-fA-F]+$/;
+    function toHex(b){ return b.toString(16).padStart(2,'0').toUpperCase(); }
+    function toHexWord(bytes){ return '0x' + Array.from(bytes).map(toHex).join(''); }
+    function log(msg){ el('log').textContent += msg + '\n'; }
+
+    function parseInputToBytes(text){
+      text = (text||'').trim();
+      if(!text) return new Uint8Array([]);
+      const cleaned = text.replace(/0x/gi,'').replace(/[<>,\-]/g,' ').replace(/\s+/g,' ').trim();
+      const parts = cleaned.split(' ');
+      if(parts.length === 1 && parts[0].length > 2){
+        const s = parts[0]; if(s.length % 2 !== 0) throw new Error('Hex string must have even length');
+        const arr = new Uint8Array(s.length/2);
+        for(let i=0;i<arr.length;i++){ const h = s.substr(i*2,2); if(!hexChars.test(h)) throw new Error('Invalid hex'); arr[i]=parseInt(h,16); }
+        return arr;
+      }
+      const bytes = new Uint8Array(parts.length);
+      for(let i=0;i<parts.length;i++){ const p = parts[i]; if(!hexChars.test(p)) throw new Error('Invalid hex token '+p); bytes[i]=parseInt(p,16); }
+      return bytes;
+    }
+
+    class Reader{
+      constructor(u8){ this.bytes = u8; this.pos = 0; }
+      len(){ return this.bytes.length; }
+      rem(){ return this.bytes.length - this.pos; }
+      eof(){ return this.pos >= this.bytes.length; }
+      read(n){ if(this.pos + n > this.bytes.length) throw new Error('Unexpected EOF at offset '+this.pos); const slice = this.bytes.slice(this.pos, this.pos+n); this.pos += n; return slice; }
+      readByte(){ return this.read(1)[0]; }
+      peekByte(){ return this.pos >= this.bytes.length ? null : this.bytes[this.pos]; }
+      offset(){ return this.pos; }
+      skip(n){ this.pos += n; }
+    }
+
+    function parseCondStrict(bytes, opts={force78:false, strict:false}){
+      const r = new Reader(bytes);
+      const result = { fields: [], warnings: [], errors: [], stopped:false, skipped: [] };
+      const knownOpcodes = { '0F05': 'Compare Constant', '1805': 'Compare Flag', 'F03B': 'Chain? Opcode' };
+
+      function f(name, len){ const off = r.offset(); const val = r.read(len); result.fields.push({name, off, val}); return val; }
+      function fb(name){ const off = r.offset(); const v = r.readByte(); result.fields.push({name, off, val: new Uint8Array([v])}); return v; }
+      function warn(msg){ result.warnings.push({msg}); if(opts.strict){ result.stopped=true; throw new Error('Strict stop: '+msg); } }
+      function error(msg){ result.errors.push({msg}); if(opts.strict){ result.stopped=true; throw new Error('Strict stop: '+msg); } }
+
+      function parseSection(){
+        const startOff = r.offset();
+        const s = fb('SECTION_START');
+        if(s !== 0x35) warn('Expected SECTION_START 0x35 at '+startOff+', got '+toHex(s));
+
+        if(r.rem()<4) return error('Not enough bytes for RESOURCE_ID');
+        const rid = f('RESOURCE_ID_A', 4);
+
+        if(r.rem()>=3){
+          const ctypeA = f('CTYPE_A', 3);
+          const cHex = Array.from(ctypeA).map(toHex).join(' ');
+          if(cHex !== '00 0A 01' && !(ctypeA[0]===0x00 && ctypeA[2]===0x01)) warn('Unknown CTYPE_A '+cHex+', treating as extended');
+        }
+
+        if(r.peekByte()===0x28){ fb('EXTENSION_DELIMITER'); if(r.rem()>=3) f('CTYPE_B', 3); else warn('Truncated CTYPE_B'); if(r.peekByte()===0x34){ fb('NEST_DELIMITER_34'); if(r.rem()>=4) f('RESOURCE_ID_B', 4); else warn('Truncated RESOURCE_ID_B'); } }
+
+        if(r.peekByte()===0x32){ fb('SECTION_END'); } else warn('Missing SECTION_END before comparison');
+
+        while(r.rem()>0){
+          const p = r.peekByte();
+          if(p===0x8F){ fb('EOCI'); break; }
+          if(p===0x35) break;
+          if(p===0x32){ fb('SUB_DELIM_32'); if(r.rem()>=4) f('COMPARISON_VALUE',4); else warn('Truncated comparison'); continue; }
+          if(p===0x78||p===0x71||p===0x6F){ const t=fb('TERMINATOR'); const allowed=opts.force78?[0x78]:[0x71,0x78,0x6F]; if(!allowed.includes(t)) warn('Unknown terminator '+toHex(t)); continue; }
+          if(r.rem()>=4){ f('COMPARISON_VALUE',4); continue; }
+          warn('Unexpected byte '+toHex(p)+' at '+r.offset()); result.skipped.push(r.offset()); fb('TRAILING_BYTE'); break;
+        }
+      }
+
+      try{
+        while(r.rem()>0 && !result.stopped){
+          if(r.rem()>=4 && r.bytes.slice(r.pos,r.pos+4).every(b=>b===0)) f('HEADER',4);
+          if(r.peekByte()===0x8F){ warn('EOCI encountered without preceding terminator at '+r.offset()); fb('EOCI'); continue; }
+          if(r.peekByte()===0x35){ parseSection(); continue; }
+          if(r.rem()>=2){
+            const op=f('OPCODE',2); const opHex=Array.from(op).map(toHex).join('');
+            if(!knownOpcodes[opHex]) warn('Unknown opcode '+opHex+' at '+(r.offset()-2));
+            else result.fields[result.fields.length-1].label=knownOpcodes[opHex];
+            if(r.peekByte()===0x35){ parseSection(); continue; }
+            const lookahead=r.bytes.slice(r.pos, r.pos+16); const idx=lookahead.indexOf(0x35);
+            if(idx>=0){ warn('Opcode not immediately followed by section start; skipping '+idx+' bytes'); result.skipped.push(r.offset()); r.skip(idx); continue; }
+            else { warn('Opcode not followed by section start; stopping parse'); break; }
+          }
+          if(r.rem()>0){ result.skipped.push(r.offset()); f('TRAILING', r.rem()); break; }
+        }
+      }catch(e){ if(!result.stopped) error(e.message); }
+
+      return result;
+    }
+
+  function renderTree(parsed){
+    console.log("// parsed with yw-cond v"+ver)
+    console.log(parsed)
+    const div=document.createElement('div');
+    const first=document.createElement('div');
+    first.textContent="// parsed with yw-cond v"+ver;
+    div.appendChild(first);
+    parsed.fields.forEach(f=>{
+      const hex=Array.from(f.val).map(toHex).join(' ');
+      const label=f.label?' '+f.label:'';
+      const line=document.createElement('div');
+      line.textContent=f.name+label+' @'+f.off+': '+hex;
+      div.appendChild(line);
+    });
+    parsed.warnings.forEach(w=>{const ln=document.createElement('div');ln.style.color='orange';ln.textContent='Warning: '+w.msg;div.appendChild(ln);});
+    parsed.errors.forEach(e=>{const ln=document.createElement('div');ln.style.color='red';ln.textContent='Error: '+e.msg;div.appendChild(ln);});
+    if(parsed.skipped.length>0){const ln=document.createElement('div');ln.style.color='gray';ln.textContent='Skipped offsets: '+parsed.skipped.join(', ');div.appendChild(ln);}
+    return div;
+  }
+
+
+    function renderPseudo(parsed){
+      let out="// parsed using yw-cond v" + ver+"\n"; const stack=[]; let lineCount=0;
+      function indent(){return '  '.repeat(stack.length);} 
+      function maybeComment(){ if(++lineCount % 10 === 0) out += indent()+'// @'+(parsed.fields[lineCount-1]?.off||'?')+'\n'; }
+      parsed.fields.forEach(f=>{
+        switch(f.name){
+          case 'HEADER': out+='#header '+toHexWord(f.val)+'\n'; break;
+          case 'OPCODE': out+='#opcode '+toHexWord(f.val)+(f.label?' // '+f.label:'')+'\n'; break;
+          case 'SECTION_START': out+='start {\n'; stack.push('start'); break;
+          case 'RESOURCE_ID_A': out+=indent()+'RESOURCE_ID_A = '+toHexWord(f.val)+'\n'; break;
+          case 'CTYPE_A': out+=indent()+'CTYPE_A = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_A, CTYPE_A)\n'; break;
+          case 'EXTENSION_DELIMITER': if(stack[stack.length-1]==='start'){stack.pop();out+='} ';} out+='extend {\n'; stack.push('extend'); break;
+          case 'CTYPE_B': out+=indent()+'CTYPE_B = '+toHexWord(f.val)+'\n'; break;
+          case 'NEST_DELIMITER_34': out+=indent()+'nest {\n'; stack.push('nest'); break;
+          case 'RESOURCE_ID_B': out+=indent()+'RESOURCE_ID_B = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_B, CTYPE_B)\n'; if(stack[stack.length-1]==='nest'){stack.pop();out+=indent()+'}\n';} break;
+          case 'SECTION_END': if(stack.length>0) stack.pop(); out+='}\n'; break;
+          case 'COMPARISON_VALUE': out+=indent()+'COMPARISON_VALUE = '+toHexWord(f.val)+'\n'+indent()+'compare(COMPARISON_VALUE)\n'; break;
+          case 'SUB_DELIM_32': out+=indent()+'// sub-delimiter 0x32\n'; break;
+          case 'TERMINATOR': out+=indent()+'TERMINATOR = '+toHexWord(f.val)+';\n'+indent()+'terminate(TERMINATOR)\n'; break;
+          case 'EOCI': out+=indent()+'// EOCI (End of Chain Instance)\n'; break;
+          default: out+=indent()+'// '+f.name+' '+toHexWord(f.val)+'\n';
+        }
+        maybeComment();
+      });
+      return out;
+    }
+
+    el('parseBtn').addEventListener('click',()=>{
+      el('log').textContent='';el('tree').innerHTML='';el('pseudo').textContent='';
+      try{
+        const bytes=parseInputToBytes(el('input').value);
+        log('Bytes: '+bytes.length);
+        const parsed=parseCondStrict(bytes,{force78:el('expectTerm78').checked, strict:el('strictMode').checked});
+        el('tree').appendChild(renderTree(parsed));
+        el('pseudo').textContent=renderPseudo(parsed);
+      }catch(e){log('Fatal: '+e.message);}  
+    });
+
+    el('sampleBtn').addEventListener('click',()=>{
+      el('input').value='00 00 00 00 f0 3b 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 01 32 00 00 00 01 78 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 02 32 00 00 00 01 78 8f 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 03 32 00 00 00 01 78 8f';
+      el('parseBtn').click();
+    });
+
+    el('clearBtn').addEventListener('click',()=>{el('input').value='';el('log').textContent='';el('tree').innerHTML='';el('pseudo').textContent='';});
+  </script>
+</body>
+</html>
