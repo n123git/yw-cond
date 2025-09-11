@@ -8,6 +8,25 @@
     .warning { color: #c77f00; font-weight: bold; }
     .error { color: #c00; font-weight: bold; }
     .muted { opacity: 0.6; }
+    /* more lightly weathered cut copper - I mean light CSS lol */
+
+    #pseudo {
+      white-space: pre;
+      font-family: monospace;
+    }
+    #pseudo span[data-off] {
+      display: block;
+      padding: 2px 4px;
+    }
+    #pseudo span[data-off].highlight {
+      background-color: yellow;
+      transition: background 1s ease;
+    }
+
+    .highlight {
+      background: yellow;
+      transition: background 1s ease;
+    }
   </style>
 </head>
 <body style="font-family:monospace;padding:10px;">
@@ -381,7 +400,7 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
 
 
     // UI actions
-    function doParseFromInput(text, opts){
+    function doParseFromInput(text, opts){ // why did I name it this way..........
       clearLog();
       el('tree').innerHTML = '';
       el('pseudo').textContent = '';
@@ -390,7 +409,7 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
         log('Bytes: ' + bytes.length);
         const parsed = parseCondStrict(bytes, { force78: el('expectTerm78').checked, strict: el('strictMode').checked });
         el('tree').appendChild(renderTree(parsed));
-        el('pseudo').textContent = renderPseudo(parsed);
+        el('pseudo').innerHTML = renderPseudo(parsed); // gotta love XSS risks js aside from being safe input this is all client side anyway - unless devtools console counts as a major security risk lmao :P
       } catch(e){
         log('Fatal: ' + e.message, 'error');
       }
