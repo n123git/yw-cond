@@ -5,21 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Yo-kai Watch Cond Parser</title>
   <style>
-    :root{ --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
-    body{ font-family:var(--mono); padding:12px; background:#fff; color:#111; }
-    textarea{ font-family:inherit; font-size:13px; }
-    button{ margin:6px 6px 6px 0; padding:6px 10px; border-radius:6px; border:1px solid #ccc; background:#f3f3f3; cursor:pointer; }
-    #controls{ margin:8px 0; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
-    #log, #pseudo{ background:#f8f8f8; padding:6px; overflow:auto; max-height:240px; white-space:pre-wrap; }
-    #tree{ white-space:pre-wrap; margin-top:6px; background: #fafafa; padding:8px; border-radius:6px; border:1px solid #eee; max-height:300px; overflow:auto;}
-    label{ font-size:13px; }
-    .warning{ color:darkorange; }
-    .error{ color:crimson; }
-    .muted{ color:#666; font-size:12px; }
-    footer{ margin-top:12px; font-size:12px; color:#666; }
   </style>
 </head>
-<body>
+<body style="font-family:monospace;padding:10px">
   <h2>Yo-kai Watch Cond Parser</h2>
 
   <label for="input" class="muted">Paste hex (spaced or continuous), or Base64</label>
