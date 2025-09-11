@@ -41,6 +41,18 @@
       background-color: rgba(100, 100, 255, 0.1);
       color: #333;
     }
+
+    /* even more CSS magic! :0 */
+    .tree-line::before {
+      content: '→ ';
+      opacity: 0.3;
+      transition: opacity 0.2s ease;
+    }
+
+    .tree-line:hover::before {
+      opacity: 0.7; 
+    }
+
   </style>
 </head>
 <body style="font-family:monospace;padding:10px;">
