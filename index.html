@@ -68,6 +68,9 @@
     <button id="clearBtn">Clear</button>
     <button id="copyPseudoBtn">Copy Pseudocode</button>
     <button id="downloadBtn">Download Psuedocode (cond.txt)</button>
+    <button id="generateBtn">Generate Known Cond(s)</button>
+
+
 
     <label><input type="checkbox" id="expectTerm78"> Only accept 0x78 terminator</label>
     <label><input type="checkbox" id="strictMode"> Strict mode (stop on first warning)</label>
@@ -79,6 +82,24 @@
   <h3>Pseudocode Output</h3>
   <pre id="pseudo"></pre>
 
+  <!-- Modal (hidden by default) -->
+<dialog id="generateModal">
+  <h3>Generate Known Cond(s)</h3>
+  <label>
+    Condition:
+    <select id="condSelect">
+      <option value="mainStory">Yo-kai Watch 2 – Main Story Completed</option>
+      <option value="rankXX">Yo-kai Watch 2 – Rank XX or higher</option>
+      <option value="hasItem">Yo-kai Watch 2 – Has Item</option>
+      <option value="tunnelXX">Yo-kai Watch 2 – Beaten Infinite Tunnel XX Times</option>
+    </select>
+  </label>
+  <div id="extraInputs"></div>
+  <div style="margin-top: 10px;">
+    <button id="generateCondBtn">Generate</button>
+    <button id="closeModalBtn">Cancel</button>
+  </div>
+</dialog>
   <script>
     /* lots of general codebase updates - and comments :0 */
     const el = id => document.getElementById(id);
@@ -499,7 +520,71 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
     });
     let x = document.createElement("footer");
     document.body.appendChild(x) // archiving my stupidity again - I almost released this with: document.getElementsByTagName("body")[0].appendChild(x)
-    x.outerHTML = `<footer style="font-size: large;">yw-cond. Version: <span id="vdisplay">${ver}</span></footer>`
+    x.outerHTML = `<footer style="font-size: large;">yw-cond. Version: <span id="vdisplay">${ver}</span></footer>`;
+   const generateModal = el('generateModal');
+  const condSelect = el('condSelect');
+  const extraInputs = el('extraInputs');
+
+  const condTemplates = {
+    mainStory: { 
+      type: "b64",
+      value: "AAAAAA8FNRCxQJYAAQAyAAAAAXg="
+    },
+    rankXX: {
+      type: "hex",
+      template: "00 00 00 00 0f 05 35 dd 77 26 95 00 01 00 32 00 00 00 {RANK} 71",
+      params: [{ name: "RANK", label: "Rank (00–FF)", placeholder: "e.g. 06" }]
+    },
+    hasItem: {
+      type: "hex",
+      template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 01 78",
+      params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1A 00 00 00" }]
+    },
+    tunnelXX: {
+      type: "hex",
+      template: "00 00 00 00 18 05 35 9e 99 84 8c 00 0a 01 28 00 06 02 34 89 20 ff e7 32 00 00 00 {COUNT} 78",
+      params: [{ name: "COUNT", label: "Times Beaten (00–FF)", placeholder: "e.g. 05" }]
+    }
+  };
+
+  function updateExtraInputs() {
+    extraInputs.innerHTML = "";
+    const selected = condTemplates[condSelect.value];
+    if (selected?.params) {
+      selected.params.forEach(p => {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = p.placeholder;
+        input.id = "param_" + p.name;
+        input.style = "margin-left:5px;";
+        const label = document.createElement("label");
+        label.textContent = p.label + ": ";
+        label.appendChild(input);
+        extraInputs.appendChild(label);
+        extraInputs.appendChild(document.createElement("br"));
+      });
+    }
+  }
+
+  condSelect.addEventListener("change", updateExtraInputs);
+  updateExtraInputs();
+
+  el('generateBtn').addEventListener('click', () => generateModal.showModal());
+  el('closeModalBtn').addEventListener('click', () => generateModal.close());
+
+  el('generateCondBtn').addEventListener('click', () => {
+    const selected = condTemplates[condSelect.value];
+    let finalText = selected.value || selected.template;
+    if (selected.params) {
+      selected.params.forEach(p => {
+        const val = el("param_" + p.name).value.trim();
+        finalText = finalText.replace("{" + p.name + "}", val);
+      });
+    }
+    el('input').value = finalText;
+    generateModal.close();
+    doParseFromInput(finalText);
+  });
   </script>
 </body>
 </html>
