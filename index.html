@@ -103,7 +103,7 @@
   <script>
     /* lots of general codebase updates - and comments :0 */
     const el = id => document.getElementById(id);
-    let ver = 1.21551;
+    let ver = 1.22;
 
     const hexChars = /^[0-9a-fA-F]+$/;
 
@@ -538,7 +538,7 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
     hasItem: {
       type: "hex",
       template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 01 78",
-      params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1A 00 00 00" }]
+      params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1678239 or 0x638297A etc" }]
     },
     tunnelXX: {
       type: "hex",
@@ -572,18 +572,51 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
   el('generateBtn').addEventListener('click', () => generateModal.showModal());
   el('closeModalBtn').addEventListener('click', () => generateModal.close());
 
+  // --- Helper Functions ---
+  function intToHexNoPad(n) {
+    const hex = n.toString(16).toUpperCase();
+    return hex.length % 2 ? '0' + hex : hex; // ensure even number of digits
+  }
+
+  function parseItemId(input) {
+    let num;
+    if (input.startsWith("0x") || input.startsWith("0X")) {
+      num = parseInt(input, 16);
+    } else {
+      num = parseInt(input, 10);
+    }
+    if (isNaN(num)) throw new Error("Invalid item ID");
+    num = (num >> 0); // force to 32-bit signed
+    const arr = new Uint8Array(4);
+    const dv = new DataView(arr.buffer);
+    dv.setInt32(0, num, true); // little endian
+    return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join(" ");
+  }
+
   el('generateCondBtn').addEventListener('click', () => {
     const selected = condTemplates[condSelect.value];
     let finalText = selected.value || selected.template;
-    if (selected.params) {
-      selected.params.forEach(p => {
-        const val = el("param_" + p.name).value.trim();
-        finalText = finalText.replace("{" + p.name + "}", val);
-      });
+
+    try {
+      if (selected.params) {
+        selected.params.forEach(p => {
+          let val = el("param_" + p.name).value.trim();
+          if (p.name === "RANK" || p.name === "COUNT") {
+            const intVal = parseInt(val, 10);
+            if (isNaN(intVal) || intVal < 0 || intVal > 255) throw new Error("Invalid " + p.label);
+            val = intToHexNoPad(intVal); // convert to unpadded hex
+          } else if (p.name === "ITEM") {
+            val = parseItemId(val);
+          }
+          finalText = finalText.replace("{" + p.name + "}", val);
+        });
+      }
+      el('input').value = finalText;
+      generateModal.close();
+      doParseFromInput(finalText);
+    } catch (err) {
+      log("Generation failed: " + err.message, "error");
     }
-    el('input').value = finalText;
-    generateModal.close();
-    doParseFromInput(finalText);
   });
   </script>
 </body>
