@@ -27,7 +27,7 @@
   <pre id="pseudo" style="background:#f8f8f8;padding:6px;overflow:auto;min-height:80px;white-space:pre-wrap"></pre>
 
   <script> /* ive made so many changes - im too lazy to write comments (sorry :<); not even sarcastic ones laughing at my code >>:(( */
-    let ver = 1;
+    let ver = 1.1;
     const el = id => document.getElementById(id);
     const hexChars = /^[0-9a-fA-F]+$/;
     function toHex(b){ return b.toString(16).padStart(2,'0').toUpperCase(); }
@@ -62,66 +62,171 @@
       skip(n){ this.pos += n; }
     }
 
-    function parseCondStrict(bytes, opts={force78:false, strict:false}){
-      const r = new Reader(bytes);
-      const result = { fields: [], warnings: [], errors: [], stopped:false, skipped: [] };
-      const knownOpcodes = { '0F05': 'Compare Constant', '1805': 'Compare Flag', 'F03B': 'Chain? Opcode' };
 
-      function f(name, len){ const off = r.offset(); const val = r.read(len); result.fields.push({name, off, val}); return val; }
-      function fb(name){ const off = r.offset(); const v = r.readByte(); result.fields.push({name, off, val: new Uint8Array([v])}); return v; }
-      function warn(msg){ result.warnings.push({msg}); if(opts.strict){ result.stopped=true; throw new Error('Strict stop: '+msg); } }
-      function error(msg){ result.errors.push({msg}); if(opts.strict){ result.stopped=true; throw new Error('Strict stop: '+msg); } }
+exampleso = { // unused for now
+  '300B': '00 00 00 00 30 0b 32 00 00 00 51 35 b8 05 54 8c 00 0a 01 28 00 06 02 34 42 c8 82 84 6f 35 b8 05 54 8c 00 0a 01 28 00 06 02 34 42 c8 82 84 32 00 00 00 64 6f 8f',
+}
+function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
+  const r = new Reader(bytes);
+  const result = { fields: [], warnings: [], errors: [], stopped: false, skipped: [] };
+  const knownOpcodes = {
+    '0F05': 'Basic Cond (Basic constant checking)',
+    '1805': 'Basic Extension Cond (Used for flags)',
+    'F03B': 'Chain? Opcode (Rarely used)',
+    '300B': 'CompareFirst?? (Weird Order)',
+  };
 
-      function parseSection(){
-        const startOff = r.offset();
-        const s = fb('SECTION_START');
-        if(s !== 0x35) warn('Expected SECTION_START 0x35 at '+startOff+', got '+toHex(s));
+  function f(name, len) {
+    const off = r.offset();
+    const val = r.read(len);
+    result.fields.push({ name, off, val });
+    return val;
+  }
+  function fb(name) {
+    const off = r.offset();
+    const v = r.readByte();
+    result.fields.push({ name, off, val: new Uint8Array([v]) });
+    return v;
+  }
+  function warn(msg) {
+    result.warnings.push({ msg });
+    if (opts.strict) {
+      result.stopped = true;
+      throw new Error('Strict stop: ' + msg);
+    }
+  }
+  function error(msg) {
+    result.errors.push({ msg });
+    if (opts.strict) {
+      result.stopped = true;
+      throw new Error('Strict stop: ' + msg);
+    }
+  }
 
-        if(r.rem()<4) return error('Not enough bytes for RESOURCE_ID');
-        const rid = f('RESOURCE_ID_A', 4);
+  function parseSection() {
+    const startOff = r.offset();
+    const s = fb('SECTION_START');
+    if (s !== 0x35) warn('Expected SECTION_START 0x35 at ' + startOff + ', got ' + toHex(s));
 
-        if(r.rem()>=3){
-          const ctypeA = f('CTYPE_A', 3);
-          const cHex = Array.from(ctypeA).map(toHex).join(' ');
-          if(cHex !== '00 0A 01' && !(ctypeA[0]===0x00 && ctypeA[2]===0x01)) warn('Unknown CTYPE_A '+cHex+', treating as extended');
+    if (r.rem() < 4) return error('Not enough bytes for RESOURCE_ID');
+    const rid = f('RESOURCE_ID_A', 4);
+
+    if (r.rem() >= 3) {
+      const ctypeA = f('CTYPE_A', 3);
+      const cHex = Array.from(ctypeA).map(toHex).join(' ');
+      if (cHex !== '00 0A 01' && !(ctypeA[0] === 0x00 && ctypeA[2] === 0x01))
+        warn('Unknown CTYPE_A ' + cHex + ', treating as extended');
+    }
+
+    if (r.peekByte() === 0x28) {
+      fb('EXTENSION_DELIMITER');
+      if (r.rem() >= 3) f('CTYPE_B', 3);
+      else warn('Truncated CTYPE_B');
+      if (r.peekByte() === 0x34) {
+        fb('NEST_DELIMITER_34');
+        if (r.rem() >= 4) f('RESOURCE_ID_B', 4);
+        else warn('Truncated RESOURCE_ID_B');
+      }
+    }
+
+    if (r.peekByte() === 0x32) fb('SECTION_END');
+    else warn('Missing SECTION_END before comparison');
+
+    while (r.rem() > 0) {
+      const p = r.peekByte();
+      if (p === 0x8F) {
+        fb('EOCI');
+        break;
+      }
+      if (p === 0x35) break;
+      if (p === 0x32) {
+        fb('SUB_DELIM_32');
+        if (r.rem() >= 4) f('COMPARISON_VALUE', 4);
+        else warn('Truncated comparison');
+        continue;
+      }
+      if (p === 0x78 || p === 0x71 || p === 0x6F) {
+        const t = fb('TERMINATOR');
+        const allowed = opts.force78 ? [0x78] : [0x71, 0x78, 0x6F];
+        if (!allowed.includes(t)) warn('Unknown terminator ' + toHex(t));
+        continue;
+      }
+      if (r.rem() >= 4) {
+        f('COMPARISON_VALUE', 4);
+        continue;
+      }
+      warn('Unexpected byte ' + toHex(p) + ' at ' + r.offset());
+      result.skipped.push(r.offset());
+      fb('TRAILING_BYTE');
+      break;
+    }
+  }
+
+  try {
+    while (r.rem() > 0 && !result.stopped) {
+      // HEADER
+      if (r.rem() >= 4 && r.bytes.slice(r.pos, r.pos + 4).every(b => b === 0)) f('HEADER', 4);
+
+      // EOCI without terminator
+      if (r.peekByte() === 0x8F) {
+        warn('EOCI encountered without preceding terminator at ' + r.offset());
+        fb('EOCI');
+        continue;
+      }
+
+      // SECTION START
+      if (r.peekByte() === 0x35) {
+        parseSection();
+        continue;
+      }
+
+      // OPCODES
+      if (r.rem() >= 2) {
+        const op = f('OPCODE', 2);
+        const opHex = Array.from(op).map(toHex).join('');
+        if (!knownOpcodes[opHex]) warn('Unknown opcode ' + opHex + ' at ' + (r.offset() - 2));
+        else result.fields[result.fields.length - 1].label = knownOpcodes[opHex];
+
+        // SPECIAL CASE: 30 0B now has comparison value before section
+        if (opHex === '300B') {
+          if (r.peekByte() === 0x32) fb('SUB_DELIM_32');
+          if (r.rem() >= 4) f('COMPARISON_VALUE', 4);
+          else warn('Truncated comparison value after opcode 300B');
         }
 
-        if(r.peekByte()===0x28){ fb('EXTENSION_DELIMITER'); if(r.rem()>=3) f('CTYPE_B', 3); else warn('Truncated CTYPE_B'); if(r.peekByte()===0x34){ fb('NEST_DELIMITER_34'); if(r.rem()>=4) f('RESOURCE_ID_B', 4); else warn('Truncated RESOURCE_ID_B'); } }
+        // If section follows, parse it
+        if (r.peekByte() === 0x35) {
+          parseSection();
+          continue;
+        }
 
-        if(r.peekByte()===0x32){ fb('SECTION_END'); } else warn('Missing SECTION_END before comparison');
-
-        while(r.rem()>0){
-          const p = r.peekByte();
-          if(p===0x8F){ fb('EOCI'); break; }
-          if(p===0x35) break;
-          if(p===0x32){ fb('SUB_DELIM_32'); if(r.rem()>=4) f('COMPARISON_VALUE',4); else warn('Truncated comparison'); continue; }
-          if(p===0x78||p===0x71||p===0x6F){ const t=fb('TERMINATOR'); const allowed=opts.force78?[0x78]:[0x71,0x78,0x6F]; if(!allowed.includes(t)) warn('Unknown terminator '+toHex(t)); continue; }
-          if(r.rem()>=4){ f('COMPARISON_VALUE',4); continue; }
-          warn('Unexpected byte '+toHex(p)+' at '+r.offset()); result.skipped.push(r.offset()); fb('TRAILING_BYTE'); break;
+        // Otherwise look ahead
+        const lookahead = r.bytes.slice(r.pos, r.pos + 16);
+        const idx = lookahead.indexOf(0x35);
+        if (idx >= 0) {
+          warn('Opcode not immediately followed by section start; skipping ' + idx + ' bytes to @' + (r.offset() + idx));
+          result.skipped.push(r.offset());
+          r.skip(idx);
+          continue;
+        } else {
+          warn('Opcode not followed by section start; stopping parse');
+          break;
         }
       }
 
-      try{
-        while(r.rem()>0 && !result.stopped){
-          if(r.rem()>=4 && r.bytes.slice(r.pos,r.pos+4).every(b=>b===0)) f('HEADER',4);
-          if(r.peekByte()===0x8F){ warn('EOCI encountered without preceding terminator at '+r.offset()); fb('EOCI'); continue; }
-          if(r.peekByte()===0x35){ parseSection(); continue; }
-          if(r.rem()>=2){
-            const op=f('OPCODE',2); const opHex=Array.from(op).map(toHex).join('');
-            if(!knownOpcodes[opHex]) warn('Unknown opcode '+opHex+' at '+(r.offset()-2));
-            else result.fields[result.fields.length-1].label=knownOpcodes[opHex];
-            if(r.peekByte()===0x35){ parseSection(); continue; }
-            const lookahead=r.bytes.slice(r.pos, r.pos+16); const idx=lookahead.indexOf(0x35);
-            if(idx>=0){ warn('Opcode not immediately followed by section start; skipping '+idx+' bytes'); result.skipped.push(r.offset()); r.skip(idx); continue; }
-            else { warn('Opcode not followed by section start; stopping parse'); break; }
-          }
-          if(r.rem()>0){ result.skipped.push(r.offset()); f('TRAILING', r.rem()); break; }
-        }
-      }catch(e){ if(!result.stopped) error(e.message); }
-
-      return result;
+      // Any remaining bytes -> trailing
+      if (r.rem() > 0) {
+        result.skipped.push(r.offset());
+        f('TRAILING', r.rem());
+        break;
+      }
     }
+  } catch (e) {
+    if (!result.stopped) error(e.message);
+  }
 
+  return result;
+}
   function renderTree(parsed){
     console.log("// parsed with yw-cond v"+ver)
     console.log(parsed)
