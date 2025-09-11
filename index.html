@@ -185,6 +185,7 @@
 
           const isKnown = knownCTypes.includes(cHex) || (ctypeA[0] === 0x00 && ctypeA[2] === 0x01); // keep old check because I forgot why I had it >:(
           if (!isKnown) warn('Unknown CTYPE_A ' + cHex + ', treating as extended');
+        }
         if (r.peekByte() === 0x28) {
           fb('EXTENSION_DELIMITER');
           if (r.rem() >= 3) f('CTYPE_B', 3);
