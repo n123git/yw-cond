@@ -350,7 +350,7 @@
           case 'COMPARISON_VALUE': out+=indent()+'COMPARISON_VALUE = '+toHexWord(f.val)+'\n'+indent()+'compare(COMPARISON_VALUE)\n'; break;
           case 'SUB_DELIM_32': out+=indent()+'// sub-delimiter 0x32\n'; break;
           case 'TERMINATOR': out+=indent()+'TERMINATOR = '+toHexWord(f.val)+';\n'+indent()+'terminate(TERMINATOR)\n'; break;
-          case 'EOCI': out+=indent()+'// EOCI (End of Chain Instance)\n'; break;
+          case 'EOCI': out+=indent()+'end-chain; // EOCI (End of Chain Instance)\n'; break;
           default: out+=indent()+'// '+f.name+' '+toHexWord(f.val)+'\n';
         }
         maybeComment();
