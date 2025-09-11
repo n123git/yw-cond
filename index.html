@@ -4,49 +4,129 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Yo-kai Watch Cond Parser</title>
+  <style>
+    :root{ --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
+    body{ font-family:var(--mono); padding:12px; background:#fff; color:#111; }
+    textarea{ font-family:inherit; font-size:13px; }
+    button{ margin:6px 6px 6px 0; padding:6px 10px; border-radius:6px; border:1px solid #ccc; background:#f3f3f3; cursor:pointer; }
+    #controls{ margin:8px 0; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+    #log, #pseudo{ background:#f8f8f8; padding:6px; overflow:auto; max-height:240px; white-space:pre-wrap; }
+    #tree{ white-space:pre-wrap; margin-top:6px; background: #fafafa; padding:8px; border-radius:6px; border:1px solid #eee; max-height:300px; overflow:auto;}
+    label{ font-size:13px; }
+    .warning{ color:darkorange; }
+    .error{ color:crimson; }
+    .muted{ color:#666; font-size:12px; }
+    footer{ margin-top:12px; font-size:12px; color:#666; }
+  </style>
 </head>
-<body style="font-family:monospace;padding:10px">
+<body>
   <h2>Yo-kai Watch Cond Parser</h2>
-  <textarea id="input" placeholder="Paste hex or base64 here" style="width:100%;min-height:120px"></textarea><br>
-  <button id="parseBtn">Parse Hex</button>
-  <button onclick="
-    const s = atob(document.getElementById('input').value); // final finishing touch since im releasing this
-    const hex = Array.from(s).map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join(' ');
-    document.getElementById('input').value = hex;
-    document.getElementById('parseBtn').click();
-  ">Parse Base64</button>
 
-  <button id="sampleBtn">Load Sample</button>
-  <button id="clearBtn">Clear</button>
-  <label style="margin-left:8px"><input type="checkbox" id="expectTerm78"> Only accept 0x78 terminator</label>
-  <label style="margin-left:8px"><input type="checkbox" id="strictMode"> Strict mode (stop on first warning)</label>
+  <label for="input" class="muted">Paste hex (spaced or continuous), or Base64</label>
+  <textarea id="input" placeholder="Paste hex (e.g. '00 0A 01') or base64 here" style="width:100%;min-height:140px"></textarea>
 
-  <pre id="log" style="background:#f8f8f8;padding:6px;overflow:auto;max-height:200px"></pre>
-  <div id="tree" style="white-space:pre-wrap;margin-top:6px"></div>
+  <div id="controls">
+    <button id="parseBtn" title="Parse input (Ctrl+Enter)">Parse</button>
+    <button id="parseB64Btn" title="Try to decode input as Base64 then parse">Parse Base64</button>
+    <button id="sampleBtn">Load Sample</button>
+    <button id="clearBtn">Clear</button>
+    <button id="copyPseudoBtn">Copy Pseudocode</button>
+    <button id="downloadBtn">Download .cond</button>
+
+    <label><input type="checkbox" id="expectTerm78"> Only accept 0x78 terminator</label>
+    <label><input type="checkbox" id="strictMode"> Strict mode (stop on first warning)</label>
+  </div>
+
+  <pre id="log" aria-live="polite"></pre>
+  <div id="tree" role="region" aria-label="Parsed tree"></div>
+
   <h3>Pseudocode Output</h3>
-  <pre id="pseudo" style="background:#f8f8f8;padding:6px;overflow:auto;min-height:80px;white-space:pre-wrap"></pre>
+  <pre id="pseudo"></pre>
 
-  <script> /* ive made so many changes - im too lazy to write comments (sorry :<); not even sarcastic ones laughing at my code >>:(( */
-    let ver = 1.1;
+  <script>
+    /* lots of general codebase updates - and comments :0 */
     const el = id => document.getElementById(id);
+    let ver = 1.2;
+
     const hexChars = /^[0-9a-fA-F]+$/;
+
     function toHex(b){ return b.toString(16).padStart(2,'0').toUpperCase(); }
-    function toHexWord(bytes){ return '0x' + Array.from(bytes).map(toHex).join(''); }
-    function log(msg){ el('log').textContent += msg + '\n'; }
+    function toHexWord(bytes){ if(!bytes) return '0x'; return '0x' + Array.from(bytes).map(toHex).join(''); }
+
+    function log(msg, kind){
+      const container = el('log');
+      const prefix = kind === 'error' ? 'Error: ' : kind === 'warn' ? 'Warning: ' : '';
+      const line = prefix + msg;
+      container.textContent += line + '\n';
+      container.scrollTop = container.scrollHeight;
+    }
+    function clearLog(){ el('log').textContent = ''; }
+    normalizeInputRaw = text => (text||'').trim(); 
+
+    function tryDecodeBase64(s){
+      // support standard and URL-safe base64;
+      try {
+        // quick check - base64 has letters, numbers, +/-, and = for padding
+        return atob(s);
+      } catch(e){
+        // attempt URL-safe replacement and padding
+        try {
+          const urlFixed = s.replace(/-/g, '+').replace(/_/g, '/');
+          const pad = urlFixed.length % 4 === 0 ? urlFixed : urlFixed + '='.repeat(4 - (urlFixed.length % 4));
+          return atob(pad);
+        } catch(e2){
+          throw new Error('Not valid base64');
+        }
+      }
+    }
 
     function parseInputToBytes(text){
-      text = (text||'').trim();
+      text = normalizeInputRaw(text);
       if(!text) return new Uint8Array([]);
-      const cleaned = text.replace(/0x/gi,'').replace(/[<>,\-]/g,' ').replace(/\s+/g,' ').trim();
+
+      // If the input looks like base64 (no spaces, contains + or / or - or _), attempt to detect
+      const looksLikeBase64 = /^[A-Za-z0-9+\/=_\-]+$/.test(text) && !/[ \t\r\n:,\-<>]/.test(text);
+      if(looksLikeBase64){ // love my naming schema lmao
+        if(/[+\/=_\-]/.test(text) || /[G-Zg-z]/.test(text)) {
+          try {
+            const decoded = tryDecodeBase64(text);
+            const arr = new Uint8Array(decoded.length);
+            for(let i=0;i<decoded.length;i++) arr[i] = decoded.charCodeAt(i);
+            return arr;
+          } catch(e){
+            log('Base64 detection failed: ' + e.message, 'warn');
+          }
+        }
+      }
+
+      // Normalize hex: accept 0x, commas, colons, arrows, hyphens, angle brackets, newlines
+      const cleaned = text.replace(/0x/gi,'') // remove 0x
+                          .replace(/[:,\-<>]/g,' ') // separators -> spaces
+                          .replace(/\s+/g,' ') // collapse whitespace
+                          .trim();
+
+      // If it's continuous hex without spaces, split into pairs
       const parts = cleaned.split(' ');
       if(parts.length === 1 && parts[0].length > 2){
-        const s = parts[0]; if(s.length % 2 !== 0) throw new Error('Hex string must have even length');
+        const s = parts[0];
+        if(s.length % 2 !== 0) throw new Error('Hex string must have even length');
         const arr = new Uint8Array(s.length/2);
-        for(let i=0;i<arr.length;i++){ const h = s.substr(i*2,2); if(!hexChars.test(h)) throw new Error('Invalid hex'); arr[i]=parseInt(h,16); }
+        for(let i=0;i<arr.length;i++){
+          const h = s.substr(i*2,2);
+          if(!hexChars.test(h)) throw new Error('Invalid hex token: "'+h+'"');
+          arr[i]=parseInt(h,16);
+        }
         return arr;
       }
+
+      // Otherwise expect tokens!
       const bytes = new Uint8Array(parts.length);
-      for(let i=0;i<parts.length;i++){ const p = parts[i]; if(!hexChars.test(p)) throw new Error('Invalid hex token '+p); bytes[i]=parseInt(p,16); }
+      for(let i=0;i<parts.length;i++){
+        const p = parts[i].trim();
+        if(!hexChars.test(p)) throw new Error('Invalid hex token: "'+p+'"');
+        if(p.length !== 2) throw new Error('Expected 2-hex-digit tokens when separated by spaces, got "'+p+'"');
+        bytes[i]=parseInt(p,16);
+      }
       return bytes;
     }
 
@@ -62,196 +142,210 @@
       skip(n){ this.pos += n; }
     }
 
+    function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
+      const r = new Reader(bytes);
+      const result = { fields: [], warnings: [], errors: [], stopped: false, skipped: [] };
+      const knownOpcodes = {
+        '0F05': 'Basic Cond (Basic constant checking)',
+        '1805': 'Basic Extension Cond (Used for flags)',
+        'F03B': 'Chain? Opcode (Rarely used)',
+        '300B': 'CompareFirst?? (Weird Order)',
+      };
 
-exampleso = { // unused for now
-  '300B': '00 00 00 00 30 0b 32 00 00 00 51 35 b8 05 54 8c 00 0a 01 28 00 06 02 34 42 c8 82 84 6f 35 b8 05 54 8c 00 0a 01 28 00 06 02 34 42 c8 82 84 32 00 00 00 64 6f 8f',
-}
-function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
-  const r = new Reader(bytes);
-  const result = { fields: [], warnings: [], errors: [], stopped: false, skipped: [] };
-  const knownOpcodes = {
-    '0F05': 'Basic Cond (Basic constant checking)',
-    '1805': 'Basic Extension Cond (Used for flags)',
-    'F03B': 'Chain? Opcode (Rarely used)',
-    '300B': 'CompareFirst?? (Weird Order)',
-  };
-
-  function f(name, len) {
-    const off = r.offset();
-    const val = r.read(len);
-    result.fields.push({ name, off, val });
-    return val;
-  }
-  function fb(name) {
-    const off = r.offset();
-    const v = r.readByte();
-    result.fields.push({ name, off, val: new Uint8Array([v]) });
-    return v;
-  }
-  function warn(msg) {
-    result.warnings.push({ msg });
-    if (opts.strict) {
-      result.stopped = true;
-      throw new Error('Strict stop: ' + msg);
-    }
-  }
-  function error(msg) {
-    result.errors.push({ msg });
-    if (opts.strict) {
-      result.stopped = true;
-      throw new Error('Strict stop: ' + msg);
-    }
-  }
-
-  function parseSection() {
-    const startOff = r.offset();
-    const s = fb('SECTION_START');
-    if (s !== 0x35) warn('Expected SECTION_START 0x35 at ' + startOff + ', got ' + toHex(s));
-
-    if (r.rem() < 4) return error('Not enough bytes for RESOURCE_ID');
-    const rid = f('RESOURCE_ID_A', 4);
-
-    if (r.rem() >= 3) {
-      const ctypeA = f('CTYPE_A', 3);
-      const cHex = Array.from(ctypeA).map(toHex).join(' ');
-      if (cHex !== '00 0A 01' && !(ctypeA[0] === 0x00 && ctypeA[2] === 0x01))
-        warn('Unknown CTYPE_A ' + cHex + ', treating as extended');
-    }
-
-    if (r.peekByte() === 0x28) {
-      fb('EXTENSION_DELIMITER');
-      if (r.rem() >= 3) f('CTYPE_B', 3);
-      else warn('Truncated CTYPE_B');
-      if (r.peekByte() === 0x34) {
-        fb('NEST_DELIMITER_34');
-        if (r.rem() >= 4) f('RESOURCE_ID_B', 4);
-        else warn('Truncated RESOURCE_ID_B');
+      function f(name, len) {
+        const off = r.offset();
+        const val = r.read(len);
+        result.fields.push({ name, off, val });
+        return val;
       }
-    }
-
-    if (r.peekByte() === 0x32) fb('SECTION_END');
-    else warn('Missing SECTION_END before comparison');
-
-    while (r.rem() > 0) {
-      const p = r.peekByte();
-      if (p === 0x8F) {
-        fb('EOCI');
-        break;
+      function fb(name) {
+        const off = r.offset();
+        const v = r.readByte();
+        result.fields.push({ name, off, val: new Uint8Array([v]) });
+        return v;
       }
-      if (p === 0x35) break;
-      if (p === 0x32) {
-        fb('SUB_DELIM_32');
-        if (r.rem() >= 4) f('COMPARISON_VALUE', 4);
-        else warn('Truncated comparison');
-        continue;
+      function warn(msg) {
+        result.warnings.push({ msg });
+        if (opts.strict) {
+          result.stopped = true;
+          throw new Error('Strict stop: ' + msg);
+        }
       }
-      if (p === 0x78 || p === 0x71 || p === 0x6F) {
-        const t = fb('TERMINATOR');
-        const allowed = opts.force78 ? [0x78] : [0x71, 0x78, 0x6F];
-        if (!allowed.includes(t)) warn('Unknown terminator ' + toHex(t));
-        continue;
-      }
-      if (r.rem() >= 4) {
-        f('COMPARISON_VALUE', 4);
-        continue;
-      }
-      warn('Unexpected byte ' + toHex(p) + ' at ' + r.offset());
-      result.skipped.push(r.offset());
-      fb('TRAILING_BYTE');
-      break;
-    }
-  }
-
-  try {
-    while (r.rem() > 0 && !result.stopped) {
-      // HEADER
-      if (r.rem() >= 4 && r.bytes.slice(r.pos, r.pos + 4).every(b => b === 0)) f('HEADER', 4);
-
-      // EOCI without terminator
-      if (r.peekByte() === 0x8F) {
-        warn('EOCI encountered without preceding terminator at ' + r.offset());
-        fb('EOCI');
-        continue;
+      function error(msg) {
+        result.errors.push({ msg });
+        if (opts.strict) {
+          result.stopped = true;
+          throw new Error('Strict stop: ' + msg);
+        }
       }
 
-      // SECTION START
-      if (r.peekByte() === 0x35) {
-        parseSection();
-        continue;
-      }
+      function parseSection() {
+        const startOff = r.offset();
+        const s = fb('SECTION_START');
+        if (s !== 0x35) warn('Expected SECTION_START 0x35 at ' + startOff + ', got ' + toHex(s));
 
-      // OPCODES
-      if (r.rem() >= 2) {
-        const op = f('OPCODE', 2);
-        const opHex = Array.from(op).map(toHex).join('');
-        if (!knownOpcodes[opHex]) warn('Unknown opcode ' + opHex + ' at ' + (r.offset() - 2));
-        else result.fields[result.fields.length - 1].label = knownOpcodes[opHex];
+        if (r.rem() < 4) return error('Not enough bytes for RESOURCE_ID');
+        const rid = f('RESOURCE_ID_A', 4);
 
-        // SPECIAL CASE: 30 0B now has comparison value before section
-        if (opHex === '300B') {
-          if (r.peekByte() === 0x32) fb('SUB_DELIM_32');
-          if (r.rem() >= 4) f('COMPARISON_VALUE', 4);
-          else warn('Truncated comparison value after opcode 300B');
+        if (r.rem() >= 3) {
+          const ctypeA = f('CTYPE_A', 3);
+          const cHex = Array.from(ctypeA).map(toHex).join(' ');
+          const knownCTypes = [
+            '00 0A 01', // extended mode ctype (used in flag checks)
+            '00 01 00', // basic ctype - used for basic value checks
+          ];
+
+          const isKnown = knownCTypes.includes(cHex) || (ctypeA[0] === 0x00 && ctypeA[2] === 0x01); // keep old check because I forgot why I had it >:(
+          if (!isKnown) warn('Unknown CTYPE_A ' + cHex + ', treating as extended');
+        if (r.peekByte() === 0x28) {
+          fb('EXTENSION_DELIMITER');
+          if (r.rem() >= 3) f('CTYPE_B', 3);
+          else warn('Truncated CTYPE_B');
+          if (r.peekByte() === 0x34) {
+            fb('NEST_DELIMITER_34');
+            if (r.rem() >= 4) f('RESOURCE_ID_B', 4);
+            else warn('Truncated RESOURCE_ID_B');
+          }
         }
 
-        // If section follows, parse it
-        if (r.peekByte() === 0x35) {
-          parseSection();
-          continue;
-        }
+        if (r.peekByte() === 0x32) fb('SECTION_END');
+        else warn('Missing SECTION_END before comparison');
 
-        // Otherwise look ahead
-        const lookahead = r.bytes.slice(r.pos, r.pos + 16);
-        const idx = lookahead.indexOf(0x35);
-        if (idx >= 0) {
-          warn('Opcode not immediately followed by section start; skipping ' + idx + ' bytes to @' + (r.offset() + idx));
+        while (r.rem() > 0) {
+          const p = r.peekByte();
+          if (p === 0x8F) {
+            fb('EOCI');
+            break;
+          }
+          if (p === 0x35) break;
+          if (p === 0x32) {
+            fb('SUB_DELIM_32');
+            if (r.rem() >= 4) f('COMPARISON_VALUE', 4);
+            else warn('Truncated comparison');
+            continue;
+          }
+          if (p === 0x78 || p === 0x71 || p === 0x6F) {
+            const t = fb('TERMINATOR');
+            const allowed = opts.force78 ? [0x78] : [0x71, 0x78, 0x6F];
+            if (!allowed.includes(t)) warn('Unknown terminator ' + toHex(t));
+            continue;
+          }
+          if (r.rem() >= 4) {
+            f('COMPARISON_VALUE', 4);
+            continue;
+          }
+          warn('Unexpected byte ' + toHex(p) + ' at ' + r.offset());
           result.skipped.push(r.offset());
-          r.skip(idx);
-          continue;
-        } else {
-          warn('Opcode not followed by section start; stopping parse');
+          fb('TRAILING_BYTE');
           break;
         }
       }
 
-      // Any remaining bytes -> trailing
-      if (r.rem() > 0) {
-        result.skipped.push(r.offset());
-        f('TRAILING', r.rem());
-        break;
+      try {
+        while (r.rem() > 0 && !result.stopped) {
+          if (r.rem() >= 4 && r.bytes.slice(r.pos, r.pos + 4).every(b => b === 0)) f('HEADER', 4); // HEADER
+
+          // EOCI without terminator
+          if (r.peekByte() === 0x8F) {
+            warn('EOCI encountered without preceding terminator at ' + r.offset());
+            fb('EOCI');
+            continue;
+          }
+
+          // SECTION START
+          if (r.peekByte() === 0x35) {
+            parseSection();
+            continue;
+          }
+
+          // OPCODES
+          if (r.rem() >= 2) {
+            const op = f('OPCODE', 2);
+            const opHex = Array.from(op).map(toHex).join('');
+            if (!knownOpcodes[opHex]) warn('Unknown opcode ' + opHex + ' at ' + (r.offset() - 2));
+            else result.fields[result.fields.length - 1].label = knownOpcodes[opHex];
+
+            // SPECIAL CASE: 30 0B is weird; it has comparison value before section
+            if (opHex === '300B') {
+              if (r.peekByte() === 0x32) fb('SUB_DELIM_32');
+              if (r.rem() >= 4) f('COMPARISON_VALUE', 4);
+              else warn('Truncated comparison value after opcode 300B');
+            }
+
+            // If section follows, parse it
+            if (r.peekByte() === 0x35) {
+              parseSection();
+              continue;
+            }
+
+            // Otherwise look ahead for next section
+            const lookahead = r.bytes.slice(r.pos, r.pos + 64);
+            const idx = Array.from(lookahead).indexOf(0x35);
+            if (idx >= 0) {
+              warn('Opcode not immediately followed by section start; skipping ' + idx + ' bytes to @' + (r.offset() + idx));
+              result.skipped.push(r.offset());
+              r.skip(idx);
+              continue;
+            } else {
+              warn('Opcode not followed by section start; stopping parse');
+              break;
+            }
+          }
+
+          // Any remaining bytes -> trailing
+          if (r.rem() > 0) {
+            result.skipped.push(r.offset());
+            f('TRAILING', r.rem());
+            break;
+          }
+        }
+      } catch (e) {
+        if (!result.stopped) error(e.message);
       }
+
+      return result;
     }
-  } catch (e) {
-    if (!result.stopped) error(e.message);
-  }
 
-  return result;
-}
-  function renderTree(parsed){
-    console.log("// parsed with yw-cond v"+ver)
-    console.log(parsed)
-    const div=document.createElement('div');
-    const first=document.createElement('div');
-    first.textContent="// parsed with yw-cond v"+ver;
-    div.appendChild(first);
-    parsed.fields.forEach(f=>{
-      const hex=Array.from(f.val).map(toHex).join(' ');
-      const label=f.label?' '+f.label:'';
-      const line=document.createElement('div');
-      line.textContent=f.name+label+' @'+f.off+': '+hex;
-      div.appendChild(line);
-    });
-    parsed.warnings.forEach(w=>{const ln=document.createElement('div');ln.style.color='orange';ln.textContent='Warning: '+w.msg;div.appendChild(ln);});
-    parsed.errors.forEach(e=>{const ln=document.createElement('div');ln.style.color='red';ln.textContent='Error: '+e.msg;div.appendChild(ln);});
-    if(parsed.skipped.length>0){const ln=document.createElement('div');ln.style.color='gray';ln.textContent='Skipped offsets: '+parsed.skipped.join(', ');div.appendChild(ln);}
-    return div;
-  }
-
+    // Renderers
+    function renderTree(parsed){
+      const div=document.createElement('div');
+      const first=document.createElement('div');
+      first.textContent="// parsed with yw-cond v"+ver;
+      div.appendChild(first);
+      parsed.fields.forEach(f=>{
+        const hex = Array.from(f.val || []).map(toHex).join(' ');
+        const lbl = f.label ? ' ['+f.label+']' : '';
+        const line=document.createElement('div');
+        line.textContent = `${f.name + lbl} @${f.off}: ${hex}`;
+        div.appendChild(line);
+      });
+      parsed.warnings.forEach(w=>{
+        const ln=document.createElement('div');
+        ln.className='warning';
+        ln.textContent='Warning: '+w.msg;
+        div.appendChild(ln);
+      });
+      parsed.errors.forEach(e=>{
+        const ln=document.createElement('div');
+        ln.className='error';
+        ln.textContent='Error: '+e.msg;
+        div.appendChild(ln);
+      });
+      if(parsed.skipped.length>0){
+        const ln=document.createElement('div');
+        ln.className='muted';
+        ln.textContent='Skipped offsets: '+parsed.skipped.join(', ');
+        div.appendChild(ln);
+      }
+      return div;
+    }
 
     function renderPseudo(parsed){
-      let out="// parsed using yw-cond v" + ver+"\n"; const stack=[]; let lineCount=0;
-      function indent(){return '  '.repeat(stack.length);} 
-      function maybeComment(){ if(++lineCount % 10 === 0) out += indent()+'// @'+(parsed.fields[lineCount-1]?.off||'?')+'\n'; }
+      let out="// parsed using yw-cond v" + ver + "\n";
+      const stack=[];
+      let lineCount=0;
+      function indent(){ return '  '.repeat(stack.length); }
+      function maybeComment(){ if(++lineCount % 10 === 0) out += indent() + '// @' + (parsed.fields[lineCount-1]?.off||'?') + '\n'; }
       parsed.fields.forEach(f=>{
         switch(f.name){
           case 'HEADER': out+='#header '+toHexWord(f.val)+'\n'; break;
@@ -259,10 +353,10 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
           case 'SECTION_START': out+='start {\n'; stack.push('start'); break;
           case 'RESOURCE_ID_A': out+=indent()+'RESOURCE_ID_A = '+toHexWord(f.val)+'\n'; break;
           case 'CTYPE_A': out+=indent()+'CTYPE_A = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_A, CTYPE_A)\n'; break;
-          case 'EXTENSION_DELIMITER': if(stack[stack.length-1]==='start'){stack.pop();out+='} ';} out+='extend {\n'; stack.push('extend'); break;
+          case 'EXTENSION_DELIMITER': if(stack[stack.length-1]==='start'){ stack.pop(); out+='} '; } out+='extend {\n'; stack.push('extend'); break;
           case 'CTYPE_B': out+=indent()+'CTYPE_B = '+toHexWord(f.val)+'\n'; break;
           case 'NEST_DELIMITER_34': out+=indent()+'nest {\n'; stack.push('nest'); break;
-          case 'RESOURCE_ID_B': out+=indent()+'RESOURCE_ID_B = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_B, CTYPE_B)\n'; if(stack[stack.length-1]==='nest'){stack.pop();out+=indent()+'}\n';} break;
+          case 'RESOURCE_ID_B': out+=indent()+'RESOURCE_ID_B = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_B, CTYPE_B)\n'; if(stack[stack.length-1]==='nest'){ stack.pop(); out+=indent()+'}\n';} break;
           case 'SECTION_END': if(stack.length>0) stack.pop(); out+='}\n'; break;
           case 'COMPARISON_VALUE': out+=indent()+'COMPARISON_VALUE = '+toHexWord(f.val)+'\n'+indent()+'compare(COMPARISON_VALUE)\n'; break;
           case 'SUB_DELIM_32': out+=indent()+'// sub-delimiter 0x32\n'; break;
@@ -275,23 +369,80 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
       return out;
     }
 
-    el('parseBtn').addEventListener('click',()=>{
-      el('log').textContent='';el('tree').innerHTML='';el('pseudo').textContent='';
-      try{
-        const bytes=parseInputToBytes(el('input').value);
-        log('Bytes: '+bytes.length);
-        const parsed=parseCondStrict(bytes,{force78:el('expectTerm78').checked, strict:el('strictMode').checked});
+    // UI actions
+    function doParseFromInput(text, opts){
+      clearLog();
+      el('tree').innerHTML = '';
+      el('pseudo').textContent = '';
+      try {
+        const bytes = parseInputToBytes(text);
+        log('Bytes: ' + bytes.length);
+        const parsed = parseCondStrict(bytes, { force78: el('expectTerm78').checked, strict: el('strictMode').checked });
         el('tree').appendChild(renderTree(parsed));
-        el('pseudo').textContent=renderPseudo(parsed);
-      }catch(e){log('Fatal: '+e.message);}  
+        el('pseudo').textContent = renderPseudo(parsed);
+      } catch(e){
+        log('Fatal: ' + e.message, 'error');
+      }
+    }
+
+    el('parseBtn').addEventListener('click', ()=> doParseFromInput(el('input').value));
+
+    el('parseB64Btn').addEventListener('click', ()=>{
+      clearLog();
+      try {
+        const raw = el('input').value.trim();
+        const decoded = tryDecodeBase64(raw);
+        const hex = Array.from(decoded).map(c=>c.charCodeAt ? c.charCodeAt(0) : c).map(n=>n.toString(16).padStart(2,'0')).join(' ');
+        el('input').value = hex;
+        doParseFromInput(hex);
+      } catch(e){
+        log('Base64 decode failed: ' + e.message, 'error');
+      }
     });
 
-    el('sampleBtn').addEventListener('click',()=>{
-      el('input').value='00 00 00 00 f0 3b 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 01 32 00 00 00 01 78 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 02 32 00 00 00 01 78 8f 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 03 32 00 00 00 01 78 8f';
+    el('sampleBtn').addEventListener('click', ()=>{
+      el('input').value = '00 00 00 00 f0 3b 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 01 32 00 00 00 01 78 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 02 32 00 00 00 01 78 8f 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 03 32 00 00 00 01 78 8f';
       el('parseBtn').click();
     });
 
-    el('clearBtn').addEventListener('click',()=>{el('input').value='';el('log').textContent='';el('tree').innerHTML='';el('pseudo').textContent='';});
+    el('clearBtn').addEventListener('click', ()=>{
+      el('input').value=''; clearLog(); el('tree').innerHTML=''; el('pseudo').textContent='';
+    });
+
+    el('copyPseudoBtn').addEventListener('click', ()=>{
+      const txt = el('pseudo').textContent;
+      if(!txt) { log('Nothing to copy', 'warn'); return; }
+      navigator.clipboard?.writeText(txt).then(()=> log('Pseudocode copied to clipboard'), ()=> log('Copy failed', 'warn'));
+    });
+
+    el('downloadBtn').addEventListener('click', ()=>{
+      const pseudo = el('pseudo').textContent || '';
+      const blob = new Blob([pseudo], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cond.txt';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // keyboard shortcut: Ctrl+Enter to parse
+    el('input').addEventListener('keydown', (ev)=>{
+      if((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter'){
+        ev.preventDefault();
+        el('parseBtn').click();
+      }
+    });
+
+    // small check catch uncaught errors so they appear in log
+    window.addEventListener('error', (ev)=> {
+      log('Uncaught error: ' + (ev.error?.message || ev.message || ev), 'error');
+    });
+    let x = document.createElement("footer");
+    document.body.appendChild(x) // archiving my stupidity again - I almost released this with: document.getElementsByTagName("body")[0].appendChild(x)
+    x.outerHTML = `<footer>yw-cond. Version: <span id="vdisplay">${ver}</span></footer>`
   </script>
 </body>
 </html>
