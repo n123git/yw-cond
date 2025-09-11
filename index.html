@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Yo-kai Watch Cond Parser</title>
   <style>
+    .warning { color: #c77f00; font-weight: bold; }
+    .error { color: #c00; font-weight: bold; }
+    .muted { opacity: 0.6; }
   </style>
 </head>
 <body style="font-family:monospace;padding:10px;">
@@ -34,7 +37,7 @@
   <script>
     /* lots of general codebase updates - and comments :0 */
     const el = id => document.getElementById(id);
-    let ver = 1.21;
+    let ver = 1.215;
 
     const hexChars = /^[0-9a-fA-F]+$/;
 
@@ -72,42 +75,42 @@
       text = normalizeInputRaw(text);
       if(!text) return new Uint8Array([]);
 
-      // If the input looks like base64 (no spaces, contains + or / or - or _), attempt to detect
-      const looksLikeBase64 = /^[A-Za-z0-9+\/=_\-]+$/.test(text) && !/[ \t\r\n:,\-<>]/.test(text);
-      if(looksLikeBase64){ // love my naming schema lmao
-        if(/[+\/=_\-]/.test(text) || /[G-Zg-z]/.test(text)) {
-          try {
-            const decoded = tryDecodeBase64(text);
-            const arr = new Uint8Array(decoded.length);
-            for(let i=0;i<decoded.length;i++) arr[i] = decoded.charCodeAt(i);
-            return arr;
-          } catch(e){
-            log('Base64 detection failed: ' + e.message, 'warn');
-          }
-        }
-      }
+      // Check if it looks like hex first
+      const hexCandidate = text.replace(/0x/gi,'')
+                              .replace(/[:,\-<>]/g,'')
+                              .replace(/\s+/g,'')
+                              .trim();
 
-      // Normalize hex: accept 0x, commas, colons, arrows, hyphens, angle brackets, newlines
-      const cleaned = text.replace(/0x/gi,'') // remove 0x
-                          .replace(/[:,\-<>]/g,' ') // separators -> spaces
-                          .replace(/\s+/g,' ') // collapse whitespace
-                          .trim();
-
-      // If it's continuous hex without spaces, split into pairs
-      const parts = cleaned.split(' ');
-      if(parts.length === 1 && parts[0].length > 2){
-        const s = parts[0];
-        if(s.length % 2 !== 0) throw new Error('Hex string must have even length');
-        const arr = new Uint8Array(s.length/2);
+      const isAllHex = /^[0-9a-fA-F]*$/.test(hexCandidate);
+      if (isAllHex && hexCandidate.length % 2 === 0 && hexCandidate.length > 0) {
+        // decode as continuous hex
+        const arr = new Uint8Array(hexCandidate.length / 2);
         for(let i=0;i<arr.length;i++){
-          const h = s.substr(i*2,2);
-          if(!hexChars.test(h)) throw new Error('Invalid hex token: "'+h+'"');
-          arr[i]=parseInt(h,16);
+          const h = hexCandidate.substr(i*2,2);
+          arr[i] = parseInt(h,16);
         }
         return arr;
       }
 
-      // Otherwise expect tokens!
+      // Otherwise, if it's probably b64, try to decode it lol
+      const looksLikeBase64 = /^[A-Za-z0-9+\/=_\-]+$/.test(text) && !/[ \t\r\n:,\-<>]/.test(text);
+      if (looksLikeBase64) {
+        try {
+          const decoded = tryDecodeBase64(text);
+          const arr = new Uint8Array(decoded.length);
+          for(let i=0;i<decoded.length;i++) arr[i] = decoded.charCodeAt(i);
+          return arr;
+        } catch(e){
+          log('Base64 detection failed: ' + e.message, 'warn');
+        }
+      }
+
+      const cleaned = text.replace(/0x/gi,'') 
+                          .replace(/[:,\-<>]/g,' ') 
+                          .replace(/\s+/g,' ') 
+                          .trim();
+
+      const parts = cleaned.split(' ');
       const bytes = new Uint8Array(parts.length);
       for(let i=0;i<parts.length;i++){
         const p = parts[i].trim();
@@ -117,6 +120,7 @@
       }
       return bytes;
     }
+
 
     class Reader{
       constructor(u8){ this.bytes = u8; this.pos = 0; }
@@ -156,6 +160,7 @@
         result.warnings.push({ msg });
         if (opts.strict) {
           result.stopped = true;
+          alert('Strict stop: ' + msg)
           throw new Error('Strict stop: ' + msg);
         }
       }
@@ -163,6 +168,7 @@
         result.errors.push({ msg });
         if (opts.strict) {
           result.stopped = true;
+          alert('Strict stop: ' + msg)
           throw new Error('Strict stop: ' + msg);
         }
       }
@@ -303,61 +309,76 @@
       first.textContent="// parsed with yw-cond v"+ver;
       div.appendChild(first);
       parsed.fields.forEach(f=>{
-        const hex = Array.from(f.val || []).map(toHex).join(' ');
-        const lbl = f.label ? ' ['+f.label+']' : '';
-        const line=document.createElement('div');
-        line.textContent = `${f.name + lbl} @${f.off}: ${hex}`;
-        div.appendChild(line);
-      });
-      parsed.warnings.forEach(w=>{
-        const ln=document.createElement('div');
-        ln.className='warning';
-        ln.textContent='Warning: '+w.msg;
-        div.appendChild(ln);
-      });
-      parsed.errors.forEach(e=>{
-        const ln=document.createElement('div');
-        ln.className='error';
-        ln.textContent='Error: '+e.msg;
-        div.appendChild(ln);
-      });
-      if(parsed.skipped.length>0){
-        const ln=document.createElement('div');
-        ln.className='muted';
-        ln.textContent='Skipped offsets: '+parsed.skipped.join(', ');
-        div.appendChild(ln);
-      }
-      return div;
-    }
-
-    function renderPseudo(parsed){
-      let out="// parsed using yw-cond v" + ver + "\n";
-      const stack=[];
-      let lineCount=0;
-      function indent(){ return '  '.repeat(stack.length); }
-      function maybeComment(){ if(++lineCount % 10 === 0) out += indent() + '// @' + (parsed.fields[lineCount-1]?.off||'?') + '\n'; }
-      parsed.fields.forEach(f=>{
-        switch(f.name){
-          case 'HEADER': out+='#header '+toHexWord(f.val)+'\n'; break;
-          case 'OPCODE': out+='#opcode '+toHexWord(f.val)+(f.label?' // '+f.label:'')+'\n'; break;
-          case 'SECTION_START': out+='start {\n'; stack.push('start'); break;
-          case 'RESOURCE_ID_A': out+=indent()+'RESOURCE_ID_A = '+toHexWord(f.val)+'\n'; break;
-          case 'CTYPE_A': out+=indent()+'CTYPE_A = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_A, CTYPE_A)\n'; break;
-          case 'EXTENSION_DELIMITER': if(stack[stack.length-1]==='start'){ stack.pop(); out+='} '; } out+='extend {\n'; stack.push('extend'); break;
-          case 'CTYPE_B': out+=indent()+'CTYPE_B = '+toHexWord(f.val)+'\n'; break;
-          case 'NEST_DELIMITER_34': out+=indent()+'nest {\n'; stack.push('nest'); break;
-          case 'RESOURCE_ID_B': out+=indent()+'RESOURCE_ID_B = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_B, CTYPE_B)\n'; if(stack[stack.length-1]==='nest'){ stack.pop(); out+=indent()+'}\n';} break;
-          case 'SECTION_END': if(stack.length>0) stack.pop(); out+='}\n'; break;
-          case 'COMPARISON_VALUE': out+=indent()+'COMPARISON_VALUE = '+toHexWord(f.val)+'\n'+indent()+'compare(COMPARISON_VALUE)\n'; break;
-          case 'SUB_DELIM_32': out+=indent()+'// sub-delimiter 0x32\n'; break;
-          case 'TERMINATOR': out+=indent()+'TERMINATOR = '+toHexWord(f.val)+';\n'+indent()+'terminate(TERMINATOR)\n'; break;
-          case 'EOCI': out+=indent()+'end-chain; // EOCI (End of Chain Instance)\n'; break;
-          default: out+=indent()+'// '+f.name+' '+toHexWord(f.val)+'\n';
+      const hex = Array.from(f.val || []).map(toHex).join(' ');
+      const lbl = f.label ? ' ['+f.label+']' : '';
+      const line=document.createElement('div');
+      line.textContent = `${f.name + lbl} @${f.off}: ${hex}`;
+      line.dataset.off = f.off; // <-- store offset for linking
+      line.className = "tree-line";
+      line.style.cursor = "pointer";
+      line.addEventListener("click", () => {
+        const target = document.querySelector(`#pseudo span[data-off="${f.off}"]`);
+        if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+            target.classList.add("highlight");
+            setTimeout(() => target.classList.remove("highlight"), 1200);
         }
-        maybeComment();
       });
-      return out;
+      div.appendChild(line);
+    });
+    parsed.warnings.forEach(w=>{
+      const ln=document.createElement('div');
+      ln.className='warning';
+      ln.textContent='Warning: '+w.msg;
+      div.appendChild(ln);
+    });
+    parsed.errors.forEach(e=>{
+      const ln=document.createElement('div');
+      ln.className='error';
+      ln.textContent='Error: '+e.msg;
+      div.appendChild(ln);
+    });
+    if(parsed.skipped.length>0){
+      const ln=document.createElement('div');
+      ln.className='muted';
+      ln.textContent='Skipped offsets: '+parsed.skipped.join(', ');
+      div.appendChild(ln);
     }
+    return div;
+  }
+
+
+function renderPseudo(parsed){ // copy pasted from my dev copy :3
+  let out="// parsed using yw-cond v" + ver + "\n";
+  const stack=[];
+  let lineCount=0;
+  function indent(){ return '  '.repeat(stack.length); }
+  function maybeComment(){ if(++lineCount % 10 === 0) out += indent() + '// @' + (parsed.fields[lineCount-1]?.off||'?') + '\n'; }
+  parsed.fields.forEach(f=>{
+    const startTag = `<span data-off="${f.off}">`;
+    const endTag = `</span>`;
+    switch(f.name){
+      case 'HEADER': out+=startTag+'#header '+toHexWord(f.val)+endTag+'\n'; break;
+      case 'OPCODE': out+=startTag+'#opcode '+toHexWord(f.val)+(f.label?' // '+f.label:'')+endTag+'\n'; break;
+      case 'SECTION_START': out+=startTag+'start {'+endTag+'\n'; stack.push('start'); break;
+      case 'RESOURCE_ID_A': out+=startTag+indent()+'RESOURCE_ID_A = '+toHexWord(f.val)+endTag+'\n'; break;
+      case 'CTYPE_A': out+=startTag+indent()+'CTYPE_A = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_A, CTYPE_A)'+endTag+'\n'; break;
+      case 'EXTENSION_DELIMITER': if(stack[stack.length-1]==='start'){ stack.pop(); out+='} '; } out+=startTag+'extend {'+endTag+'\n'; stack.push('extend'); break;
+      case 'CTYPE_B': out+=startTag+indent()+'CTYPE_B = '+toHexWord(f.val)+endTag+'\n'; break;
+      case 'NEST_DELIMITER_34': out+=startTag+indent()+'nest {'+endTag+'\n'; stack.push('nest'); break;
+      case 'RESOURCE_ID_B': out+=startTag+indent()+'RESOURCE_ID_B = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_B, CTYPE_B)'+endTag+'\n'; if(stack[stack.length-1]==='nest'){ stack.pop(); out+=indent()+'}\n';} break;
+      case 'SECTION_END': if(stack.length>0) stack.pop(); out+=startTag+'}'+endTag+'\n'; break;
+      case 'COMPARISON_VALUE': out+=startTag+indent()+'COMPARISON_VALUE = '+toHexWord(f.val)+'\n'+indent()+'compare(COMPARISON_VALUE)'+endTag+'\n'; break;
+      case 'SUB_DELIM_32': out+=startTag+indent()+'// sub-delimiter 0x32'+endTag+'\n'; break;
+      case 'TERMINATOR': out+=startTag+indent()+'TERMINATOR = '+toHexWord(f.val)+';\n'+indent()+'terminate(TERMINATOR)'+endTag+'\n'; break;
+      case 'EOCI': out+=startTag+indent()+'end-chain; // EOCI (End of Chain Instance)'+endTag+'\n'; break;
+      default: out+=startTag+indent()+'// '+f.name+' '+toHexWord(f.val)+endTag+'\n';
+    }
+    maybeComment();
+  });
+  return out;
+}
+
 
     // UI actions
     function doParseFromInput(text, opts){
