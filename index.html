@@ -34,7 +34,7 @@
   <script>
     /* lots of general codebase updates - and comments :0 */
     const el = id => document.getElementById(id);
-    let ver = 1.2;
+    let ver = 1.21;
 
     const hexChars = /^[0-9a-fA-F]+$/;
 
@@ -213,9 +213,10 @@
             else warn('Truncated comparison');
             continue;
           }
-          if (p === 0x78 || p === 0x71 || p === 0x6F) {
+          let terminators = [0x71, 0x78, 0x6F, 0x79]
+          if (terminators.includes(Number(p))) { // dont know why im cooercing when previous versions used === anyway and that worked but....... whatever lmao :P
             const t = fb('TERMINATOR');
-            const allowed = opts.force78 ? [0x78] : [0x71, 0x78, 0x6F];
+            const allowed = opts.force78 ? [0x78] : terminators;
             if (!allowed.includes(t)) warn('Unknown terminator ' + toHex(t));
             continue;
           }
