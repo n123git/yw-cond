@@ -7,7 +7,7 @@
   <style>
   </style>
 </head>
-<body style="font-family:monospace;padding:10px;footer {font-size: large};">
+<body style="font-family:monospace;padding:10px;">
   <h2>Yo-kai Watch Cond Parser</h2>
 
   <label for="input" class="muted">Paste hex (spaced or continuous), or Base64</label>
@@ -431,7 +431,7 @@
     });
     let x = document.createElement("footer");
     document.body.appendChild(x) // archiving my stupidity again - I almost released this with: document.getElementsByTagName("body")[0].appendChild(x)
-    x.outerHTML = `<footer>yw-cond. Version: <span id="vdisplay">${ver}</span></footer>`
+    x.outerHTML = `<footer style="font-size: large;">yw-cond. Version: <span id="vdisplay">${ver}</span></footer>`
   </script>
 </body>
 </html>
