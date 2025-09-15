@@ -200,174 +200,194 @@
       skip(n){ this.pos += n; }
     }
 
-    function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
-      const r = new Reader(bytes);
-      const result = { fields: [], warnings: [], errors: [], stopped: false, skipped: [] };
-      const knownOpcodes = {
-        '0F05': 'Basic Cond (Basic constant checking)',
-        '1805': 'Basic Extension Cond (Used for flags)',
-        'F03B': 'Chain? Opcode (Rarely used)',
-        '300B': 'CompareFirst?? (Weird Order)',
-        "6017": "Also Chain??",
-      };
+function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
+  const r = new Reader(bytes);
+  const result = {
+    fields: [],
+    warnings: [],
+    errors: [],
+    skipped: [],
+    stopped: false
+  };
 
-      function f(name, len) {
-        const off = r.offset();
-        const val = r.read(len);
-        result.fields.push({ name, off, val });
-        return val;
-      }
-      function fb(name) {
-        const off = r.offset();
-        const v = r.readByte();
-        result.fields.push({ name, off, val: new Uint8Array([v]) });
-        return v;
-      }
-      function warn(msg) {
-        result.warnings.push({ msg });
-        if (opts.strict) {
-          result.stopped = true;
-          alert('Strict stop: ' + msg)
-          throw new Error('Strict stop: ' + msg);
-        }
-      }
-      function error(msg) {
-        result.errors.push({ msg });
-        if (opts.strict) {
-          result.stopped = true;
-          alert('Strict stop: ' + msg)
-          throw new Error('Strict stop: ' + msg);
-        }
-      }
+  // Helper to add a field
+  function addField(name, off, val, label) {
+    result.fields.push({ name, off, val, label });
+  }
 
-      function parseSection() {
-        const startOff = r.offset();
-        const s = fb('SECTION_START');
-        if (s !== 0x35) warn('Expected SECTION_START 0x35 at ' + startOff + ', got ' + toHex(s));
+  // Helper to handle warnings/errors
+  function warn(msg) {
+    result.warnings.push({ msg });
+    if (opts.strict) stop(`Strict mode: ${msg}`);
+  }
+  function error(msg) {
+    result.errors.push({ msg });
+    stop(msg);
+  }
+  function stop(reason) {
+    result.stopped = true;
+    throw new Error(reason);
+  }
 
-        if (r.rem() < 4) return error('Not enough bytes for RESOURCE_ID');
-        const rid = f('RESOURCE_ID_A', 4);
+  // Known opcodes
+  const knownOpcodes = {
+    '0F05': 'Basic Cond (Basic constant checking)',
+    '1805': 'Basic Extension Cond (Used for flags)',
+    'F03B': 'Chain? Opcode (Rarely used)',
+    '300B': 'CompareFirst?? (Weird Order)',
+    '6017': 'Also Chain??',
+  };
 
-        if (r.rem() >= 3) {
-          const ctypeA = f('CTYPE_A', 3);
-          const cHex = Array.from(ctypeA).map(toHex).join(' ');
-          const knownCTypes = [
-            '00 0A 01', // extended mode ctype (used in flag checks)
-            '00 01 00', // basic ctype - used for basic value checks
-          ];
+  // --- Small Parsing Functions ---
 
-          const isKnown = knownCTypes.includes(cHex) || (ctypeA[0] === 0x00 && ctypeA[2] === 0x01); // keep old check because I forgot why I had it >:(
-          if (!isKnown) warn('Unknown CTYPE_A ' + cHex + ', treating as extended');
-        }
-        if (r.peekByte() === 0x28) {
-          fb('EXTENSION_DELIMITER');
-          if (r.rem() >= 3) f('CTYPE_B', 3);
-          else warn('Truncated CTYPE_B');
-          if (r.peekByte() === 0x34) {
-            fb('NEST_DELIMITER_34');
-            if (r.rem() >= 4) f('RESOURCE_ID_B', 4);
-            else warn('Truncated RESOURCE_ID_B');
-          }
-        }
+  function parseHeader() {
+    const off = r.offset();
+    const val = r.read(4);
+    addField("HEADER", off, val);
+  }
 
-        if (r.peekByte() === 0x32) fb('SECTION_END');
-        else warn('Missing SECTION_END before comparison');
+  function parseOpcode() {
+    if (r.rem() < 2) return false;
+    const off = r.offset();
+    const val = r.read(2);
+    const hex = Array.from(val).map(toHex).join('');
+    const label = knownOpcodes[hex];
+    addField("OPCODE", off, val, label);
 
-        while (r.rem() > 0) {
-          const p = r.peekByte();
-          if (p === 0x8F) {
-            fb('EOCI');
-            break;
-          }
-          if (p === 0x35) break;
-          if (p === 0x32) {
-            fb('SUB_DELIM_32');
-            if (r.rem() >= 4) f('COMPARISON_VALUE', 4);
-            else warn('Truncated comparison');
-            continue;
-          }
-          let terminators = [0x71, 0x78, 0x6F, 0x79]
-          if (terminators.includes(Number(p))) { // dont know why im cooercing when previous versions used === anyway and that worked but....... whatever lmao :P
-            const t = fb('TERMINATOR');
-            const allowed = opts.force78 ? [0x78] : terminators;
-            if (!allowed.includes(t)) warn('Unknown terminator ' + toHex(t));
-            continue;
-          }
-          if (r.rem() >= 4) {
-            f('COMPARISON_VALUE', 4);
-            continue;
-          }
-          warn('Unexpected byte ' + toHex(p) + ' at ' + r.offset());
-          result.skipped.push(r.offset());
-          fb('TRAILING_BYTE');
-          break;
-        }
-      }
+    if (!label) warn(`Unknown opcode ${hex} at ${off}`);
+    if (hex === "300B") parseOpcodeComparison();
+    return true;
+  }
 
-      try {
-        while (r.rem() > 0 && !result.stopped) {
-          if (r.rem() >= 4 && r.bytes.slice(r.pos, r.pos + 4).every(b => b === 0)) f('HEADER', 4); // HEADER
-
-          // EOCI without terminator
-          if (r.peekByte() === 0x8F) {
-            warn('EOCI encountered without preceding terminator at ' + r.offset());
-            fb('EOCI');
-            continue;
-          }
-
-          // SECTION START
-          if (r.peekByte() === 0x35) {
-            parseSection();
-            continue;
-          }
-
-          // OPCODES
-          if (r.rem() >= 2) {
-            const op = f('OPCODE', 2);
-            const opHex = Array.from(op).map(toHex).join('');
-            if (!knownOpcodes[opHex]) warn('Unknown opcode ' + opHex + ' at ' + (r.offset() - 2));
-            else result.fields[result.fields.length - 1].label = knownOpcodes[opHex];
-
-            // SPECIAL CASE: 30 0B is weird; it has comparison value before section
-            if (opHex === '300B') {
-              if (r.peekByte() === 0x32) fb('SUB_DELIM_32');
-              if (r.rem() >= 4) f('COMPARISON_VALUE', 4);
-              else warn('Truncated comparison value after opcode 300B');
-            }
-
-            // If section follows, parse it
-            if (r.peekByte() === 0x35) {
-              parseSection();
-              continue;
-            }
-
-            // Otherwise look ahead for next section
-            const lookahead = r.bytes.slice(r.pos, r.pos + 64);
-            const idx = Array.from(lookahead).indexOf(0x35);
-            if (idx >= 0) {
-              warn('Opcode not immediately followed by section start; skipping ' + idx + ' bytes to @' + (r.offset() + idx));
-              result.skipped.push(r.offset());
-              r.skip(idx);
-              continue;
-            } else {
-              warn('Opcode not followed by section start; stopping parse');
-              break;
-            }
-          }
-
-          // Any remaining bytes -> trailing
-          if (r.rem() > 0) {
-            result.skipped.push(r.offset());
-            f('TRAILING', r.rem());
-            break;
-          }
-        }
-      } catch (e) {
-        if (!result.stopped) error(e.message);
-      }
-
-      return result;
+  function parseOpcodeComparison() {
+    if (r.peekByte() === 0x32) addField("SUB_DELIM_32", r.offset(), new Uint8Array([r.readByte()]));
+    if (r.rem() >= 4) {
+      const off = r.offset();
+      addField("COMPARISON_VALUE", off, r.read(4));
+    } else {
+      warn("Truncated comparison value after opcode 300B");
     }
+  }
+
+  function parseSection() {
+    const startOff = r.offset();
+    const s = r.readByte();
+    addField("SECTION_START", startOff, new Uint8Array([s]));
+    if (s !== 0x35) warn(`Expected SECTION_START 0x35 at ${startOff}, got ${toHex(s)}`);
+
+    if (r.rem() < 4) return error("Not enough bytes for RESOURCE_ID");
+    addField("RESOURCE_ID_A", r.offset(), r.read(4));
+
+    if (r.rem() >= 3) {
+      const ctypeAOff = r.offset();
+      const ctypeA = r.read(3);
+      addField("CTYPE_A", ctypeAOff, ctypeA);
+
+      const cHex = Array.from(ctypeA).map(toHex).join(" ");
+      const knownCTypes = ["00 0A 01", "00 01 00"];
+      if (!knownCTypes.includes(cHex) && !(ctypeA[0] === 0x00 && ctypeA[2] === 0x01))
+        warn("Unknown CTYPE_A " + cHex + ", treating as extended");
+    }
+
+    if (r.peekByte() === 0x28) {
+      addField("EXTENSION_DELIMITER", r.offset(), new Uint8Array([r.readByte()]));
+      if (r.rem() >= 3) addField("CTYPE_B", r.offset(), r.read(3));
+      else warn("Truncated CTYPE_B");
+
+      if (r.peekByte() === 0x34) {
+        addField("NEST_DELIMITER_34", r.offset(), new Uint8Array([r.readByte()]));
+        if (r.rem() >= 4) addField("RESOURCE_ID_B", r.offset(), r.read(4));
+        else warn("Truncated RESOURCE_ID_B");
+      }
+    }
+
+    if (r.peekByte() === 0x32) addField("SECTION_END", r.offset(), new Uint8Array([r.readByte()]));
+    else warn("Missing SECTION_END before comparison");
+
+    // parse comparisons / terminators
+    while (r.rem() > 0) {
+      const p = r.peekByte();
+
+      if (p === 0x8F) {
+        addField("EOCI", r.offset(), new Uint8Array([r.readByte()]));
+        break;
+      }
+      if (p === 0x35) break;
+
+      if (p === 0x32) {
+        addField("SUB_DELIM_32", r.offset(), new Uint8Array([r.readByte()]));
+        if (r.rem() >= 4) addField("COMPARISON_VALUE", r.offset(), r.read(4));
+        else warn("Truncated comparison");
+        continue;
+      }
+
+      const terminators = [0x71, 0x78, 0x6F, 0x79];
+      if (terminators.includes(p)) {
+        const t = r.readByte();
+        addField("TERMINATOR", r.offset() - 1, new Uint8Array([t]));
+        const allowed = opts.force78 ? [0x78] : terminators;
+        if (!allowed.includes(t)) warn("Unknown terminator " + toHex(t));
+        continue;
+      }
+
+      if (r.rem() >= 4) {
+        addField("COMPARISON_VALUE", r.offset(), r.read(4));
+        continue;
+      }
+
+      warn("Unexpected byte " + toHex(p) + " at " + r.offset());
+      result.skipped.push(r.offset());
+      r.readByte(); // consume
+      break;
+    }
+  }
+
+  // --- Main Parse Loop ---
+  try {
+    while (r.rem() > 0 && !result.stopped) {
+      if (r.rem() >= 4 && r.bytes.slice(r.pos, r.pos + 4).every(b => b === 0)) {
+        parseHeader();
+        continue;
+      }
+
+      if (r.peekByte() === 0x8F) {
+        warn(`EOCI encountered without preceding terminator at ${r.offset()}`);
+        addField("EOCI", r.offset(), new Uint8Array([r.readByte()]));
+        continue;
+      }
+
+      if (r.peekByte() === 0x35) {
+        parseSection();
+        continue;
+      }
+
+      if (!parseOpcode()) break;
+
+      if (r.peekByte() === 0x35) {
+        parseSection();
+        continue;
+      }
+
+      // Look ahead for a section start; if found, skip to it
+      const lookahead = r.bytes.slice(r.pos, r.pos + 64);
+      const idx = Array.from(lookahead).indexOf(0x35);
+      if (idx >= 0) {
+        warn(`Opcode not immediately followed by section start; skipping ${idx} bytes to @${r.offset() + idx}`);
+        result.skipped.push(r.offset());
+        r.skip(idx);
+        continue;
+      } else {
+        warn("Opcode not followed by section start; stopping parse");
+        break;
+      }
+    }
+  } catch (e) {
+    if (!result.stopped) error(e.message);
+  }
+
+  return result;
+}
+
 
     // Renderers
     function renderTree(parsed){
