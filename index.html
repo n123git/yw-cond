@@ -229,11 +229,11 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
     throw new Error(reason);
   }
 
-  // Known opcodes
-  const knownOpcodes = {
+  // Known condcodes
+  const knowncondCodes = {
     '0F05': 'Basic Cond (Basic constant checking)',
     '1805': 'Basic Extension Cond (Used for flags)',
-    'F03B': 'Chain? Opcode (Rarely used)',
+    'F03B': 'Chain? condCode (Rarely used)',
     '300B': 'CompareFirst?? (Weird Order)',
     '6017': 'Also Chain??',
   };
@@ -246,26 +246,26 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
     addField("HEADER", off, val);
   }
 
-  function parseOpcode() {
+  function parsecondCode() {
     if (r.rem() < 2) return false;
     const off = r.offset();
     const val = r.read(2);
     const hex = Array.from(val).map(toHex).join('');
-    const label = knownOpcodes[hex];
-    addField("OPCODE", off, val, label);
+    const label = knowncondCodes[hex];
+    addField("CONDCODE", off, val, label);
 
-    if (!label) warn(`Unknown opcode ${hex} at ${off}`);
-    if (hex === "300B") parseOpcodeComparison();
+    if (!label) warn(`Unknown condCode ${hex} at ${off}`);
+    if (hex === "300B") parsecondCodeComparison();
     return true;
   }
 
-  function parseOpcodeComparison() {
+  function parsecondCodeComparison() {
     if (r.peekByte() === 0x32) addField("SUB_DELIM_32", r.offset(), new Uint8Array([r.readByte()]));
     if (r.rem() >= 4) {
       const off = r.offset();
       addField("COMPARISON_VALUE", off, r.read(4));
     } else {
-      warn("Truncated comparison value after opcode 300B");
+      warn("Truncated comparison value after condCode 300B");
     }
   }
 
@@ -361,7 +361,7 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
         continue;
       }
 
-      if (!parseOpcode()) break;
+      if (!parsecondCode()) break;
 
       if (r.peekByte() === 0x35) {
         parseSection();
@@ -372,12 +372,12 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
       const lookahead = r.bytes.slice(r.pos, r.pos + 64);
       const idx = Array.from(lookahead).indexOf(0x35);
       if (idx >= 0) {
-        warn(`Opcode not immediately followed by section start; skipping ${idx} bytes to @${r.offset() + idx}`);
+        warn(`condCode not immediately followed by section start; skipping ${idx} bytes to @${r.offset() + idx}`);
         result.skipped.push(r.offset());
         r.skip(idx);
         continue;
       } else {
-        warn("Opcode not followed by section start; stopping parse");
+        warn("condCode not followed by section start; stopping parse");
         break;
       }
     }
@@ -446,7 +446,7 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
     const endTag = `</span>`;
     switch(f.name){
       case 'HEADER': out+=startTag+'#header '+toHexWord(f.val)+endTag+'\n'; break;
-      case 'OPCODE': out+=startTag+'#opcode '+toHexWord(f.val)+(f.label?' // '+f.label:'')+endTag+'\n'; break;
+      case 'CONDCODE': out+=startTag+'#condCode '+toHexWord(f.val)+(f.label?' // '+f.label:'')+endTag+'\n'; break;
       case 'SECTION_START': out+=startTag+'start {'+endTag+'\n'; stack.push('start'); break;
       case 'RESOURCE_ID_A': out+=startTag+indent()+'RESOURCE_ID_A = '+toHexWord(f.val)+endTag+'\n'; break;
       case 'CTYPE_A': out+=startTag+indent()+'CTYPE_A = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_A, CTYPE_A)'+endTag+'\n'; break;
