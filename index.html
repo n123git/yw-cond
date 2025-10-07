@@ -573,17 +573,18 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
   ]
 },
   };
-// populate condSelect with options
-condSelect.innerHTML = ''; // clear any existing options
+
+    condSelect.innerHTML = '';
 Object.keys(condTemplates).forEach(key => {
   const opt = document.createElement('option');
-  opt.value = key;
-  opt.textContent = key; // you can prettify names if you want
+  opt.value = key; // internal key still used for logic
+  opt.textContent = condTemplates[key].label || key; // user-friendly name
   condSelect.appendChild(opt);
 });
 
-// update inputs for the initial selection
+// update inputs for initial selection
 updateExtraInputs();
+
 
   function updateExtraInputs() {
     extraInputs.innerHTML = "";
