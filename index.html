@@ -103,7 +103,7 @@
   <script>
     /* lots of general codebase updates - and comments :0 */
     const el = id => document.getElementById(id);
-    let ver = 1.221;
+    let ver = 1.222;
 
     const hexChars = /^[0-9a-fA-F]+$/;
 
@@ -564,7 +564,14 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
       type: "hex",
       template: "00 00 00 00 18 05 35 9e 99 84 8c 00 0a 01 28 00 06 02 34 89 20 ff e7 32 00 00 00 {COUNT} 78",
       params: [{ name: "COUNT", label: "Times Beaten (00–FF)", placeholder: "e.g. 05" }]
-    }
+    },
+    npcFlagYW3: {
+  type: "hex",
+  template: "00 00 00 00 18 05 35 2a 3d 45 43 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 01 78",
+  params: [
+    { name: "FLAG", label: "Flag ID (4-byte big endian)", placeholder: "e.g. 12345678 or 0x00ABCDEF" }
+  ]
+};
   };
 
   function updateExtraInputs() {
@@ -597,6 +604,20 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
     const hex = n.toString(16).toUpperCase();
     return hex.length % 2 ? '0' + hex : hex; // ensure even number of digits
   }
+function parseBigEndianId(input) {
+  let num;
+  if (input.startsWith("0x") || input.startsWith("0X")) {
+    num = parseInt(input, 16);
+  } else {
+    num = parseInt(input, 10);
+  }
+  if (isNaN(num)) throw new Error("Invalid flag ID");
+  num = (num >>> 0); // ensure unsigned 32-bit
+  const arr = new Uint8Array(4);
+  const dv = new DataView(arr.buffer);
+  dv.setUint32(0, num, false); // false = big-endian
+  return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join(" ");
+}
 
   function parseItemId(input) {
     let num;
@@ -619,17 +640,20 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
 
     try {
       if (selected.params) {
-        selected.params.forEach(p => {
-          let val = el("param_" + p.name).value.trim();
-          if (p.name === "RANK" || p.name === "COUNT") {
-            const intVal = parseInt(val, 10);
-            if (isNaN(intVal) || intVal < 0 || intVal > 255) throw new Error("Invalid " + p.label);
-            val = intToHexNoPad(intVal); // convert to unpadded hex
-          } else if (p.name === "ITEM") {
-            val = parseItemId(val);
-          }
-          finalText = finalText.replace("{" + p.name + "}", val);
-        });
+selected.params.forEach(p => {
+  let val = el("param_" + p.name).value.trim();
+  if (p.name === "RANK" || p.name === "COUNT") {
+    const intVal = parseInt(val, 10);
+    if (isNaN(intVal) || intVal < 0 || intVal > 255) throw new Error("Invalid " + p.label);
+    val = intToHexNoPad(intVal); // unpadded hex
+  } else if (p.name === "ITEM") {
+    val = parseItemId(val); // little-endian
+  } else if (p.name === "FLAG") {
+    val = parseBigEndianId(val); // big-endian
+  }
+  finalText = finalText.replace("{" + p.name + "}", val);
+});
+
       }
       el('input').value = finalText;
       generateModal.close();
