@@ -88,10 +88,7 @@
   <label>
     Condition:
     <select id="condSelect">
-      <option value="mainStory">Yo-kai Watch 2 – Main Story Completed</option>
-      <option value="rankXX">Yo-kai Watch 2 – Rank XX or higher</option>
-      <option value="hasItem">Yo-kai Watch 2 – Has Item</option>
-      <option value="tunnelXX">Yo-kai Watch 2 – Beaten Infinite Tunnel XX Times</option>
+
     </select>
   </label>
   <div id="extraInputs"></div>
@@ -545,34 +542,40 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
   const condSelect = el('condSelect');
   const extraInputs = el('extraInputs');
 
-  const condTemplates = {
-    mainStory: { 
-      type: "b64",
-      value: "AAAAAA8FNRCxQJYAAQAyAAAAAXg="
-    },
-    rankXX: {
-      type: "hex",
-      template: "00 00 00 00 0f 05 35 dd 77 26 95 00 01 00 32 00 00 00 {RANK} 71",
-      params: [{ name: "RANK", label: "Rank (00–FF)", placeholder: "e.g. 06" }]
-    },
-    hasItem: {
-      type: "hex",
-      template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 01 78",
-      params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1678239 or 0x638297A etc" }]
-    },
-    tunnelXX: {
-      type: "hex",
-      template: "00 00 00 00 18 05 35 9e 99 84 8c 00 0a 01 28 00 06 02 34 89 20 ff e7 32 00 00 00 {COUNT} 78",
-      params: [{ name: "COUNT", label: "Times Beaten (00–FF)", placeholder: "e.g. 05" }]
-    },
-    npcFlagYW3: {
-  type: "hex",
-  template: "00 00 00 00 18 05 35 2a 3d 45 43 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 01 78",
-  params: [
-    { name: "FLAG", label: "Flag ID (4-byte big endian)", placeholder: "e.g. 12345678 or 0x00ABCDEF" }
-  ]
-},
-  };
+const condTemplates = {
+  mainStory: { 
+    type: "b64",
+    value: "AAAAAA8FNRCxQJYAAQAyAAAAAXg=",
+    label: "Yo-kai Watch 2 – Main Story Completed"
+  },
+  rankXX: {
+    type: "hex",
+    template: "00 00 00 00 0f 05 35 dd 77 26 95 00 01 00 32 00 00 00 {RANK} 71",
+    params: [{ name: "RANK", label: "Rank (00–FF)", placeholder: "e.g. 06" }],
+    label: "Yo-kai Watch 2 – Rank XX or higher"
+  },
+  hasItem: {
+    type: "hex",
+    template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 01 78",
+    params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1678239 or 0x638297A etc" }],
+    label: "Yo-kai Watch 2 – Has Item"
+  },
+  tunnelXX: {
+    type: "hex",
+    template: "00 00 00 00 18 05 35 9e 99 84 8c 00 0a 01 28 00 06 02 34 89 20 ff e7 32 00 00 00 {COUNT} 78",
+    params: [{ name: "COUNT", label: "Times Beaten (00–FF)", placeholder: "e.g. 05" }],
+    label: "Yo-kai Watch 2 – Beaten Infinite Tunnel XX Times"
+  },
+  npcFlagYW3: {
+    type: "hex",
+    template: "00 00 00 00 18 05 35 2a 3d 45 43 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 01 78",
+    params: [
+      { name: "FLAG", label: "Flag ID (4-byte big endian)", placeholder: "e.g. 12345678 or 0x00ABCDEF" }
+    ],
+    label: "Yo-kai Watch 3 - NPC Requires Flag"
+  }
+};
+
 
     condSelect.innerHTML = '';
 Object.keys(condTemplates).forEach(key => {
