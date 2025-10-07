@@ -573,6 +573,17 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
   ]
 },
   };
+// populate condSelect with options
+condSelect.innerHTML = ''; // clear any existing options
+Object.keys(condTemplates).forEach(key => {
+  const opt = document.createElement('option');
+  opt.value = key;
+  opt.textContent = key; // you can prettify names if you want
+  condSelect.appendChild(opt);
+});
+
+// update inputs for the initial selection
+updateExtraInputs();
 
   function updateExtraInputs() {
     extraInputs.innerHTML = "";
