@@ -70,10 +70,9 @@
     <button id="downloadBtn">Download Psuedocode (cond.txt)</button>
     <button id="generateBtn">Generate Known Cond(s)</button>
 
-
-
     <label><input type="checkbox" id="expectTerm78"> Only accept 0x78 terminator</label>
     <label><input type="checkbox" id="strictMode"> Strict mode (stop on first warning)</label>
+    <label><input type="checkbox" id="v2Parsing" checked> V2 parsing (More reliable but may fail)</label>
   </div>
 
   <pre id="log" aria-live="polite"></pre>
@@ -98,9 +97,9 @@
   </div>
 </dialog>
   <script>
-    /* lots of general codebase updates - and comments :0 */
+    /* merged updates into v1.31 */
     const el = id => document.getElementById(id);
-    let ver = 1.222;
+    let ver = 1.32;
 
     const hexChars = /^[0-9a-fA-F]+$/;
 
@@ -120,10 +119,8 @@
     function tryDecodeBase64(s){
       // support standard and URL-safe base64;
       try {
-        // quick check - base64 has letters, numbers, +/-, and = for padding
         return atob(s);
       } catch(e){
-        // attempt URL-safe replacement and padding
         try {
           const urlFixed = s.replace(/-/g, '+').replace(/_/g, '/');
           const pad = urlFixed.length % 4 === 0 ? urlFixed : urlFixed + '='.repeat(4 - (urlFixed.length % 4));
@@ -155,7 +152,7 @@
         return arr;
       }
 
-      // Otherwise, if it's probably b64, try to decode it lol
+      // Otherwise, if it's probably b64, try to decode it
       const looksLikeBase64 = /^[A-Za-z0-9+\/=_\-]+$/.test(text) && !/[ \t\r\n:,\-<>]/.test(text);
       if (looksLikeBase64) {
         try {
@@ -197,7 +194,7 @@
       skip(n){ this.pos += n; }
     }
 
-function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
+function parseCondStrict(bytes, opts = { force78: false, strict: false, v2: true }) {
   const r = new Reader(bytes);
   const result = {
     fields: [],
@@ -207,12 +204,9 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
     stopped: false
   };
 
-  // Helper to add a field
   function addField(name, off, val, label) {
     result.fields.push({ name, off, val, label });
   }
-
-  // Helper to handle warnings/errors
   function warn(msg) {
     result.warnings.push({ msg });
     if (opts.strict) stop(`Strict mode: ${msg}`);
@@ -226,16 +220,21 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
     throw new Error(reason);
   }
 
-  // Known condcodes
-  const knowncondCodes = {
-    '0F05': 'Basic Cond (Basic constant checking)',
-    '1805': 'Basic Extension Cond (Used for flags)',
-    'F03B': 'Chain? condCode (Rarely used)',
-    '300B': 'CompareFirst?? (Weird Order)',
-    '6017': 'Also Chain??',
+  const terminators = [0x71, 0x78, 0x6F, 0x79];
+
+  // known resource IDs for labeling
+  const knownResourceIDs = {
+    '2A 3D 45 43': '- Check for flag (YW3)',
+    '10 B1 40 96': '- Is Main Story Completed (YW2)',
+    'DD 77 26 95': '- Watch Rank (YW2)',
+    '8D 76 66 D8': 'Check if player has Item (YW2)'
   };
 
-  // --- Small Parsing Functions ---
+  function labelForResource(bytes) {
+    if(!bytes) return undefined;
+    const key = Array.from(bytes).map(toHex).join(' ');
+    return knownResourceIDs[key];
+  }
 
   function parseHeader() {
     const off = r.offset();
@@ -243,87 +242,223 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
     addField("HEADER", off, val);
   }
 
-  function parsecondCode() {
-    if (r.rem() < 2) return false;
-    const off = r.offset();
-    const val = r.read(2);
-    const hex = Array.from(val).map(toHex).join('');
-    const label = knowncondCodes[hex];
-    addField("CONDCODE", off, val, label);
-
-    if (!label) warn(`Unknown condCode ${hex} at ${off}`);
-    if (hex === "300B") parsecondCodeComparison();
-    return true;
-  }
-
-  function parsecondCodeComparison() {
-    if (r.peekByte() === 0x32) addField("SUB_DELIM_32", r.offset(), new Uint8Array([r.readByte()]));
-    if (r.rem() >= 4) {
-      const off = r.offset();
-      addField("COMPARISON_VALUE", off, r.read(4));
-    } else {
-      warn("Truncated comparison value after condCode 300B");
-    }
-  }
-
-  function parseSection() {
+  // Pattern-based parsing helpers used by V2
+  function parseSectionPattern() {
     const startOff = r.offset();
-    const s = r.readByte();
-    addField("SECTION_START", startOff, new Uint8Array([s]));
-    if (s !== 0x35) warn(`Expected SECTION_START 0x35 at ${startOff}, got ${toHex(s)}`);
-
-    if (r.rem() < 4) return error("Not enough bytes for RESOURCE_ID");
-    addField("RESOURCE_ID_A", r.offset(), r.read(4));
+    const tag = r.readByte(); // consume 0x35
+    addField("SECTION_START", startOff, new Uint8Array([tag]));
+    if (r.rem() < 4) { warn("Truncated RESOURCE_ID in section at " + r.offset()); 
+      if (r.rem() > 0) addField("TRUNCATED_RESOURCE_ID", r.offset(), r.read(r.rem()));
+      return;
+    }
+    const resAOff = r.offset();
+    const resA = r.read(4);
+    addField("RESOURCE_ID_A", resAOff, resA, labelForResource(resA));
 
     if (r.rem() >= 3) {
-      const ctypeAOff = r.offset();
-      const ctypeA = r.read(3);
-      addField("CTYPE_A", ctypeAOff, ctypeA);
-
-      const cHex = Array.from(ctypeA).map(toHex).join(" ");
-      const knownCTypes = ["00 0A 01", "00 01 00"];
-      if (!knownCTypes.includes(cHex) && !(ctypeA[0] === 0x00 && ctypeA[2] === 0x01))
-        warn("Unknown CTYPE_A " + cHex + ", treating as extended");
+      addField("CTYPE_A", r.offset(), r.read(3));
+    } else {
+      warn("Truncated CTYPE_A in section at " + r.offset());
     }
 
     if (r.peekByte() === 0x28) {
       addField("EXTENSION_DELIMITER", r.offset(), new Uint8Array([r.readByte()]));
-      if (r.rem() >= 3) addField("CTYPE_B", r.offset(), r.read(3));
-      else warn("Truncated CTYPE_B");
-
+      if (r.rem() >= 3) {
+        const ctypeB = r.read(3);
+        addField("CTYPE_B", r.offset()-3, ctypeB);
+      } else warn("Truncated CTYPE_B");
       if (r.peekByte() === 0x34) {
         addField("NEST_DELIMITER_34", r.offset(), new Uint8Array([r.readByte()]));
-        if (r.rem() >= 4) addField("RESOURCE_ID_B", r.offset(), r.read(4));
-        else warn("Truncated RESOURCE_ID_B");
+        if (r.rem() >= 4) {
+          const resBOff = r.offset();
+          const resB = r.read(4);
+          addField("RESOURCE_ID_B", resBOff, resB, labelForResource(resB));
+        } else warn("Truncated RESOURCE_ID_B");
       }
     }
 
-    if (r.peekByte() === 0x32) addField("SECTION_END", r.offset(), new Uint8Array([r.readByte()]));
-    else warn("Missing SECTION_END before comparison");
+    if (r.peekByte() === 0x32) {
+      addField("SECTION_END", r.offset(), new Uint8Array([r.readByte()]));
+    } else {
+      warn("Missing SECTION_END (0x32) after section at " + r.offset());
+    }
 
-    // parse comparisons / terminators
+    // parse comparisons / terminators / EOCI / linked parts
     while (r.rem() > 0) {
       const p = r.peekByte();
-
       if (p === 0x8F) {
+        // Add EOCI but continue parsing (do not break) so linked conds are supported
         addField("EOCI", r.offset(), new Uint8Array([r.readByte()]));
-        break;
+        continue;
       }
-      if (p === 0x35) break;
+      if (p === 0x35) break; // new section start -> return to main loop
 
       if (p === 0x32) {
-        addField("SUB_DELIM_32", r.offset(), new Uint8Array([r.readByte()]));
+        // Always SECTION_END (0x32). Following bytes may be comparison values.
+        const off = r.offset();
+        r.readByte();
+        addField("SECTION_END", off, new Uint8Array([0x32]));
+        if (r.rem() >= 4) {
+          addField("COMPARISON_VALUE", r.offset(), r.read(4));
+        } else {
+          warn("Truncated comparison value after SECTION_END at " + r.offset());
+          if (r.rem()>0) addField("TRUNCATED_REMAINDER", r.offset(), r.read(r.rem()));
+        }
+        continue;
+      }
+
+      if (terminators.includes(p)) {
+        const off = r.offset();
+        const b = r.readByte();
+        addField("TERMINATOR", off, new Uint8Array([b]));
+        if (opts.force78 && b !== 0x78) warn("Terminator not 0x78 while force78 enabled at " + off);
+        continue;
+      }
+
+      if (r.rem() >= 4) {
+        addField("COMPARISON_VALUE", r.offset(), r.read(4));
+        continue;
+      } else {
+        if (r.rem() > 0) {
+          addField("UNKNOWN_TRAILING", r.offset(), r.read(r.rem()));
+        }
+        break;
+      }
+    }
+  }
+
+  function parseCondCodePattern() {
+    if (r.rem() < 2) return false;
+    const off = r.offset();
+    const lenByte = r.readByte();
+    const typeByte = r.readByte();
+    // label the condCode by the type byte
+    let typeLabel;
+    if (typeByte === 0x05) typeLabel = 'Normal Comparison';
+    else if (typeByte === 0x0B) typeLabel = 'Type B Comparison';
+    addField("CONDCODE", off, new Uint8Array([lenByte, typeByte]), typeLabel);
+
+    // warn if unknown type byte
+    if (![0x05, 0x0B].includes(typeByte)) {
+      warn(`condCode type byte expected 0x05 or 0x0B, got ${toHex(typeByte)} at ${off + 1}`);
+    }
+
+    // IMPORTANT: length byte semantics: declared length includes the type byte,
+    // so body length after the two header bytes is (lenByte - 1).
+    const bodyLen = Math.max(0, lenByte - 1); // <-- length - 1 as requested
+    const available = r.rem();
+    if (available < bodyLen) {
+      warn(`condCode declared ${lenByte} body bytes but only ${available} available at offset ${r.offset()}`);
+    }
+
+    const toRead = Math.min(bodyLen, available);
+    const bodyBaseOff = r.offset();
+    let bodyBytes = new Uint8Array(0);
+    if (toRead > 0) bodyBytes = r.read(toRead);
+
+    const tr = new Reader(bodyBytes);
+    while (tr.rem() > 0) {
+      const p = tr.peekByte();
+      const curOff = bodyBaseOff + tr.offset();
+
+      if (p === 0x35) {
+        tr.readByte();
+        addField("SECTION_START", curOff, new Uint8Array([0x35]));
+        if (tr.rem() >= 4) {
+          const resOff = curOff + 1;
+          const res = tr.read(4);
+          addField("RESOURCE_ID_A", resOff, res, labelForResource(res));
+        } else { warn("Truncated RESOURCE_ID_A inside cond body at " + (curOff + 1)); if (tr.rem()>0) addField("TRUNCATED_RESOURCE_ID_A", curOff + 1, tr.read(tr.rem())); break; }
+
+        if (tr.rem() >= 3) addField("CTYPE_A", bodyBaseOff + tr.offset(), tr.read(3));
+        else warn("Truncated CTYPE_A inside cond body at " + (bodyBaseOff + tr.offset()));
+
+        if (tr.peekByte() === 0x28) { 
+          addField("EXTENSION_DELIMITER", bodyBaseOff + tr.offset(), new Uint8Array([tr.readByte()])); 
+          if (tr.rem() >= 3) {
+            const ctypeB = tr.read(3);
+            addField("CTYPE_B", bodyBaseOff + tr.offset()-3, ctypeB);
+          } else warn("Truncated CTYPE_B inside cond body at " + (bodyBaseOff + tr.offset()));
+          if (tr.peekByte() === 0x34) {
+            addField("NEST_DELIMITER_34", bodyBaseOff + tr.offset(), new Uint8Array([tr.readByte()]));
+            if (tr.rem() >= 4) {
+              const resBOff = bodyBaseOff + tr.offset();
+              const resB = tr.read(4);
+              addField("RESOURCE_ID_B", resBOff, resB, labelForResource(resB));
+            } else warn("Truncated RESOURCE_ID_B inside cond body at " + (bodyBaseOff + tr.offset()));
+          }
+        }
+
+        if (tr.peekByte() === 0x32) { 
+          const seOff = bodyBaseOff + tr.offset();
+          tr.readByte();
+          addField("SECTION_END", seOff, new Uint8Array([0x32]));
+        } else { warn("Missing SECTION_END (0x32) inside cond body at " + (bodyBaseOff + tr.offset())); }
+
+        continue;
+      }
+
+      if (p === 0x32) {
+        // treat 0x32 consistently as SECTION_END
+        const seOff = curOff;
+        tr.readByte();
+        addField("SECTION_END", seOff, new Uint8Array([0x32]));
+        if (tr.rem() >= 4) addField("COMPARISON_VALUE", bodyBaseOff + tr.offset(), tr.read(4));
+        else { warn("Truncated comparison inside cond body at " + (bodyBaseOff + tr.offset())); if (tr.rem()>0) addField("TRUNCATED_REMAINDER", bodyBaseOff + tr.offset(), tr.read(tr.rem())); }
+        continue;
+      }
+
+      if (terminators.includes(p)) {
+        addField("TERMINATOR", curOff, new Uint8Array([tr.readByte()]));
+        continue;
+      }
+
+      if (p === 0x8F) {
+        // Add EOCI but DO NOT break — allow linked conds (TERMINATOR + EOCI will continue)
+        addField("EOCI", curOff, new Uint8Array([tr.readByte()]));
+        continue;
+      }
+
+      if (tr.rem() >= 4) {
+        addField("COMPARISON_VALUE", bodyBaseOff + tr.offset(), tr.read(4));
+        continue;
+      } else {
+        addField("UNKNOWN_BODY", bodyBaseOff + tr.offset(), tr.read(tr.rem()));
+        break;
+      }
+    }
+
+    if (bodyLen > toRead) {
+      warn(`condCode declared ${bodyLen} body bytes but only ${toRead} were read at ${bodyBaseOff}`);
+    }
+
+    return true;
+  }
+
+  function parseCondBodyFallback() {
+    while (r.rem() > 0) {
+      const p = r.peekByte();
+      if (p === 0x8F) {
+        // Add EOCI but continue parsing to allow linked conds
+        addField("EOCI", r.offset(), new Uint8Array([r.readByte()]));
+        continue;
+      }
+      if (p === 0x35) return true;
+
+      if (p === 0x32) {
+        const off = r.offset();
+        r.readByte();
+        addField("SECTION_END", off, new Uint8Array([0x32]));
         if (r.rem() >= 4) addField("COMPARISON_VALUE", r.offset(), r.read(4));
         else warn("Truncated comparison");
         continue;
       }
 
-      const terminators = [0x71, 0x78, 0x6F, 0x79];
       if (terminators.includes(p)) {
+        const off = r.offset();
         const t = r.readByte();
-        addField("TERMINATOR", r.offset() - 1, new Uint8Array([t]));
-        const allowed = opts.force78 ? [0x78] : terminators;
-        if (!allowed.includes(t)) warn("Unknown terminator " + toHex(t));
+        addField("TERMINATOR", off, new Uint8Array([t]));
+        if (opts.force78 && t !== 0x78) warn("Unknown terminator " + toHex(t));
         continue;
       }
 
@@ -334,12 +469,12 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
 
       warn("Unexpected byte " + toHex(p) + " at " + r.offset());
       result.skipped.push(r.offset());
-      r.readByte(); // consume
+      r.readByte();
       break;
     }
+    return true;
   }
 
-  // --- Main Parse Loop ---
   try {
     while (r.rem() > 0 && !result.stopped) {
       if (r.rem() >= 4 && r.bytes.slice(r.pos, r.pos + 4).every(b => b === 0)) {
@@ -347,35 +482,37 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false }) {
         continue;
       }
 
-      if (r.peekByte() === 0x8F) {
-        warn(`EOCI encountered without preceding terminator at ${r.offset()}`);
+      const next = r.peekByte();
+      if (next === 0x8F) {
+        // Add EOCI and continue (linked conds)
         addField("EOCI", r.offset(), new Uint8Array([r.readByte()]));
         continue;
       }
 
-      if (r.peekByte() === 0x35) {
-        parseSection();
+      if (next === 0x35) {
+        parseSectionPattern();
         continue;
       }
 
-      if (!parsecondCode()) break;
-
-      if (r.peekByte() === 0x35) {
-        parseSection();
-        continue;
-      }
-
-      // Look ahead for a section start; if found, skip to it
-      const lookahead = r.bytes.slice(r.pos, r.pos + 64);
-      const idx = Array.from(lookahead).indexOf(0x35);
-      if (idx >= 0) {
-        warn(`condCode not immediately followed by section start; skipping ${idx} bytes to @${r.offset() + idx}`);
-        result.skipped.push(r.offset());
-        r.skip(idx);
+      if (opts.v2) {
+        if (r.rem() < 2) {
+          if (r.rem() > 0) { addField("TRAILING_BYTES", r.offset(), r.read(r.rem())); }
+          break;
+        }
+        if (!parseCondCodePattern()) break;
         continue;
       } else {
-        warn("condCode not followed by section start; stopping parse");
-        break;
+        if (r.rem() < 2) break;
+        const off = r.offset();
+        const lenByte = r.readByte();
+        const typeByte = r.readByte();
+        let typeLabel;
+        if (typeByte === 0x05) typeLabel = 'Normal Comparison';
+        else if (typeByte === 0x0B) typeLabel = 'Type B Comparison';
+        addField("CONDCODE", off, new Uint8Array([lenByte, typeByte]), typeLabel);
+        if (![0x05, 0x0B].includes(typeByte)) warn(`condCode type byte expected 0x05 or 0x0B, got ${toHex(typeByte)} at ${off + 1}`);
+        parseCondBodyFallback();
+        continue;
       }
     }
   } catch (e) {
@@ -445,17 +582,17 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
       case 'HEADER': out+=startTag+'#header '+toHexWord(f.val)+endTag+'\n'; break;
       case 'CONDCODE': out+=startTag+'#condCode '+toHexWord(f.val)+(f.label?' // '+f.label:'')+endTag+'\n'; break;
       case 'SECTION_START': out+=startTag+'start {'+endTag+'\n'; stack.push('start'); break;
-      case 'RESOURCE_ID_A': out+=startTag+indent()+'RESOURCE_ID_A = '+toHexWord(f.val)+endTag+'\n'; break;
+      case 'RESOURCE_ID_A': out+=startTag+indent()+'RESOURCE_ID_A = '+toHexWord(f.val)+(f.label?(' // '+f.label):'')+endTag+'\n'; break;
       case 'CTYPE_A': out+=startTag+indent()+'CTYPE_A = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_A, CTYPE_A)'+endTag+'\n'; break;
       case 'EXTENSION_DELIMITER': if(stack[stack.length-1]==='start'){ stack.pop(); out+='} '; } out+=startTag+'extend {'+endTag+'\n'; stack.push('extend'); break;
       case 'CTYPE_B': out+=startTag+indent()+'CTYPE_B = '+toHexWord(f.val)+endTag+'\n'; break;
       case 'NEST_DELIMITER_34': out+=startTag+indent()+'nest {'+endTag+'\n'; stack.push('nest'); break;
-      case 'RESOURCE_ID_B': out+=startTag+indent()+'RESOURCE_ID_B = '+toHexWord(f.val)+'\n'+indent()+'extendConditional(RESOURCE_ID_B, CTYPE_B)'+endTag+'\n'; if(stack[stack.length-1]==='nest'){ stack.pop(); out+=indent()+'}\n';} break;
-      case 'SECTION_END': if(stack.length>0) stack.pop(); out+=startTag+'}'+endTag+'\n'; break;
+      case 'RESOURCE_ID_B': out+=startTag+indent()+'RESOURCE_ID_B = '+toHexWord(f.val)+(f.label?(' // '+f.label):'')+'\n'+indent()+'extendConditional(RESOURCE_ID_B, CTYPE_B)'+endTag+'\n'; if(stack[stack.length-1]==='nest'){ stack.pop(); out+=indent()+'}\n';} break;
+      case 'SECTION_END': if(stack.length>0 && stack[stack.length-1]==='start'){ /* don't pop here; SECTION_END ends a section inside body */ } out+=startTag+'SECTION_END = '+toHexWord(f.val)+endTag+'\n'; break;
       case 'COMPARISON_VALUE': out+=startTag+indent()+'COMPARISON_VALUE = '+toHexWord(f.val)+'\n'+indent()+'compare(COMPARISON_VALUE)'+endTag+'\n'; break;
-      case 'SUB_DELIM_32': out+=startTag+indent()+'// sub-delimiter 0x32'+endTag+'\n'; break;
       case 'TERMINATOR': out+=startTag+indent()+'TERMINATOR = '+toHexWord(f.val)+';\n'+indent()+'terminate(TERMINATOR)'+endTag+'\n'; break;
       case 'EOCI': out+=startTag+indent()+'end-chain; // EOCI (End of Chain Instance)'+endTag+'\n'; break;
+      case 'UNKNOWN_TRAILING': out+=startTag+indent()+'// UNKNOWN_TRAILING '+toHexWord(f.val)+endTag+'\n'; break;
       default: out+=startTag+indent()+'// '+f.name+' '+toHexWord(f.val)+endTag+'\n';
     }
     maybeComment();
@@ -472,7 +609,7 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
       try {
         const bytes = parseInputToBytes(text);
         log('Bytes: ' + bytes.length);
-        const parsed = parseCondStrict(bytes, { force78: el('expectTerm78').checked, strict: el('strictMode').checked });
+        const parsed = parseCondStrict(bytes, { force78: el('expectTerm78').checked, strict: el('strictMode').checked, v2: el('v2Parsing').checked });
         el('tree').appendChild(renderTree(parsed));
         el('pseudo').innerHTML = renderPseudo(parsed); // gotta love XSS risks js aside from being safe input this is all client side anyway - unless devtools console counts as a major security risk lmao :P
       } catch(e){
@@ -485,8 +622,12 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
     el('parseB64Btn').addEventListener('click', ()=>{
       clearLog();
       try {
-        const raw = el('input').value.trim();
-        const decoded = tryDecodeBase64(raw);
+        const raw = el('input').value;
+        const trimmed = raw.trim();
+        // Strict check: refuse if trimmed contains whitespace or any illegal chars
+        if (/\s/.test(trimmed)) { throw new Error('Input contains whitespace (Base64 must have no internal whitespace)'); }
+        if (!/^[A-Za-z0-9+\/=_\-]+$/.test(trimmed)) { throw new Error('Input contains illegal Base64 characters'); }
+        const decoded = tryDecodeBase64(trimmed);
         const hex = Array.from(decoded).map(c=>c.charCodeAt ? c.charCodeAt(0) : c).map(n=>n.toString(16).padStart(2,'0')).join(' ');
         el('input').value = hex;
         doParseFromInput(hex);
@@ -538,6 +679,7 @@ function renderPseudo(parsed){ // copy pasted from my dev copy :3
     let x = document.createElement("footer");
     document.body.appendChild(x) // archiving my stupidity again - I almost released this with: document.getElementsByTagName("body")[0].appendChild(x)
     x.outerHTML = `<footer style="font-size: large;">yw-cond. Version: <span id="vdisplay">${ver}</span></footer>`;
+
    const generateModal = el('generateModal');
   const condSelect = el('condSelect');
   const extraInputs = el('extraInputs');
