@@ -224,9 +224,9 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false, v2: true
 
   // known resource IDs for labeling
   const knownResourceIDs = {
-    '2A 3D 45 43': '- Check for flag (YW3)',
-    '10 B1 40 96': '- Is Main Story Completed (YW2)',
-    'DD 77 26 95': '- Watch Rank (YW2)',
+    '2A 3D 45 43': 'Check for flag (YW3)',
+    '10 B1 40 96': 'Is Main Story Completed (YW2)',
+    'DD 77 26 95': 'Watch Rank (YW2)',
     '8D 76 66 D8': 'Check if player has Item (YW2)'
   };
 
@@ -345,7 +345,7 @@ function parseCondStrict(bytes, opts = { force78: false, strict: false, v2: true
 
     // IMPORTANT: length byte semantics: declared length includes the type byte,
     // so body length after the two header bytes is (lenByte - 1).
-    const bodyLen = Math.max(0, lenByte - 1); // <-- length - 1 as requested
+    const bodyLen = Math.max(0, lenByte - 1);
     const available = r.rem();
     if (available < bodyLen) {
       warn(`condCode declared ${lenByte} body bytes but only ${available} available at offset ${r.offset()}`);
