@@ -127,7 +127,7 @@
 
   <script>
     // version
-    const ver = 1.37;
+    const ver = 1.38;
 
     // known resource IDs for labeling
     const knownResourceIDs = {
@@ -183,13 +183,18 @@
     if(typeof level5.cond === 'undefined') level5.cond = {};
     if(typeof level5.cond._internals === 'undefined') level5.cond._internals = {};
 
-    level5.cond.SECTION_START = "35";
-    level5.cond.SECTION_END = "32";
+    level5.cond.READ_MEMORY = "35";
+    level5.cond.READ_LITERAL = "32";
     level5.cond.EXTENSION_DELIMITER = "28";
     level5.cond.NEST_DELIMITER = "34";
     level5.cond.EOCI = "8F";
-    level5.cond.TERMINATORS = ["71","78","6F","79"];
-
+    level5.cond.OPERATORS = ["71","78","6F","79"];
+    level5.cond.OPERATOR_LABELS = [">=", "=<", "??", "??"] // =< might be <
+    level5.cond.CTYPES = {
+      "00 01 00": "Const",
+      "00 0A 01": "List",
+      "00 06 02": "Parameter/Boolean"
+    }
     level5.cond._internals.consumeBytes = function(hexStr, n){ const take = hexStr.slice(0, n*2); const rest = hexStr.slice(n*2); return [rest, take.toUpperCase()]; };
     level5.cond._internals.startsWith = function(hexStr, prefix){ return hexStr.slice(0, prefix.length).toUpperCase() === prefix.toUpperCase(); };
 
@@ -202,34 +207,34 @@
       function parseHeader(){ if(hex.length < 12) err('Too short for header+condcode', hex.slice(0,12)); if(!$.startsWith(hex,'00000000')) err('Header invalid (expected 00000000)'); let consumed; [hex, consumed] = $.consumeBytes(hex,4); const headerBlock = [['HEADER', consumed]]; [hex, consumed] = $.consumeBytes(hex,2); headerBlock.push(['COND_CODE', consumed]); parsedCond.push(['HEADER_BLOCK', headerBlock]); }
 
       function parseClause(){ 
-        if(hex.length < 2) err('Unexpected EOF while expecting SECTION_START or SECTION_END');
-        if(!$.startsWith(hex, level5.cond.SECTION_START) && !$.startsWith(hex, level5.cond.SECTION_END)) err('Clause must start with SECTION_START or SECTION_END', hex.slice(0,2));
+        if(hex.length < 2) err('Unexpected EOF while expecting READ_MEMORY or READ_LITERAL');
+        if(!$.startsWith(hex, level5.cond.READ_MEMORY) && !$.startsWith(hex, level5.cond.READ_LITERAL)) err('Clause must start with READ_MEMORY or READ_LITERAL', hex.slice(0,2));
 
-        // temp SECTION_END logic; might not work in all cases; I should add V2 fallback parsing
-        if($.startsWith(hex, level5.cond.SECTION_END)){
+        // temp READ_LITERAL logic; might not work in all cases; I should add V2 fallback parsing
+        if($.startsWith(hex, level5.cond.READ_LITERAL)){
           const clause = []; let consumed;
-          [hex, consumed] = $.consumeBytes(hex,1); clause.push(['SECTION_END', consumed]);
+          [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_LITERAL', consumed]);
           if(hex.length < 8) err('Truncated COMPARISON_VALUE', hex.slice(0,8));
           [hex, consumed] = $.consumeBytes(hex,4); clause.push(['COMPARISON_VALUE', consumed]);
           if(hex.length < 2) err('Unexpected EOF after COMPARISON_VALUE');
         
-          if($.startsWith(hex, level5.cond.SECTION_END)){
-              [hex, consumed] = $.consumeBytes(hex,1); clause.push(['SECTION_END', consumed]);
+          if($.startsWith(hex, level5.cond.READ_LITERAL)){
+              [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_LITERAL', consumed]);
               parsedCond.push(['CONDITION', clause]);  
               return;
           }
         
-          if($.startsWith(hex, level5.cond.SECTION_START)){
+          if($.startsWith(hex, level5.cond.READ_MEMORY)){
               parsedCond.push(['CONDITION', clause]); 
               parseClause();                          
               return;
           }
 
-          err('Expected SECTION_END or SECTION_START after COMPARISON_VALUE', hex.slice(0,2));
+          err('Expected READ_LITERAL or READ_MEMORY after COMPARISON_VALUE', hex.slice(0,2));
         }
-        if(!$.startsWith(hex, level5.cond.SECTION_START)) err('Clause must start with SECTION_START', hex.slice(0,2)); 
+        if(!$.startsWith(hex, level5.cond.READ_MEMORY)) err('Clause must start with READ_MEMORY', hex.slice(0,2)); 
         const clause = []; let consumed; 
-        [hex, consumed] = $.consumeBytes(hex,1); clause.push(['SECTION_START', consumed]); 
+        [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_MEMORY', consumed]); 
         if(hex.length < 8) err('Truncated RESOURCE_ID_A', hex.slice(0,8)); 
         [hex, consumed] = $.consumeBytes(hex,4); clause.push(['RESOURCE_ID_A', consumed]); 
         if(hex.length < 6) err('Truncated CTYPE_A', hex.slice(0,6)); 
@@ -237,23 +242,23 @@
       
         while(hex.length > 0){ 
           const nextByte = hex.slice(0,2);
-          if($.startsWith(hex, level5.cond.SECTION_END)){
-            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['SECTION_END', consumed]); 
-            if(hex.length < 8) err('Expected COMPARISON_VALUE after SECTION_END', hex.slice(0,8));
+          if($.startsWith(hex, level5.cond.READ_LITERAL)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_LITERAL', consumed]); 
+            if(hex.length < 8) err('Expected COMPARISON_VALUE after READ_LITERAL', hex.slice(0,8));
             [hex, consumed] = $.consumeBytes(hex,4); clause.push(['COMPARISON_VALUE', consumed]); /*
-            if(hex.length < 2) err('Expected SECTION_END or TERMINATOR after COMPARISON_VALUE', hex.slice(0,2));  // note
+            if(hex.length < 2) err('Expected READ_LITERAL or OPERATOR after COMPARISON_VALUE', hex.slice(0,2));  // note
             const afterComp = hex.slice(0,2);
-            if($.startsWith(hex, level5.cond.SECTION_END)){ continue; } 
-            else if(level5.cond.TERMINATORS.includes(afterComp)){ 
-              [hex, consumed] = $.consumeBytes(hex,1); clause.push(['TERMINATOR', consumed]); parsedCond.push(['CONDITION', clause]); return; 
-            } else { err('After COMPARISON_VALUE expected SECTION_END or TERMINATOR but found', afterComp); }*/
+            if($.startsWith(hex, level5.cond.READ_LITERAL)){ continue; } 
+            else if(level5.cond.OPERATORS.includes(afterComp)){ 
+              [hex, consumed] = $.consumeBytes(hex,1); clause.push(['OPERATOR', consumed]); parsedCond.push(['CONDITION', clause]); return; 
+            } else { err('After COMPARISON_VALUE expected READ_LITERAL or OPERATOR but found', afterComp); }*/
              // --- Replace the earlier block with this ---
 /*
   After reading COMPARISON_VALUE we may see:
-  - another SECTION_END       -> (do NOT consume here; let top-of-loop handle it / allow another comparison)
-  - a TERMINATOR (71/78/6F/79) -> consume and finish this condition
+  - another READ_LITERAL       -> (do NOT consume here; let top-of-loop handle it / allow another comparison)
+  - a OPERATOR (71/78/6F/79) -> consume and finish this condition
   - EOCI (8F)                 -> consume and finish this condition
-  - a new SECTION_START (35)  -> do NOT consume; close this condition and let top-level loop start next
+  - a new READ_MEMORY (35)  -> do NOT consume; close this condition and let top-level loop start next
   - end-of-input              -> finish condition
 */
 if (hex.length === 0) {
@@ -269,18 +274,18 @@ if (hex.length < 2) {
 
 const afterComp = hex.slice(0,2);
 
-// Another SECTION_END after the comparison indicates another comparison follows.
-// IMPORTANT: do NOT consume the SECTION_END here — keep original behavior (top-level parsing
-// expects to see SECTION_END and will consume it in its normal flow).
-if ($.startsWith(hex, level5.cond.SECTION_END)) {
+// Another READ_LITERAL after the comparison indicates another comparison follows.
+// IMPORTANT: do NOT consume the READ_LITERAL here — keep original behavior (top-level parsing
+// expects to see READ_LITERAL and will consume it in its normal flow).
+if ($.startsWith(hex, level5.cond.READ_LITERAL)) {
   // allow the parse to loop so the subsequent COMPARISON_VALUE is handled normally
   continue;
 }
 
-// TERMINATOR -> consume it and finish this condition
-if (level5.cond.TERMINATORS.includes(afterComp)) {
+// OPERATOR -> consume it and finish this condition
+if (level5.cond.OPERATORS.includes(afterComp)) {
   [hex, consumed] = $.consumeBytes(hex,1);
-  clause.push(['TERMINATOR', consumed]);
+  clause.push(['OPERATOR', consumed]);
   parsedCond.push(['CONDITION', clause]);
   return;
 }
@@ -293,14 +298,14 @@ if ($.startsWith(hex, level5.cond.EOCI)) {
   return;
 }
 
-// SECTION_START -> do NOT consume it here; close this condition and let the outer loop handle the new clause
-if ($.startsWith(hex, level5.cond.SECTION_START)) {
+// READ_MEMORY -> do NOT consume it here; close this condition and let the outer loop handle the new clause
+if ($.startsWith(hex, level5.cond.READ_MEMORY)) {
   parsedCond.push(['CONDITION', clause]);
   return;
 }
 
 // Otherwise it's still unexpected
-err('After COMPARISON_VALUE expected SECTION_END, TERMINATOR, EOCI, SECTION_START, or end-of-input but found', afterComp);
+err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, or end-of-input but found', afterComp);
 
           }
           else if($.startsWith(hex, level5.cond.EXTENSION_DELIMITER)){
@@ -315,8 +320,8 @@ err('After COMPARISON_VALUE expected SECTION_END, TERMINATOR, EOCI, SECTION_STAR
             [hex, consumed] = $.consumeBytes(hex,4); clause.push(['RESOURCE_ID_B', consumed]); 
             continue;
           }
-          else if(level5.cond.TERMINATORS.includes(nextByte)){
-            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['TERMINATOR', consumed]); 
+          else if(level5.cond.OPERATORS.includes(nextByte)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['OPERATOR', consumed]); 
             parsedCond.push(['CONDITION', clause]); return;
           }
           else if($.startsWith(hex, level5.cond.EOCI)){
@@ -328,14 +333,14 @@ err('After COMPARISON_VALUE expected SECTION_END, TERMINATOR, EOCI, SECTION_STAR
           }
         }
 
-        // fallback: push clause even if there isnt a terminator but complain (7 warns if you're debugging this oh and sorry for your loss...)
-        console.warn("no terminator :<<<" + clause);
-                console.warn("no terminator :<<<" + clause);
-                        console.warn("no terminator :<<<" + clause);
-                                console.warn("no terminator :<<<" + clause);
-                                        console.warn("no terminator :<<<" + clause);
-                                                console.warn("no terminator :<<<" + clause);
-                                                        console.warn("no terminator :<<<" + clause);
+        // fallback: push clause even if there isnt a OPERATOR but complain (7 warns if you're debugging this oh and sorry for your loss...)
+        console.warn("no OPERATOR :<<<" + clause);
+                console.warn("no OPERATOR :<<<" + clause);
+                        console.warn("no OPERATOR :<<<" + clause);
+                                console.warn("no OPERATOR :<<<" + clause);
+                                        console.warn("no OPERATOR :<<<" + clause);
+                                                console.warn("no OPERATOR :<<<" + clause);
+                                                        console.warn("no OPERATOR :<<<" + clause);
 
         parsedCond.push(['CONDITION', clause]); 
         return;
@@ -344,7 +349,7 @@ err('After COMPARISON_VALUE expected SECTION_END, TERMINATOR, EOCI, SECTION_STAR
 
       // top-level header - not per condition but per cond; I totally didnt forget about the strict checks here which made me feel so delusional as I kept refreshing an earlier patch but nothing changed lmao
       parseHeader();
-      while(hex.length > 0){ if(!$.startsWith(hex, level5.cond.SECTION_START) && !$.startsWith(hex, level5.cond.SECTION_END)) err('Expected SECTION_START or SECTION_END at top-level but found', hex.slice(0,8)); parseClause(); if($.startsWith(hex, level5.cond.EOCI)){ let c; [hex,c] = $.consumeBytes(hex,1); parsedCond.push(['EOCI', c]); continue; } if(hex.length === 0) break; if(!$.startsWith(hex, level5.cond.SECTION_START)) err('Trailing/Unexpected bytes after clause(s)', hex.slice(0,8)); }
+      while(hex.length > 0){ if(!$.startsWith(hex, level5.cond.READ_MEMORY) && !$.startsWith(hex, level5.cond.READ_LITERAL)) err('Expected READ_MEMORY or READ_LITERAL at top-level but found', hex.slice(0,8)); parseClause(); if($.startsWith(hex, level5.cond.EOCI)){ let c; [hex,c] = $.consumeBytes(hex,1); parsedCond.push(['EOCI', c]); continue; } if(hex.length === 0) break; if(!$.startsWith(hex, level5.cond.READ_MEMORY)) err('Trailing/Unexpected bytes after clause(s)', hex.slice(0,8)); }
       return parsedCond;
     };
 
@@ -353,6 +358,17 @@ err('After COMPARISON_VALUE expected SECTION_END, TERMINATOR, EOCI, SECTION_STAR
       const spaced = hexSpaced(hexBytes.toUpperCase().replace(/\s+/g,''));
       return knownResourceIDs[spaced];
     }
+
+    function labelForOperator(opByte) {
+      const ops = Object.fromEntries(level5.cond.OPERATORS.map((op, i) => [op, level5.cond.OPERATOR_LABELS[i]]));
+      return ops[opByte.toUpperCase()] || null;
+    }
+
+  function labelForCType(ctypeBytes) {
+    const ctypes = level5.cond.CTYPES;
+    const spaced = hexSpaced(ctypeBytes.toUpperCase().replace(/\s+/g, '')); // normalise input
+    return ctypes[spaced] || null;
+  }
 
     function renderParsed(parsed){
       const tree = document.getElementById('tree'); tree.innerHTML = '';
@@ -370,21 +386,33 @@ err('After COMPARISON_VALUE expected SECTION_END, TERMINATOR, EOCI, SECTION_STAR
           wrap.innerHTML = '<strong>CONDITION</strong>';
           const inner = document.createElement('div'); inner.className='small muted';
           clause.forEach(f=>{
-            const name = f[0]; const val = f[1];
-            const lbl = (name.startsWith('RESOURCE_ID') ? labelForResource(val) : null);
-            inner.innerHTML += '<div><strong>'+name+'</strong>: <span class="label">'+hexSpaced(val)+'</span>' + (lbl?('<span class="small muted"> — '+lbl+'</span>'):'') + '</div>';
+            const name = f[0];
+            const val = f[1];
+            let lbl = null;
+          
+            if (name.startsWith('RESOURCE_ID')) {
+              lbl = labelForResource(val);
+            } else if (name.startsWith('CTYPE')) {
+              lbl = labelForCType(val);
+            } else if (name === 'OPERATOR') {
+              lbl = labelForOperator(val);
+            }
+          
+            inner.innerHTML += '<div><strong>' + name + '</strong>: <span class="label">' +
+              hexSpaced(val) + '</span>' + (lbl ? (' <span class="small muted"> — ' + lbl + '</span>') : '') + '</div>';
+
             // append to pseudo
             switch(name){
-              case 'SECTION_START': pseudo.textContent += 'start {'+"\n"; break;
+              case 'READ_MEMORY': pseudo.textContent += 'start {'+"\n"; break;
               case 'RESOURCE_ID_A': pseudo.textContent += '  RESOURCE_ID_A = '+hexSpaced(val) + (lbl?(' // '+lbl):'')+'\n'; break;
               case 'CTYPE_A': pseudo.textContent += '  CTYPE_A = '+hexSpaced(val)+'\n'; break;
               case 'EXTENSION_DELIMITER': pseudo.textContent += '  extend {\n'; break;
               case 'CTYPE_B': pseudo.textContent += '    CTYPE_B = '+hexSpaced(val)+'\n'; break;
               case 'NEST_DELIMITER': pseudo.textContent += '    nest {\n'; break;
               case 'RESOURCE_ID_B': pseudo.textContent += '      RESOURCE_ID_B = '+hexSpaced(val)+'\n'; break;
-              case 'SECTION_END': pseudo.textContent += '  SECTION_END\n'; break;
+              case 'READ_LITERAL': pseudo.textContent += '  READ_LITERAL\n'; break;
               case 'COMPARISON_VALUE': pseudo.textContent += '  COMPARISON = '+hexSpaced(val)+'\n'; break;
-              case 'TERMINATOR': pseudo.textContent += '  TERMINATOR = '+hexSpaced(val)+'\n'; break;
+              case 'OPERATOR': pseudo.textContent += '  OPERATOR = '+hexSpaced(val)+'\n'; break;
               case 'EOCI': pseudo.textContent += '  EOCI\n'; break;
             }
           });
