@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Yo-kai Watch Cond Parser — v1.37</title>
+  <title>Yo-kai Watch Cond Parser — v1.38</title>
   <style>
     :root{
       --bg:#0f1115; --panel:#0b0d10; --text:#e6eef6; --muted:#9aa6b2; --accent:#6ea8ff; --good:#8bd18b; --bad:#ff7b7b;
@@ -90,7 +90,7 @@
 </head>
 <body>
   <div class="container" id="app">
-    <h2>Yo-kai Watch Cond Parser <span class="small">v1.37</span></h2>
+    <h2>Yo-kai Watch Cond Parser <span class="small">v1.38</span></h2>
     <div class="small muted">Paste hex (spaced/continuous) or Base64. Parser uses V3 parsing.</div>
 
     <textarea id="input" placeholder="Paste hex (e.g. '00 0A 01') or base64 here"></textarea>
@@ -189,7 +189,7 @@
     level5.cond.NEST_DELIMITER = "34";
     level5.cond.EOCI = "8F";
     level5.cond.OPERATORS = ["71","78","6F","79"];
-    level5.cond.OPERATOR_LABELS = [">=", "=<", "??", "??"] // =< might be <
+    level5.cond.OPERATOR_LABELS = [">=", "==", "??", "??"] //
     level5.cond.CTYPES = {
       "00 01 00": "Const",
       "00 0A 01": "List",
