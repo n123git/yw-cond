@@ -435,8 +435,23 @@ err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, 
     el('parseBtn').addEventListener('click', ()=> doParseFromInput(el('input').value));
     el('parseB64Btn').addEventListener('click', ()=>{ try{ const raw = el('input').value.trim(); if(/\s/.test(raw)) throw new Error('Base64 must not contain internal whitespace'); const dec = tryDecodeBase64(raw); const hex = Array.from(dec).map(c => (typeof c==='string' ? c.charCodeAt(0) : c).toString(16).padStart(2,'0')).join('').toUpperCase(); el('input').value = hexSpaced(hex); doParseFromInput(hex); } catch(e){ log('Base64 decode failed: '+e.message,'error'); } });
 
-    el('sampleBtn').addEventListener('click', ()=>{ el('input').value = '00 00 00 00 f0 3b 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 01 32 00 00 00 01 78 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 02 32 00 00 00 01 78 8f 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 03 32 00 00 00 01 78 8f'; el('parseBtn').click(); });
-
+       el('sampleBtn').addEventListener('click', ()=>{ // random sample list
+         let samples = [
+                      '00 00 00 00 f0 3b 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 01 32 00 00 00 01 78 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 02 32 00 00 00 01 78 8f 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 03 32 00 00 00 01 78 8f', /* random chain cond */
+                      '00 00 00 00 0f 05 35 10 b1 40 96 00 01 00 32 00 00 00 01 78', /* main story completed yw2 simple format */
+                      '00 00 00 00 18 05 35 2a 3d 45 43 00 0a 01 28 00 06 02 34 00 12 34 56 32 00 00 00 01 78', /* has flag 0x00123456 yw3; basic extended format */
+                      '00 00 00 00 12 02 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 96 49 FF 74', /* rare terminatorless and comparison valueless cond */
+                      '00 00 00 00 1B 02 35 18 2B 37 5A 00 13 02 28 00 06 02 34 22 61 B7 8A 28 00 06 02 32 00 00 00 01', /* rare terminatorless cond */
+                      '00 00 00 00 12 02 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 0E 6B 6F 6B', /* redesign suggesting with resource ID :0 */
+                      '00 00 00 00 36 05 35 74 03 A9 CE 00 1C 03 28 00 06 02 34 C1 B2 DA B7 28 00 06 02 34 8E 31 15 F3 28 00 06 02 32 00 00 0E F6 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 42 6F A0 C3 8F', /* 3 resource IDs in the first condition */
+                      '00 00 00 00 36 05 35 74 03 A9 CE 00 1C 03 28 00 06 02 34 C1 B2 DA B7 28 00 06 02 34 8E 31 15 F3 28 00 06 02 32 00 00 0E D8 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 94 DE BD 45 8F', /* proper NEST EOCI handling in terminatorless conditions - aka just a random edge case test */
+                      '00 00 00 00 48 08 35 74 03 A9 CE 00 1C 03 28 00 06 02 34 0C 24 46 3A 28 00 06 02 34 91 8A 8A 79 28 00 06 02 32 00 00 1A 9A 35 12 09 61 26 00 0A 01 28 00 06 02 32 00 00 1A A4 8F 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 97 14 49 81 8F', /* chaotic best of a cond that has several edge cases for V3 parsing */
+                      '00 00 00 00 18 05 35 8D 76 66 D8 00 0A 01 28 00 06 02 34 E5 96 D9 98 32 00 00 00 01 78', /* yw2 jetnayn appearcond (has bell) */
+                    ];
+      el('input').value = samples[Math.round(Math.random() * (samples.length - 1))];
+      el('parseBtn').click();
+    });
+    
     el('clearBtn').addEventListener('click', ()=>{ el('input').value=''; el('tree').innerHTML=''; el('pseudo').textContent=''; el('log').textContent='Ready.'; });
 
     el('copyPseudoBtn').addEventListener('click', ()=>{ const txt = el('pseudo').textContent; if(!txt){ log('Nothing to copy','warn'); return;} navigator.clipboard?.writeText(txt).then(()=> log('Pseudocode copied to clipboard'), ()=> log('Copy failed','warn')); });
