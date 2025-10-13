@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yo-kai Watch Cond Parser — v1.37</title>
+  <style>
+    :root{
+      --bg:#0f1115; --panel:#0b0d10; --text:#e6eef6; --muted:#9aa6b2; --accent:#6ea8ff; --good:#8bd18b; --bad:#ff7b7b;
+    }
+    body{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; margin:12px; color:var(--text); background:var(--bg);}
+    .container{max-width:980px;margin:0 auto;padding:12px}
+    h2{margin:0 0 8px 0}
+    textarea{width:100%;min-height:120px;padding:8px;background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);}
+    button{background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:6px 8px;margin:4px;border-radius:6px;cursor:pointer}
+    .controls{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+    #log{white-space:pre-wrap;background:transparent;border:1px dashed rgba(255,255,255,0.03);padding:8px;min-height:36px;color:var(--muted)}
+    .tree{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:8px;border-radius:6px;margin-top:8px}
+    .node{padding:6px;border-radius:4px;margin:2px 0;cursor:pointer}
+    /* updated to work on light mode too (eugh) */
+    .node:hover {
+       background: rgba(255, 255, 255, 0.04);
+       border: 1px solid transparent;
+    }
+  
+    /* Light mode stuff :< */
+    .light .node:hover {
+      background: rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .light .node:active,
+    .light .node.selected {
+      background: rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+
+    .label{color:var(--accent);font-weight:600;margin-left:8px}
+    .small{font-size:0.85em;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .danger{color:var(--bad)}
+    .ok{color:var(--good)}
+    .pseudo{white-space:pre;background:transparent;border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:6px;margin-top:8px}
+
+    /* dark mode toggle (light is inverse because nobody uses it) */
+    .light { --bg:#f6f8fb; --panel:#fff; --text: #243732; --muted: #667085; --accent:#dea200; --good:#0b8f3a; --bad:#c23333; } /* the accent color is shoo good! I ran it through a color inverter to find the exact shade of orange because I was too lazy to hand pick one but it worked out! But yeah light mode is a pain to do */
+    .light .pseudo {
+       border-color: rgba(0,0,0,0.06);
+      background: rgba(0,0,0,0.02);
+    }
+
+    /* modal basics */
+    dialog{border:1px solid rgba(0,0,0,0.08);background:var(--panel);color:var(--text);padding:12px;border-radius:8px}
+    label{display:inline-block}
+    input[type=text]{padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
+
+    /* gotta add select/option CSS too */
+
+    select { /* chevron sounds so fancy */
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95em;
+      cursor: pointer;
+      appearance: none; /* remove native arrow (for custom look) */
+      background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position: calc(100% - 16px) center, calc(100% - 12px) center;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+      padding-right: 28px; /* space for arrow */
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    
+    select:hover, select:focus {
+      border-color: rgba(255, 255, 255, 0.12);
+      background-color: rgba(255, 255, 255, 0.02);
+      outline: none;
+    }
+    
+    option {
+      background: var(--panel);
+      color: var(--text);
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <h2>Yo-kai Watch Cond Parser <span class="small">v1.37</span></h2>
+    <div class="small muted">Paste hex (spaced/continuous) or Base64. Parser uses V3 parsing.</div>
+
+    <textarea id="input" placeholder="Paste hex (e.g. '00 0A 01') or base64 here"></textarea>
+
+    <div class="controls">
+      <button id="parseBtn">Parse</button>
+      <button id="parseB64Btn">Parse Base64</button>
+      <button id="sampleBtn">Load Sample</button>
+      <button id="clearBtn">Clear</button>
+      <button id="copyPseudoBtn">Copy Pseudocode</button>
+      <button id="downloadBtn">Download Pseudocode</button>
+      <button id="generateBtn">Generate Known Cond(s)</button>
+      <label class="small muted" style="margin-left:8px"><input type="checkbox" id="lightMode"> Light mode</label>
+    </div>
+
+    <div id="log" aria-live="polite">Ready.</div>
+
+    <div style="display:flex;gap:12px;margin-top:12px;align-items:flex-start">
+      <div style="flex:1">
+        <div class="tree" id="tree" role="region" aria-label="Parsed tree"></div>
+      </div>
+      <div style="width:46%">
+        <div class="pseudo" id="pseudo"></div>
+      </div>
+    </div>
+
+    <dialog id="generateModal">
+      <h3>Generate Known Cond(s)</h3>
+      <label>Condition: <select id="condSelect"></select></label>
+      <div id="extraInputs"></div>
+      <div style="margin-top:10px"><button id="generateCondBtn">Generate</button> <button id="closeModalBtn">Cancel</button></div>
+    </dialog>
+  </div>
+
+  <script>
+    // version
+    const ver = 1.37;
+
+    // known resource IDs for labeling
+    const knownResourceIDs = {
+      '2A 3D 45 43': 'Check for FLAG_INFO_0 Flag (YW2/YW3)',
+      '10 B1 40 96': 'Is Main Story Completed (YW2)',
+      'DD 77 26 95': 'Watch Rank (YW2)',
+      '8D 76 66 D8': 'Check if player has Item (YW2)',
+      '9E 99 84 8C': 'Check for FLAG_INFO_1 Flag (YW2/YW3)',
+      'DE 17 FE 18': 'Terror Time Data (YW2)',
+    };
+
+    // cond templates
+    const condTemplates = {
+      mainStory: { type: "b64", value: "AAAAAA8FNRCxQJYAAQAyAAAAAXg=", label: "Yo-kai Watch 2 – Main Story Completed" },
+      unmainStory: { type: "b64", value: "AAAAAA8FNRCxQJYAAQAyAAAAAHg=", label: "Yo-kai Watch 2 – Main Story Not Completed" },
+      rankXX: { type: "hex", template: "00 00 00 00 0f 05 35 dd 77 26 95 00 01 00 32 00 00 00 {RANK} 71", params: [{ name: "RANK", label: "Rank (00–FF)", placeholder: "e.g. 06" }], label: "Yo-kai Watch 2 – Rank XX or higher" },
+      hasItem: { type: "hex", template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 01 78", params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1678239 or 0x638297A etc" }], label: "Yo-kai Watch 2 – Has Item" },
+      tunnelXX: { type: "hex", template: "00 00 00 00 18 05 35 9e 99 84 8c 00 0a 01 28 00 06 02 34 89 20 ff e7 32 00 00 00 {COUNT} 78", params: [{ name: "COUNT", label: "Times Beaten (00–FF)", placeholder: "e.g. 05" }], label: "Yo-kai Watch 2 – Beaten Infinite Tunnel XX Times" },
+      npcFlagYW3: {type: "hex", template: "00 00 00 00 18 05 35 {RESOURCE_ID} 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 01 78", params: [{name: "FLAG_TYPE", label: "Flag Type", type: "select", options: [{ label: "FLAG_INFO_0", value: "2A 3D 45 43" }, { label: "FLAG_INFO_1", value: "9E 99 84 8C" }]},{ name: "FLAG", label: "Flag ID (4-byte big endian)", placeholder: "e.g. 12345678 or 0x00ABCDEF" }], label: "Yo-kai Watch 2/3 - Check for Flag (Activated)"},
+      unhasItem: { type: "hex", template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 00 78", params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1678239 or 0x638297A etc" }], label: "Yo-kai Watch 2 – Does Not Have Item" },
+      unnpcFlagYW3: {type: "hex", template: "00 00 00 00 18 05 35 {RESOURCE_ID} 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 00 78", params: [{name: "FLAG_TYPE", label: "Flag Type", type: "select", options: [{ label: "FLAG_INFO_0", value: "2A 3D 45 43" }, { label: "FLAG_INFO_1", value: "9E 99 84 8C" }]},{ name: "FLAG", label: "Flag ID (4-byte big endian)", placeholder: "e.g. 12345678 or 0x00ABCDEF" }], label: "Yo-kai Watch 2/3 - Check for Flag (Not Activated)"},
+    };
+
+    // minimal internals for parsing hex/base64 -> normalized hex string
+    function normalizeInputRaw(text){ return (text||'').trim(); }
+
+    function tryDecodeBase64(s){
+      try { return atob(s); } catch(e){ try { const urlFixed = s.replace(/-/g,'+').replace(/_/g,'/'); const pad = urlFixed.length % 4 === 0 ? urlFixed : urlFixed + '='.repeat(4 - (urlFixed.length % 4)); return atob(pad);} catch(e2){ throw new Error('Not valid base64'); } }
+    }
+
+    function inputToHexString(text){
+      const t = normalizeInputRaw(text);
+      if(!t) return '';
+      // try continuous hex first
+      const hexCandidate = t.replace(/0x/gi,'').replace(/[:,\-<>]/g,'').replace(/\s+/g,'').trim();
+      if(/^[0-9a-fA-F]*$/.test(hexCandidate) && hexCandidate.length % 2 === 0 && hexCandidate.length>0) return hexCandidate.toUpperCase();
+      // try base64 (no spaces)
+      const looksLikeB64 = /^[A-Za-z0-9+\/=_\-]+$/.test(t) && !/\s/.test(t);
+      if(looksLikeB64){
+        try{ const dec = tryDecodeBase64(t); return Array.from(dec).map(c => (typeof c==='string' ? c.charCodeAt(0) : c).toString(16).padStart(2,'0')).join('').toUpperCase(); } catch(e){ /* fallthrough */ }
+      }
+      // fallback: split on spaces/tokens
+      const cleaned = t.replace(/0x/gi,'').replace(/[:,\-<>]/g,' ').replace(/\s+/g,' ').trim();
+      const parts = cleaned.split(' ');
+      return parts.map(p => p.padStart(2,'0')).join('').toUpperCase();
+    }
+
+    // helper: format hex string into spaced groups
+    function hexSpaced(h){ return (h||'').match(/.{1,2}/g)?.join(' ') || ''; }
+
+    // ---- V3 parser implementation (strict sizes) ----
+    if(typeof level5 === 'undefined') level5 = {};
+    if(typeof level5.cond === 'undefined') level5.cond = {};
+    if(typeof level5.cond._internals === 'undefined') level5.cond._internals = {};
+
+    level5.cond.SECTION_START = "35";
+    level5.cond.SECTION_END = "32";
+    level5.cond.EXTENSION_DELIMITER = "28";
+    level5.cond.NEST_DELIMITER = "34";
+    level5.cond.EOCI = "8F";
+    level5.cond.TERMINATORS = ["71","78","6F","79"];
+
+    level5.cond._internals.consumeBytes = function(hexStr, n){ const take = hexStr.slice(0, n*2); const rest = hexStr.slice(n*2); return [rest, take.toUpperCase()]; };
+    level5.cond._internals.startsWith = function(hexStr, prefix){ return hexStr.slice(0, prefix.length).toUpperCase() === prefix.toUpperCase(); };
+
+    level5.cond.parsev3Cond = function(inputHex){
+      const $ = level5.cond._internals;
+      let hex = (inputHex||'').replace(/\s+/g,'').toUpperCase();
+      const parsedCond = [];
+      function err(msg, hexSuffix){ const ctx = hexSuffix ? (' (next: '+hexSuffix+')') : ''; throw new SyntaxError(msg + ctx); }
+
+      function parseHeader(){ if(hex.length < 12) err('Too short for header+condcode', hex.slice(0,12)); if(!$.startsWith(hex,'00000000')) err('Header invalid (expected 00000000)'); let consumed; [hex, consumed] = $.consumeBytes(hex,4); const headerBlock = [['HEADER', consumed]]; [hex, consumed] = $.consumeBytes(hex,2); headerBlock.push(['COND_CODE', consumed]); parsedCond.push(['HEADER_BLOCK', headerBlock]); }
+
+      function parseClause(){ 
+        if(hex.length < 2) err('Unexpected EOF while expecting SECTION_START or SECTION_END');
+        if(!$.startsWith(hex, level5.cond.SECTION_START) && !$.startsWith(hex, level5.cond.SECTION_END)) err('Clause must start with SECTION_START or SECTION_END', hex.slice(0,2));
+
+        // temp SECTION_END logic; might not work in all cases; I should add V2 fallback parsing
+        if($.startsWith(hex, level5.cond.SECTION_END)){
+          const clause = []; let consumed;
+          [hex, consumed] = $.consumeBytes(hex,1); clause.push(['SECTION_END', consumed]);
+          if(hex.length < 8) err('Truncated COMPARISON_VALUE', hex.slice(0,8));
+          [hex, consumed] = $.consumeBytes(hex,4); clause.push(['COMPARISON_VALUE', consumed]);
+          if(hex.length < 2) err('Unexpected EOF after COMPARISON_VALUE');
+        
+          if($.startsWith(hex, level5.cond.SECTION_END)){
+              [hex, consumed] = $.consumeBytes(hex,1); clause.push(['SECTION_END', consumed]);
+              parsedCond.push(['CONDITION', clause]);  
+              return;
+          }
+        
+          if($.startsWith(hex, level5.cond.SECTION_START)){
+              parsedCond.push(['CONDITION', clause]); 
+              parseClause();                          
+              return;
+          }
+
+          err('Expected SECTION_END or SECTION_START after COMPARISON_VALUE', hex.slice(0,2));
+        }
+        if(!$.startsWith(hex, level5.cond.SECTION_START)) err('Clause must start with SECTION_START', hex.slice(0,2)); 
+        const clause = []; let consumed; 
+        [hex, consumed] = $.consumeBytes(hex,1); clause.push(['SECTION_START', consumed]); 
+        if(hex.length < 8) err('Truncated RESOURCE_ID_A', hex.slice(0,8)); 
+        [hex, consumed] = $.consumeBytes(hex,4); clause.push(['RESOURCE_ID_A', consumed]); 
+        if(hex.length < 6) err('Truncated CTYPE_A', hex.slice(0,6)); 
+        [hex, consumed] = $.consumeBytes(hex,3); clause.push(['CTYPE_A', consumed]);
+      
+        while(hex.length > 0){ 
+          const nextByte = hex.slice(0,2);
+          if($.startsWith(hex, level5.cond.SECTION_END)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['SECTION_END', consumed]); 
+            if(hex.length < 8) err('Expected COMPARISON_VALUE after SECTION_END', hex.slice(0,8));
+            [hex, consumed] = $.consumeBytes(hex,4); clause.push(['COMPARISON_VALUE', consumed]); /*
+            if(hex.length < 2) err('Expected SECTION_END or TERMINATOR after COMPARISON_VALUE', hex.slice(0,2));  // note
+            const afterComp = hex.slice(0,2);
+            if($.startsWith(hex, level5.cond.SECTION_END)){ continue; } 
+            else if(level5.cond.TERMINATORS.includes(afterComp)){ 
+              [hex, consumed] = $.consumeBytes(hex,1); clause.push(['TERMINATOR', consumed]); parsedCond.push(['CONDITION', clause]); return; 
+            } else { err('After COMPARISON_VALUE expected SECTION_END or TERMINATOR but found', afterComp); }*/
+             // --- Replace the earlier block with this ---
+/*
+  After reading COMPARISON_VALUE we may see:
+  - another SECTION_END       -> (do NOT consume here; let top-of-loop handle it / allow another comparison)
+  - a TERMINATOR (71/78/6F/79) -> consume and finish this condition
+  - EOCI (8F)                 -> consume and finish this condition
+  - a new SECTION_START (35)  -> do NOT consume; close this condition and let top-level loop start next
+  - end-of-input              -> finish condition
+*/
+if (hex.length === 0) {
+  // end-of-input: finish condition
+  parsedCond.push(['CONDITION', clause]);
+  return;
+}
+
+if (hex.length < 2) {
+  // still an unexpected truncated byte (unlikely because we handled length === 0 above)
+  err('After COMPARISON_VALUE found unexpected truncated byte', hex.slice(0,2));
+}
+
+const afterComp = hex.slice(0,2);
+
+// Another SECTION_END after the comparison indicates another comparison follows.
+// IMPORTANT: do NOT consume the SECTION_END here — keep original behavior (top-level parsing
+// expects to see SECTION_END and will consume it in its normal flow).
+if ($.startsWith(hex, level5.cond.SECTION_END)) {
+  // allow the parse to loop so the subsequent COMPARISON_VALUE is handled normally
+  continue;
+}
+
+// TERMINATOR -> consume it and finish this condition
+if (level5.cond.TERMINATORS.includes(afterComp)) {
+  [hex, consumed] = $.consumeBytes(hex,1);
+  clause.push(['TERMINATOR', consumed]);
+  parsedCond.push(['CONDITION', clause]);
+  return;
+}
+
+// EOCI -> consume and finish this condition
+if ($.startsWith(hex, level5.cond.EOCI)) {
+//  [hex, consumed] = $.consumeBytes(hex,1);
+//  clause.push(['EOCI', consumed]);
+  parsedCond.push(['CONDITION', clause]);
+  return;
+}
+
+// SECTION_START -> do NOT consume it here; close this condition and let the outer loop handle the new clause
+if ($.startsWith(hex, level5.cond.SECTION_START)) {
+  parsedCond.push(['CONDITION', clause]);
+  return;
+}
+
+// Otherwise it's still unexpected
+err('After COMPARISON_VALUE expected SECTION_END, TERMINATOR, EOCI, SECTION_START, or end-of-input but found', afterComp);
+
+          }
+          else if($.startsWith(hex, level5.cond.EXTENSION_DELIMITER)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['EXTENSION_DELIMITER', consumed]); 
+            if(hex.length < 6) err('Expected CTYPE_B after EXTENSION_DELIMITER', hex.slice(0,6)); 
+            [hex, consumed] = $.consumeBytes(hex,3); clause.push(['CTYPE_B', consumed]); 
+            continue;
+          }
+          else if($.startsWith(hex, level5.cond.NEST_DELIMITER)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['NEST_DELIMITER', consumed]); 
+            if(hex.length < 8) err('Expected RESOURCE_ID_B after NEST_DELIMITER', hex.slice(0,8)); 
+            [hex, consumed] = $.consumeBytes(hex,4); clause.push(['RESOURCE_ID_B', consumed]); 
+            continue;
+          }
+          else if(level5.cond.TERMINATORS.includes(nextByte)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['TERMINATOR', consumed]); 
+            parsedCond.push(['CONDITION', clause]); return;
+          }
+          else if($.startsWith(hex, level5.cond.EOCI)){
+          //  [hex, consumed] = $.consumeBytes(hex,1); clause.push(['EOCI', consumed]); 
+            parsedCond.push(['CONDITION', clause]); return;
+          }
+          else {
+      err('Unknown byte in CLAUSE (unable to progress parse)', nextByte);
+          }
+        }
+
+        // fallback: push clause even if there isnt a terminator but complain (7 warns if you're debugging this oh and sorry for your loss...)
+        console.warn("no terminator :<<<" + clause);
+                console.warn("no terminator :<<<" + clause);
+                        console.warn("no terminator :<<<" + clause);
+                                console.warn("no terminator :<<<" + clause);
+                                        console.warn("no terminator :<<<" + clause);
+                                                console.warn("no terminator :<<<" + clause);
+                                                        console.warn("no terminator :<<<" + clause);
+
+        parsedCond.push(['CONDITION', clause]); 
+        return;
+      }
+
+
+      // top-level header - not per condition but per cond; I totally didnt forget about the strict checks here which made me feel so delusional as I kept refreshing an earlier patch but nothing changed lmao
+      parseHeader();
+      while(hex.length > 0){ if(!$.startsWith(hex, level5.cond.SECTION_START) && !$.startsWith(hex, level5.cond.SECTION_END)) err('Expected SECTION_START or SECTION_END at top-level but found', hex.slice(0,8)); parseClause(); if($.startsWith(hex, level5.cond.EOCI)){ let c; [hex,c] = $.consumeBytes(hex,1); parsedCond.push(['EOCI', c]); continue; } if(hex.length === 0) break; if(!$.startsWith(hex, level5.cond.SECTION_START)) err('Trailing/Unexpected bytes after clause(s)', hex.slice(0,8)); }
+      return parsedCond;
+    };
+
+    // ---- render helpers ----
+    function labelForResource(hexBytes){ // hexBytes are expected to be formatted as 'AABBCCDD' or 'AA BB CC DD'
+      const spaced = hexSpaced(hexBytes.toUpperCase().replace(/\s+/g,''));
+      return knownResourceIDs[spaced];
+    }
+
+    function renderParsed(parsed){
+      const tree = document.getElementById('tree'); tree.innerHTML = '';
+      const pseudo = document.getElementById('pseudo'); pseudo.textContent = '';
+
+      parsed.forEach(node => {
+        const type = node[0];
+        if(type === 'HEADER_BLOCK'){
+          const wrap = document.createElement('div'); wrap.className = 'node'; wrap.innerHTML = '<strong>HEADER</strong> <span class="small muted">(header + condcode)</span>';
+          const inner = document.createElement('div'); inner.className='small muted'; node[1].forEach(x=>{ inner.innerHTML += '<div>'+x[0]+': <span class="label">'+hexSpaced(x[1])+'</span></div>'; }); wrap.appendChild(inner); tree.appendChild(wrap);
+          pseudo.textContent += '#header ' + hexSpaced(node[1][0][1]) + "\n#condCode " + hexSpaced(node[1][1][1]) + '\n\n';
+        } else if(type === 'CONDITION'){
+          const clause = node[1];
+          const wrap = document.createElement('div'); wrap.className='node';
+          wrap.innerHTML = '<strong>CONDITION</strong>';
+          const inner = document.createElement('div'); inner.className='small muted';
+          clause.forEach(f=>{
+            const name = f[0]; const val = f[1];
+            const lbl = (name.startsWith('RESOURCE_ID') ? labelForResource(val) : null);
+            inner.innerHTML += '<div><strong>'+name+'</strong>: <span class="label">'+hexSpaced(val)+'</span>' + (lbl?('<span class="small muted"> — '+lbl+'</span>'):'') + '</div>';
+            // append to pseudo
+            switch(name){
+              case 'SECTION_START': pseudo.textContent += 'start {'+"\n"; break;
+              case 'RESOURCE_ID_A': pseudo.textContent += '  RESOURCE_ID_A = '+hexSpaced(val) + (lbl?(' // '+lbl):'')+'\n'; break;
+              case 'CTYPE_A': pseudo.textContent += '  CTYPE_A = '+hexSpaced(val)+'\n'; break;
+              case 'EXTENSION_DELIMITER': pseudo.textContent += '  extend {\n'; break;
+              case 'CTYPE_B': pseudo.textContent += '    CTYPE_B = '+hexSpaced(val)+'\n'; break;
+              case 'NEST_DELIMITER': pseudo.textContent += '    nest {\n'; break;
+              case 'RESOURCE_ID_B': pseudo.textContent += '      RESOURCE_ID_B = '+hexSpaced(val)+'\n'; break;
+              case 'SECTION_END': pseudo.textContent += '  SECTION_END\n'; break;
+              case 'COMPARISON_VALUE': pseudo.textContent += '  COMPARISON = '+hexSpaced(val)+'\n'; break;
+              case 'TERMINATOR': pseudo.textContent += '  TERMINATOR = '+hexSpaced(val)+'\n'; break;
+              case 'EOCI': pseudo.textContent += '  EOCI\n'; break;
+            }
+          });
+          wrap.appendChild(inner); tree.appendChild(wrap);
+          pseudo.textContent += '}\n\n';
+        } else if(type === 'EOCI'){
+          const wrap = document.createElement('div'); wrap.className='node'; wrap.innerHTML = '<strong>EOCI</strong>: <span class="label">'+hexSpaced(node[1])+'</span>'; tree.appendChild(wrap);
+          pseudo.textContent += '// EOCI '+hexSpaced(node[1])+'\n';
+        }
+      });
+    }
+
+    // ---- UI actions ----
+    const el = id => document.getElementById(id);
+
+    function log(msg, kind){ const l = el('log'); const pfx = kind==='error'?'Error: ': kind==='warn'?'Warning: ': ''; l.textContent = pfx + msg; }
+
+    function doParseFromInput(text){ try{ const hex = inputToHexString(text); if(!hex) { log('No input', 'warn'); return; } const parsed = level5.cond.parsev3Cond(hex); renderParsed(parsed); log('Parsed OK.'); } catch(e){ log(e.message, 'error'); console.error(e); } }
+
+    el('parseBtn').addEventListener('click', ()=> doParseFromInput(el('input').value));
+    el('parseB64Btn').addEventListener('click', ()=>{ try{ const raw = el('input').value.trim(); if(/\s/.test(raw)) throw new Error('Base64 must not contain internal whitespace'); const dec = tryDecodeBase64(raw); const hex = Array.from(dec).map(c => (typeof c==='string' ? c.charCodeAt(0) : c).toString(16).padStart(2,'0')).join('').toUpperCase(); el('input').value = hexSpaced(hex); doParseFromInput(hex); } catch(e){ log('Base64 decode failed: '+e.message,'error'); } });
+
+    el('sampleBtn').addEventListener('click', ()=>{ el('input').value = '00 00 00 00 f0 3b 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 01 32 00 00 00 01 78 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 02 32 00 00 00 01 78 8f 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 03 32 00 00 00 01 78 8f'; el('parseBtn').click(); });
+
+    el('clearBtn').addEventListener('click', ()=>{ el('input').value=''; el('tree').innerHTML=''; el('pseudo').textContent=''; el('log').textContent='Ready.'; });
+
+    el('copyPseudoBtn').addEventListener('click', ()=>{ const txt = el('pseudo').textContent; if(!txt){ log('Nothing to copy','warn'); return;} navigator.clipboard?.writeText(txt).then(()=> log('Pseudocode copied to clipboard'), ()=> log('Copy failed','warn')); });
+
+    el('downloadBtn').addEventListener('click', ()=>{ const pseudo = el('pseudo').textContent || ''; const blob = new Blob([pseudo], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'cond.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
+
+    // generate modal
+    const generateModal = el('generateModal'); const condSelect = el('condSelect'); const extraInputs = el('extraInputs');
+    Object.keys(condTemplates).forEach(key=>{ const opt = document.createElement('option'); opt.value = key; opt.textContent = condTemplates[key].label || key; condSelect.appendChild(opt); });
+
+    function updateExtraInputs(){ // modal UI stuff lol
+      extraInputs.innerHTML = ''; 
+      const sel = condTemplates[condSelect.value]; 
+      if(sel?.params){ 
+        sel.params.forEach(p=>{ 
+          const label = document.createElement('label'); 
+          label.textContent = p.label + ': '; 
+          let input;
+         
+          if (p.type === 'select' && Array.isArray(p.options)) {
+            input = document.createElement('select');
+            p.options.forEach(opt => {
+              const o = document.createElement('option');
+              o.value = opt.value;
+              o.textContent = opt.label;
+              input.appendChild(o);
+            });
+          } else {
+            input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = p.placeholder || '';
+          }
+          
+          input.id = 'param_' + p.name;
+          input.style = 'margin-left:6px';
+          label.appendChild(input);
+          extraInputs.appendChild(label);
+          extraInputs.appendChild(document.createElement('br'));
+        });
+      }
+    }
+    condSelect.addEventListener('change', updateExtraInputs); updateExtraInputs();
+
+    el('generateBtn').addEventListener('click', ()=> generateModal.showModal()); el('closeModalBtn').addEventListener('click', ()=> generateModal.close());
+
+    function intToHexNoPad(n){ const hex = n.toString(16).toUpperCase(); return hex.length % 2 ? '0'+hex : hex; }
+    function parseBigEndianId(input){ let num; if(input.startsWith('0x')||input.startsWith('0X')) num = parseInt(input,16); else num = parseInt(input,10); if(isNaN(num)) throw new Error('Invalid flag ID'); num = (num >>> 0); const arr = new Uint8Array(4); const dv = new DataView(arr.buffer); dv.setUint32(0, num, false); return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    }
+    function parseItemId(input){ let num; if(input.startsWith('0x')||input.startsWith('0X')) num = parseInt(input,16); else num = parseInt(input,10); if(isNaN(num)) throw new Error('Invalid item ID'); num = (num >> 0); const arr = new Uint8Array(4); const dv = new DataView(arr.buffer); dv.setInt32(0, num, true); return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    }
+
+    el('generateCondBtn').addEventListener('click', ()=>{
+      const selected = condTemplates[condSelect.value]; let finalText = selected.value || selected.template; try{
+        if(selected.params){
+          selected.params.forEach(p=>{
+            let val = el('param_'+p.name).value.trim();
+            if(p.name === 'RANK' || p.name === 'COUNT'){ 
+              const intVal = parseInt(val,10); 
+              if(isNaN(intVal)||intVal<0||intVal>255) throw new Error('Invalid '+p.label); 
+              val = intToHexNoPad(intVal); 
+            } 
+            else if(p.name === 'ITEM'){ 
+              val = parseItemId(val); 
+            } 
+            else if(p.name === 'FLAG'){ 
+              val = parseBigEndianId(val); 
+            }
+            
+            // Handle the select for FLAG_TYPE
+            if(p.name === 'FLAG_TYPE'){
+              finalText = finalText.replace('{RESOURCE_ID}', val);
+            } else {
+              finalText = finalText.replace('{'+p.name+'}', val);
+            }
+          });
+         }
+        el('input').value = finalText; generateModal.close(); el('parseBtn').click();
+      } catch(err){ log('Generation failed: '+err.message,'error'); }
+    });
+
+    // light mode toggle
+    el('lightMode').addEventListener('change', (ev)=>{ document.body.classList.toggle('light', ev.target.checked); });
+
+  </script>
+</body>
+</html>
