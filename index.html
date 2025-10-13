@@ -189,11 +189,12 @@
     level5.cond.NEST_DELIMITER = "34";
     level5.cond.EOCI = "8F";
     level5.cond.OPERATORS = ["71","78","6F","79"];
-    level5.cond.OPERATOR_LABELS = [">=", "==", "??", "??"] //
+    level5.cond.OPERATOR_LABELS = [">=", "==", "=< ?? (Unconfirmed)", "??"] //
     level5.cond.CTYPES = {
-      "00 01 00": "Const",
+      "00 1C 03": "2D List? (Unconfirmed)",
       "00 0A 01": "List",
-      "00 06 02": "Parameter/Boolean"
+      "00 06 02": "Parameter/Int",
+      "00 01 00": "Const",
     }
     level5.cond._internals.consumeBytes = function(hexStr, n){ const take = hexStr.slice(0, n*2); const rest = hexStr.slice(n*2); return [rest, take.toUpperCase()]; };
     level5.cond._internals.startsWith = function(hexStr, prefix){ return hexStr.slice(0, prefix.length).toUpperCase() === prefix.toUpperCase(); };
@@ -436,7 +437,7 @@ err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, 
     el('parseB64Btn').addEventListener('click', ()=>{ try{ const raw = el('input').value.trim(); if(/\s/.test(raw)) throw new Error('Base64 must not contain internal whitespace'); const dec = tryDecodeBase64(raw); const hex = Array.from(dec).map(c => (typeof c==='string' ? c.charCodeAt(0) : c).toString(16).padStart(2,'0')).join('').toUpperCase(); el('input').value = hexSpaced(hex); doParseFromInput(hex); } catch(e){ log('Base64 decode failed: '+e.message,'error'); } });
 
        el('sampleBtn').addEventListener('click', ()=>{ // random sample list
-         let samples = [
+      let samples = [
                       '00 00 00 00 f0 3b 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 01 32 00 00 00 01 78 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 02 32 00 00 00 01 78 8f 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 03 32 00 00 00 01 78 8f', /* random chain cond */
                       '00 00 00 00 0f 05 35 10 b1 40 96 00 01 00 32 00 00 00 01 78', /* main story completed yw2 simple format */
                       '00 00 00 00 18 05 35 2a 3d 45 43 00 0a 01 28 00 06 02 34 00 12 34 56 32 00 00 00 01 78', /* has flag 0x00123456 yw3; basic extended format */
