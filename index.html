@@ -127,7 +127,7 @@
 
   <script>
     // version
-    const ver = 1.38;
+    const ver = 1.382;
 
     // known resource IDs for labeling
     const knownResourceIDs = {
@@ -137,6 +137,7 @@
       '8D 76 66 D8': 'Check if player has Item (YW2)',
       '9E 99 84 8C': 'Check for FLAG_INFO_1 Flag (YW2/YW3)',
       'DE 17 FE 18': 'Terror Time Data (YW2)',
+      "B6 B8 67 61": "Yo-kai HP% (YW2)",
     };
 
     // cond templates
@@ -183,19 +184,42 @@
     if(typeof level5.cond === 'undefined') level5.cond = {};
     if(typeof level5.cond._internals === 'undefined') level5.cond._internals = {};
 
+    // gotta organise this:
+
+    // reads
     level5.cond.READ_MEMORY = "35";
     level5.cond.READ_LITERAL = "32";
-    level5.cond.EXTENSION_DELIMITER = "28";
-    level5.cond.NEST_DELIMITER = "34";
+    level5.cond.READ_SUBSECTION = "34";
+
+    // extension markers?
+    level5.cond.EXTENSION_DELIM = "28"; // not fully a read but helps with structure and is always near a READ_SUBSECTION
+
+    // EOCIs
     level5.cond.EOCI = "8F";
-    level5.cond.OPERATORS = ["71","78","6F","79"];
-    level5.cond.OPERATOR_LABELS = [">=", "==", "=< ?? (Unconfirmed)", "??"] //
+    level5.cond.AEOCI = "90"; // this exists....
+
+    // Operators
+    level5.cond.OPERATORS = ["71","78","6F","79", "70"];
+    level5.cond.OPERATOR_LABELS = [">=", "==", "=<", "??", "??"] // kept seperated into 2 arrays because I didnt want to risk breaking my old code
+    level5.cond.DEFAULT_OPERATOR = "=<";
+
+    // CTYPEs
     level5.cond.CTYPES = {
-      "00 1C 03": "2D List? (Unconfirmed)",
+      "00 13 02": "???",
+      "00 1C 03": "(2D List?)",
       "00 0A 01": "List",
       "00 06 02": "Parameter/Int",
       "00 01 00": "Const",
     }
+
+    // COMPARISON_VALUEs
+    level5.cond.DEFAULT_COMPARISON_VALUE  = false; // (0x00000000) maybe??? confirm this
+    level5.cond.COMPARISON_VALUE_LABELS = {
+      "00 00 00 01": "true",
+      "00 00 00 00": "false",
+      "00 00 00 FF": "Special Case!", // sometimes means max, but is too situational to mention
+    }
+    // misc
     level5.cond._internals.consumeBytes = function(hexStr, n){ const take = hexStr.slice(0, n*2); const rest = hexStr.slice(n*2); return [rest, take.toUpperCase()]; };
     level5.cond._internals.startsWith = function(hexStr, prefix){ return hexStr.slice(0, prefix.length).toUpperCase() === prefix.toUpperCase(); };
 
@@ -228,8 +252,14 @@
           if($.startsWith(hex, level5.cond.READ_MEMORY)){
               parsedCond.push(['CONDITION', clause]); 
               parseClause();                          
-              return;
+              return; // A.
           }
+
+          if ($.startsWith(hex, level5.cond.EOCI)) {
+            console.warn("c")
+  parsedCond.push(['CONDITION', clause]); // this 
+  return;
+}
 
           err('Expected READ_LITERAL or READ_MEMORY after COMPARISON_VALUE', hex.slice(0,2));
         }
@@ -309,15 +339,15 @@ if ($.startsWith(hex, level5.cond.READ_MEMORY)) {
 err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, or end-of-input but found', afterComp);
 
           }
-          else if($.startsWith(hex, level5.cond.EXTENSION_DELIMITER)){
-            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['EXTENSION_DELIMITER', consumed]); 
-            if(hex.length < 6) err('Expected CTYPE_B after EXTENSION_DELIMITER', hex.slice(0,6)); 
+          else if($.startsWith(hex, level5.cond.EXTENSION_DELIM)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['EXTENSION_DELIM', consumed]); 
+            if(hex.length < 6) err('Expected CTYPE_B after EXTENSION_DELIM', hex.slice(0,6)); 
             [hex, consumed] = $.consumeBytes(hex,3); clause.push(['CTYPE_B', consumed]); 
             continue;
           }
-          else if($.startsWith(hex, level5.cond.NEST_DELIMITER)){
-            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['NEST_DELIMITER', consumed]); 
-            if(hex.length < 8) err('Expected RESOURCE_ID_B after NEST_DELIMITER', hex.slice(0,8)); 
+          else if($.startsWith(hex, level5.cond.READ_SUBSECTION)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_SUBSECTION', consumed]); 
+            if(hex.length < 8) err('Expected RESOURCE_ID_B after READ_SUBSECTION', hex.slice(0,8)); 
             [hex, consumed] = $.consumeBytes(hex,4); clause.push(['RESOURCE_ID_B', consumed]); 
             continue;
           }
@@ -328,12 +358,19 @@ err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, 
           else if($.startsWith(hex, level5.cond.EOCI)){
           //  [hex, consumed] = $.consumeBytes(hex,1); clause.push(['EOCI', consumed]); 
             parsedCond.push(['CONDITION', clause]); return;
-          }
-          else {
-      err('Unknown byte in CLAUSE (unable to progress parse)', nextByte);
+          } else if($.startsWith(hex, level5.cond.READ_MEMORY)){
+              parsedCond.push(['CONDITION', clause]); 
+              parseClause();                          
+              return;
+          } else {
+            parsedCond.push(['CONDITION', clause]); return;
+            err('Unknown byte in CLAUSE (unable to progress parse)', nextByte);
           }
         }
 
+        /*
+                  if
+              */
         // fallback: push clause even if there isnt a OPERATOR but complain (7 warns if you're debugging this oh and sorry for your loss...)
         console.warn("no OPERATOR :<<<" + clause);
                 console.warn("no OPERATOR :<<<" + clause);
@@ -350,10 +387,49 @@ err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, 
 
       // top-level header - not per condition but per cond; I totally didnt forget about the strict checks here which made me feel so delusional as I kept refreshing an earlier patch but nothing changed lmao
       parseHeader();
-      while(hex.length > 0){ if(!$.startsWith(hex, level5.cond.READ_MEMORY) && !$.startsWith(hex, level5.cond.READ_LITERAL)) err('Expected READ_MEMORY or READ_LITERAL at top-level but found', hex.slice(0,8)); parseClause(); if($.startsWith(hex, level5.cond.EOCI)){ let c; [hex,c] = $.consumeBytes(hex,1); parsedCond.push(['EOCI', c]); continue; } if(hex.length === 0) break; if(!$.startsWith(hex, level5.cond.READ_MEMORY)) err('Trailing/Unexpected bytes after clause(s)', hex.slice(0,8)); }
+while (hex.length > 0) {
+  let z;
+
+  // Case 1: starts with AOECI
+  if ($.startsWith(hex, level5.cond.AEOCI)) {
+    [hex, z] = $.consumeBytes(hex, 1);
+    parsedCond.push(['AEOCI', z]);
+    continue; // B.
+  }
+
+  // Case 2: Expect READ_MEMORY or READ_LITERAL at top level
+  if (
+    !$.startsWith(hex, level5.cond.READ_MEMORY) &&
+    !$.startsWith(hex, level5.cond.READ_LITERAL)
+  ) {
+    err('Expected READ_MEMORY or READ_LITERAL at top-level but found', hex.slice(0, 8));
+  }
+
+  // Parse clause
+  parseClause();
+
+  // Case 3: End of clause indicator
+  if ($.startsWith(hex, level5.cond.EOCI)) {
+    let c;
+    [hex, c] = $.consumeBytes(hex, 1);
+    parsedCond.push(['EOCI', c]);
+    continue;
+  }
+
+  // Case 4: End or trailing bytes
+  if (hex.length === 0) break;
+  if (!$.startsWith(hex, level5.cond.READ_MEMORY)) {
+    err('Trailing/Unexpected bytes after clause(s)', hex.slice(0, 8));
+  }
+}
+
       return parsedCond;
     };
-
+ 
+    function labelForCompVal(hexBytes){ // d.
+      const spaced = hexSpaced(hexBytes.toUpperCase().replace(/\s+/g,''));
+      return level5.cond.COMPARISON_VALUE_LABELS[spaced] || null;
+    }
     // ---- render helpers ----
     function labelForResource(hexBytes){ // hexBytes are expected to be formatted as 'AABBCCDD' or 'AA BB CC DD'
       const spaced = hexSpaced(hexBytes.toUpperCase().replace(/\s+/g,''));
@@ -370,61 +446,192 @@ err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, 
     const spaced = hexSpaced(ctypeBytes.toUpperCase().replace(/\s+/g, '')); // normalise input
     return ctypes[spaced] || null;
   }
+// Helper: turn a single CONDITION clause (array of [name, val]) into a C-like expression
+function toCExpression(clause) {
+  // Collect the relevant pieces (may be missing in many cases)
+  let resourceA = null;
+  let resourceB = null;
+  let ctypeA = null;
+  let ctypeB = null;
+  let operator = null;
+  let comparisonVal = null;
 
-    function renderParsed(parsed){
-      const tree = document.getElementById('tree'); tree.innerHTML = '';
-      const pseudo = document.getElementById('pseudo'); pseudo.textContent = '';
-
-      parsed.forEach(node => {
-        const type = node[0];
-        if(type === 'HEADER_BLOCK'){
-          const wrap = document.createElement('div'); wrap.className = 'node'; wrap.innerHTML = '<strong>HEADER</strong> <span class="small muted">(header + condcode)</span>';
-          const inner = document.createElement('div'); inner.className='small muted'; node[1].forEach(x=>{ inner.innerHTML += '<div>'+x[0]+': <span class="label">'+hexSpaced(x[1])+'</span></div>'; }); wrap.appendChild(inner); tree.appendChild(wrap);
-          pseudo.textContent += '#header ' + hexSpaced(node[1][0][1]) + "\n#condCode " + hexSpaced(node[1][1][1]) + '\n\n';
-        } else if(type === 'CONDITION'){
-          const clause = node[1];
-          const wrap = document.createElement('div'); wrap.className='node';
-          wrap.innerHTML = '<strong>CONDITION</strong>';
-          const inner = document.createElement('div'); inner.className='small muted';
-          clause.forEach(f=>{
-            const name = f[0];
-            const val = f[1];
-            let lbl = null;
-          
-            if (name.startsWith('RESOURCE_ID')) {
-              lbl = labelForResource(val);
-            } else if (name.startsWith('CTYPE')) {
-              lbl = labelForCType(val);
-            } else if (name === 'OPERATOR') {
-              lbl = labelForOperator(val);
-            }
-          
-            inner.innerHTML += '<div><strong>' + name + '</strong>: <span class="label">' +
-              hexSpaced(val) + '</span>' + (lbl ? (' <span class="small muted"> — ' + lbl + '</span>') : '') + '</div>';
-
-            // append to pseudo
-            switch(name){
-              case 'READ_MEMORY': pseudo.textContent += 'start {'+"\n"; break;
-              case 'RESOURCE_ID_A': pseudo.textContent += '  RESOURCE_ID_A = '+hexSpaced(val) + (lbl?(' // '+lbl):'')+'\n'; break;
-              case 'CTYPE_A': pseudo.textContent += '  CTYPE_A = '+hexSpaced(val)+'\n'; break;
-              case 'EXTENSION_DELIMITER': pseudo.textContent += '  extend {\n'; break;
-              case 'CTYPE_B': pseudo.textContent += '    CTYPE_B = '+hexSpaced(val)+'\n'; break;
-              case 'NEST_DELIMITER': pseudo.textContent += '    nest {\n'; break;
-              case 'RESOURCE_ID_B': pseudo.textContent += '      RESOURCE_ID_B = '+hexSpaced(val)+'\n'; break;
-              case 'READ_LITERAL': pseudo.textContent += '  READ_LITERAL\n'; break;
-              case 'COMPARISON_VALUE': pseudo.textContent += '  COMPARISON = '+hexSpaced(val)+'\n'; break;
-              case 'OPERATOR': pseudo.textContent += '  OPERATOR = '+hexSpaced(val)+'\n'; break;
-              case 'EOCI': pseudo.textContent += '  EOCI\n'; break;
-            }
-          });
-          wrap.appendChild(inner); tree.appendChild(wrap);
-          pseudo.textContent += '}\n\n';
-        } else if(type === 'EOCI'){
-          const wrap = document.createElement('div'); wrap.className='node'; wrap.innerHTML = '<strong>EOCI</strong>: <span class="label">'+hexSpaced(node[1])+'</span>'; tree.appendChild(wrap);
-          pseudo.textContent += '// EOCI '+hexSpaced(node[1])+'\n';
-        }
-      });
+  clause.forEach(([name, val]) => {
+    if (name.startsWith('RESOURCE_ID')) {
+      if (name.endsWith('_A')) resourceA = hexSpaced(val);
+      else if (name.endsWith('_B')) resourceB = hexSpaced(val);
+      else if (!resourceA) resourceA = hexSpaced(val); // fallback
+    } else if (name.startsWith('CTYPE')) {
+      if (name.endsWith('_A')) ctypeA = labelForCType(val) || hexSpaced(val);
+      else if (name.endsWith('_B')) ctypeB = labelForCType(val) || hexSpaced(val);
+      else if (!ctypeA) ctypeA = labelForCType(val) || hexSpaced(val);
+    } else if (name === 'OPERATOR') {
+      operator = labelForOperator(val) || ('0x' + val.replace(/\s+/g,''));
+    } else if (name === 'COMPARISON_VALUE') {
+      // comparisonVal is bytes like "00 00 00 01" — try to parse small ints, otherwise show hex
+      const raw = val.replace(/\s+/g,'');
+      // parse as little-endian 32-bit if length==8, otherwise hex string
+      if (raw.length === 8) {
+        // interpret as big-endian? Many comparison values appear as BE in file; try both fallbacks
+        const intBE = parseInt(raw, 16);
+        comparisonVal = intBE;
+      } else {
+        comparisonVal = '0x' + raw.toUpperCase();
+      }
     }
+  });
+
+  // Build a readable resource/function name
+  const labelA = resourceA ? labelForResource(resourceA) : null;
+  const readableA = labelA ? labelA.replace(/^Check (for|if player has) /i,'').replace(/\s+/g,'') : (resourceA ? 'ReadMemory_' + resourceA.replace(/\s+/g,'') : null);
+
+  // Choose the defaults
+  const op = operator || level5.cond.DEFAULT_OPERATOR; // c.
+  const cmp = (typeof comparisonVal === 'number') ? comparisonVal : (comparisonVal || level5.cond.DEFAULT_COMPARISON_VALUE);
+
+  // Known semantic patterns
+  if (labelA && /Item/i.test(labelA)) {
+    // If it's an "Has Item" resource — show HasItem(itemId)
+    // Oftentimes comparisonVal holds the item ID (literal) in the CLAUSE; but sometimes the resourceB contains item id
+    let itemId = null;
+    if (typeof comparisonVal === 'number' && comparisonVal !== 0) itemId = '0x' + comparisonVal.toString(16).toUpperCase();
+    // attempt to find resourceB if it's the actual item id (common pattern)
+    if (!itemId && resourceB) itemId = '0x' + resourceB.replace(/\s+/g,'');
+    if (!itemId) itemId = '?';
+    return `HasItem(${itemId}) ${op} true`;
+  }
+
+  if (labelA && /Main Story/i.test(labelA)) {
+    return `MainStoryCompleted() ${op} true`;
+  }
+
+  if (labelA && /Watch Rank/i.test(labelA)) {
+    return `GetWatchRank() ${op} ${cmp}`;
+  }
+
+  if (labelA && /FLAG_INFO/i.test(labelA)) {
+    // flags: resourceA indicates flag type, resourceB is usually the flag id (big-endian)
+    const flagIdDisp = resourceB ? ('0x' + resourceB.replace(/\s+/g,'')) : (typeof comparisonVal === 'number' ? ('0x' + comparisonVal.toString(16).toUpperCase()) : '?');
+    // If CTYPE_B indicated param/int we show a boolean check
+    return `CheckFlag(${flagIdDisp}) ${op} true`;
+  }
+
+  // Generic fallback that uses ctype names when available
+  const ctypeLabel = ctypeA || 'UNKNOWN_CTYPE';
+  const resArg = resourceA ? ('0x' + resourceA.replace(/\s+/g,'')) : 'ADDR';
+  return `${readableA}(${ctypeLabel}, ${resArg}) ${op} ${cmp}`;
+}
+
+// Updated renderParsed: generates tree + concise C-like pseudo output
+function renderParsed(parsed) {
+  const tree = document.getElementById('tree'); tree.innerHTML = '';
+  const pseudo = document.getElementById('pseudo'); pseudo.textContent = '';
+
+  let condGroup = []; // expressions for the current logical group
+  let seenHeader = false; // avoid duplicating header printing
+
+  parsed.forEach(node => {
+    const type = node[0];
+
+    // keep tree rendering the same
+    if (type === 'HEADER_BLOCK') {
+      const wrap = document.createElement('div'); wrap.className = 'node';
+      wrap.innerHTML = '<strong>HEADER</strong> <span class="small muted">(header + condcode)</span>';
+      const inner = document.createElement('div'); inner.className='small muted';
+      node[1].forEach(x => {
+        inner.innerHTML += '<div>' + x[0] + ': <span class="label">' + hexSpaced(x[1]) + '</span></div>';
+      });
+      wrap.appendChild(inner); tree.appendChild(wrap);
+
+      // print header/condCode only once (keep as comment in pseudo)
+      if (!seenHeader) {
+        pseudo.textContent += '// #header ' + hexSpaced(node[1][0][1]) + '\n';
+        pseudo.textContent += '// #condCode ' + hexSpaced(node[1][1][1]) + '\n\n';
+        seenHeader = true;
+      }
+    }
+
+    else if (type === 'CONDITION') {
+      const clause = node[1];
+      const wrap = document.createElement('div'); wrap.className = 'node';
+      wrap.innerHTML = '<strong>CONDITION</strong>';
+      const inner = document.createElement('div'); inner.className = 'small muted';
+
+      // populate tree view with fields (unchanged)
+      clause.forEach(f => {
+        const name = f[0];
+        const val = f[1];
+        let lbl = null;
+        if (name.startsWith('RESOURCE_ID')) lbl = labelForResource(val);
+        else if (name.startsWith('COMPARISON_VALUE')) lbl = labelForCompVal(val);
+        else if (name.startsWith('CTYPE')) lbl = labelForCType(val);
+        else if (name === 'OPERATOR') lbl = labelForOperator(val);
+
+        inner.innerHTML += '<div><strong>' + name + '</strong>: <span class="label">' +
+          hexSpaced(val) + '</span>' + (lbl ? (' <span class="small muted"> — ' + lbl + '</span>') : '') + '</div>';
+      });
+
+      wrap.appendChild(inner); tree.appendChild(wrap);
+
+      // generate a single expression from the whole clause and queue it
+      try {
+        const expr = toCExpression(clause);
+        condGroup.push(expr);
+      } catch (e) {
+        // if conversion fails just push a safe fallback string
+        condGroup.push('/* parse_error */ true');
+        console.error('toCExpression failed', e);
+      }
+    }
+
+    else if (type === 'EOCI') {
+      // render EOCI in tree
+      const wrap = document.createElement('div'); wrap.className = 'node';
+      wrap.innerHTML = '<strong>EOCI</strong>: <span class="label">' + hexSpaced(node[1]) + '</span>';
+      tree.appendChild(wrap);
+
+      // flush the current condition group as a C-style if-block
+      if (condGroup.length > 0) {
+        const combined = condGroup.join(' && ');
+        pseudo.textContent += `if (${combined}) {\n    // condition satisfied\n}\n\n`;
+        condGroup = [];
+      }
+
+      // annotate EOCI as comment (keeps output compact)
+      pseudo.textContent += `// EOCI ${hexSpaced(node[1])}\n\n`;
+    } else if (type === 'AEOCI') {
+      // render AEOCI in tree
+      const wrap = document.createElement('div'); wrap.className = 'node';
+      wrap.innerHTML = '<strong>AEOCI</strong>: <span class="label">' + hexSpaced(node[1]) + '</span>';
+      tree.appendChild(wrap);
+
+      // flush the current condition group as a C-style if-block
+      if (condGroup.length > 0) {
+        const combined = condGroup.join(' && ');
+        pseudo.textContent += `if (${combined}) {\n    // condition satisfied\n}\n\n`;
+        condGroup = [];
+      }
+
+      // annotate AEOCI as comment (keeps output compact)
+      pseudo.textContent += `// AEOCI ${hexSpaced(node[1])}\n\n`;
+    }
+
+    // any other node types are simply ignored for pseudo (but still present in tree)
+    else {
+      // noop for pseudo
+    }
+  });
+
+  // final flush: if parser ended without an EOCI, still emit any pending group
+  if (condGroup.length > 0) {
+    const combined = condGroup.join(' && ');
+    pseudo.textContent += `if (${combined}) {\n    // condition satisfied\n}\n\n`;
+    condGroup = [];
+  }
+}
+
+
+
 
     // ---- UI actions ----
     const el = id => document.getElementById(id);
