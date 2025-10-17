@@ -21,7 +21,7 @@ Conds are encoded in base64 - this is most likely as strings are the only variab
 
 After decoding to binary, which can be done with a website like [this](https://cryptii.com/pipes/base64-to-hex); the resulting cond will *always* start with a 4 byte header of `00 00 00 00`.
 
-After that, you will have a 2 byte reigon known as the `COND_CODE`; the first byte of this will represent the amount of bytes (not including itself but it includes the other byte of `COND_CODE`) until the end of the cond in question - in certain cases where several conditions are stored in one cond this will be `F0` (240) instead.
+After that, you will have a 2 byte reigon known as the `COND_CODE`; the first byte of this will represent the amount of bytes (not including itself but it includes the other byte of `COND_CODE`) until the end of the cond in question - in certain cases where several conditions are stored in one cond this will be `F0` (240) instead. The second byte appears to store the amount of sections the cond has but all attempts to accurately measure it have failed as the patterns shown seem to be inconsistent between conds.
 
 Then you have 2 operations
 * `READ_LITERAL` - this defines a 4-byte, little-endian literal value called `COMPARISON_VALUE`.
