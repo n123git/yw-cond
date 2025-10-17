@@ -4,7 +4,7 @@ This parser is for the Yo-kai Watch franchise which has a more complex cond set 
 [The website can be downloaded or viewed here](https://n123git.github.io/yw-cond).
 
 ## Cond Timeline
-* IEGO (2011, first cond system known; extremely simplistic)
+* IEGO (2011, first cond system known; extremely simplistic; 2 used data types and 4 used functions; conds occasionally contain multiple conditions)
   ->
 * YW1 (2013, lorem ipsum)
   ->
