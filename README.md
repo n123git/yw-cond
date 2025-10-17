@@ -11,4 +11,11 @@ This parser is for the Yo-kai Watch franchise which has a more complex cond set 
 ->
 * (Hasn't really changed much since but are prevelant in later games like YW4 and Snack World)
 
+## Cond Documentation (by me; n123!)
+Conds are a base64-encoded serialised, binary format used to contain and represent conditions within level5 games. The below documentation documents the known aspects of said format, ~~and will not be updated regularly~~:
+
+Conds are encoded in base64 - this is most likely as strings are the only variable length data type in `cfg.bin`s (via the use of string tables) - where they are stored.
+After decoding to binary, which can be done with a website like [this](https://cryptii.com/pipes/base64-to-hex); the resulting cond will *always* start with a 4 byte header of `00 00 00 00`.
+After that, you will have a 2 byte reigon known as the `COND_CODE`; the first byte of this will represent the amount of bytes (not including itself but it includes the other byte of `COND_CODE`) until the end of the cond in question - in certain cases where several conditions are stored in one cond this will be `F0` (240) instead.
+
 [The website can be downloaded or viewed here](https://n123git.github.io/yw-cond)
