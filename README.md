@@ -8,7 +8,7 @@ This parser is for the Yo-kai Watch franchise which has a more complex cond set 
   ->
 * YW1 (2013, lorem ipsum)
   ->
-* YW2 (2014) Complex, multi-layered container format with support for multi-dimensional arrays.
+* YW2 (2014) Complex, multi-layered container format with support for functions acting as multi-dimensional arrays.
 ->
 * (Hasn't really changed much since but are prevelant in later games like YW4 and Snack World)
 
