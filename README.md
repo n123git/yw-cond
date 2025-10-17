@@ -1,6 +1,7 @@
 # yw-cond
 A web-based W.I.P Cond analyser for the Yo-kai Watch series.
 This parser is for the Yo-kai Watch franchise which has a more complex cond set (and some slight changes) from Inazuma Eleven, for IEGO cond parsing take a look at [level5_condition](https://github.com/Tiniifan/level5_condition/) made by Tiniifan themself!
+[The website can be downloaded or viewed here](https://n123git.github.io/yw-cond).
 
 ## Cond Timeline
 * IEGO (2011, first cond system known; extremely simplistic)
@@ -15,7 +16,9 @@ This parser is for the Yo-kai Watch franchise which has a more complex cond set 
 Conds are a base64-encoded serialised, binary format used to contain and represent conditions within level5 games. The below documentation documents the known aspects of said format, ~~and will not be updated regularly~~:
 
 Conds are encoded in base64 - this is most likely as strings are the only variable length data type in `cfg.bin`s (via the use of string tables) - where they are stored.
+
 After decoding to binary, which can be done with a website like [this](https://cryptii.com/pipes/base64-to-hex); the resulting cond will *always* start with a 4 byte header of `00 00 00 00`.
+
 After that, you will have a 2 byte reigon known as the `COND_CODE`; the first byte of this will represent the amount of bytes (not including itself but it includes the other byte of `COND_CODE`) until the end of the cond in question - in certain cases where several conditions are stored in one cond this will be `F0` (240) instead.
 
 Then you have 2 operations
@@ -52,6 +55,7 @@ if (HasItem(0x12345678) == 0x1) {
 fail();
 ```
 Another key use of `00 0A 01` is Arrays/Lists; since the system dosen't natively hold the ability to handle arrays or any data type of variable-length, the game will frequently define functions like `GetXYZ(int: index)` which emulates array access.
+
 An example of this can be found below:
 ```md
 # CONDITION
@@ -73,4 +77,3 @@ if (IsCleared[0x02] == 0x1) {
 }
 fail();
 ```
-Thi[The website can`` be downloaded or viewed here](https://n123git.github.io/yw-cond)
