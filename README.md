@@ -7,11 +7,14 @@ This parser is for the Yo-kai Watch franchise which has a more complex cond set 
 
 ## Cond Timeline
 * IEGO (2011, first cond system known; extremely simplistic; 2 used data types and 4 used functions; conds occasionally contain multiple conditions)
+
   ->
 * YW1 (2013, lorem ipsum)
+
   ->
 * YW2 (2014) Complex, multi-layered container format with support for functions acting as multi-dimensional arrays.
-->
+
+  ->
 * (Hasn't really changed much since but are prevelant in later games like YW4 and Snack World)
 
 ## Cond Documentation
