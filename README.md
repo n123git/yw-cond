@@ -27,7 +27,7 @@ Then you have 2 operations
 * `READ_LITERAL` - this defines a 4-byte, little-endian literal value called `COMPARISON_VALUE`.
 * `READ_MEMORY` - this pulls a value from memory using 4-byte `RESOURCE_ID`s, with the type being defined by a 3 byte `CTYPE`.
 Common known `CTYPE`s include (but are not limited to!):
-* `00 06 02` - An Integer, as the system dosen't distinguish between bools and ints this is also used for boolean values.
+* `00 06 02` - An Integer, as the system doesen't distinguish between bools and ints this is also used for boolean values.
 * `00 01 00` - This is used as a Special Value, but is most likely for zero parameter functions i.e. `GetWatchRank()`.
 * `00 0A 01` - A function with one parameters - this is used for several reasons, a common example is shown below (this example checks if the player has the Item `0x12345678`:
 ```md
@@ -56,7 +56,7 @@ if (HasItem(0x12345678) == 0x1) {
 }
 fail();
 ```
-Another key use of `00 0A 01` is Arrays/Lists; since the system dosen't natively hold the ability to handle arrays or any data type of variable-length, the game will frequently define functions like `GetXYZ(int: index)` which emulates array access.
+Another key use of `00 0A 01` is Arrays/Lists; since the system doesen't natively hold the ability to handle arrays or any data type of variable-length, the game will frequently define functions like `GetXYZ(int: index)` which emulates array access.
 
 An example of this can be found below:
 ```md
@@ -72,7 +72,7 @@ READ_LITERAL: 32
 COMPARISON_VALUE: 00 00 00 01 — true
 OPERATOR: 78 — ==
 ```
-This in psuedo-c is effectively equivalent to:
+This in psuedo-C is effectively equivalent to:
 ```c
 if (IsCleared[0x02] == 0x1) {
   success();
