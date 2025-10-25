@@ -170,15 +170,15 @@ CTypes are **3-byte descriptors** representing data types used in the engine.
 Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It takes the param(s): `(int: index)` and returns a boolean output. Specifically, you input a Psychic Blasters Stage Index and it tells you if that boss has/hasn't been defeated yet.
 
 Due to the lack of a string or enum data type, CRC-32 ISO-HDLC hashes are often used instead with lookup table functions.
-CExpression Functions aren't always read only - take for instance `RunTrigger` (0x6984E3AF), it takes in a big endian ID, runs the trigger and always returns `1` (`true`).
+CExpression Functions aren't always read only - take for instance `RunTrigger()` (0x6984E3AF), it takes in a big endian ID, runs the trigger and always returns `1` (`true`).
 
 The Naming Schema of CExpression Functions can be shown as follows:
 * Always Pascal Case; unlike normal IDs where level5 uses a mix of lowercase and snakecase.
 * A mix of english and hepburn romanisation.
-* Quite rare typos, take for instance: `IsApeearMitibiki`.
+* Quite rare typos, take for instance: `IsApeearMitibiki()`.
 * Abbreviations used such as `Util`, `Cnt` etc.
-* Common prefixes include `Get`, `Set`, `Is`, `Common` and `Has`.
-* Common suffixes include `Cnt`, `Num`, `Now` and `Rate`.
+* Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `""` and `"Has"`.
+* Common suffixes include `"Cnt"`, `"Num"`, `"Now"` and `"Rate"`.
 
 Cond Examples:
 * Single Condition: RunTrigger:
