@@ -210,11 +210,13 @@ Cond Examples:
 
 ### 8. History
 
-* 1. IEGO (2011, December)
+* IEGO (2011, December)
   * IEGO had a very simplistic cond system, with only 4 used CExpression Functions, (3 used CTYPEs?) and 7 used Operators (including `8F`).
-* 2. Yo-kai Watch 1 (2013, July)
-  * Level5 made alot of changes - which makes sense considering how long they were working on it for; this can be proven by the files in Yo-kai Watch 2 that haven't been touched since 2011!
+* Yo-kai Watch 1 (2013, July)
+  * Level5 made alot of changes in this game - which makes sense considering how long they were working on it for; this can be proven by the files in Yo-kai Watch 2 that haven't been touched since 2011!
   * Yo-kai Watch 1 for smartphone had over 20 operators, multi-param functions and 118 CExpression functions!
+  * Overall this is what truly started the modern cond system.
+* ... future game's have not changed the format much aside from adding/removing CExpression Functions
 
 ## 9. **W.I.P General Flow **
 
