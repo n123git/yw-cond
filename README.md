@@ -181,7 +181,7 @@ The Naming Schema of CExpression Functions can be shown as follows:
 * Common suffixes include `Cnt`, `Num`, `Now` and `Rate`.
 
 Cond Examples:
-* Set Cond: RunTrigger:
+* Single Condition: RunTrigger:
   * `00 00 00 00 12 02 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 0E 6B 6F 6B`
   * This can be parsed as:
     * `00 00 00 00` - Header
@@ -194,7 +194,7 @@ Cond Examples:
     * `34`- Similar purpose as `28`.
     * `0E 6B 6F 6B` - Input of the funcion; pushes the function and params to the stack.
     * No OPERATORs or other values; so it runs the above function and checks if the output is truthy; as this function is a `Set` not a `Get/Is/Has` function it always returns `1` (`true`); a *truthy* value.
-* Get Cond: GameClear (Has Main Story been completed):
+* Single Condition: GameClear (Has Main Story been completed):
   * `00 00 00 00 0F 05 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
   * This can be parsed as:
     * `00 00 00 00` - Header
