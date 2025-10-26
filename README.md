@@ -7,27 +7,20 @@ This parser is for the Yo-kai Watch franchise which has a more complex cond set 
 
 # CExpression (Cond) System Documentation
 
-The **CExpression**, or **Cond system**, is a proprietary (usually Base64-encoded) system used for evaluating runtime conditions.
+The **CExpression**, or **Cond system**, is a proprietary (usually Base64-encoded) system used for evaluating runtime conditions; it contains *zero* or more conditions and can consist of:
+  * Literal values (Constants, IDs etc)
+  * Functions (Engine calls)
+  * Operators (arithmetic, logical, bitwise, and rarely structural)
 
-## 1. **Core Concepts**
-
-* **CExpression**: The whole conditional system itself; contains 1 or more conditions. Can consist of:
-
-  * Literal values (constants)
-  * Functions (engine calls or runtime queries)
-  * Operators (arithmetic, logical, or bitwise)
-
----
-
-## 2. **Cond Structure**
+## 1. **Cond Structure**
 
 Each Cond begins with a **4-byte header** and a **2-byte COND_CODE**.
 > Note: This is *PER-COND as a whole, NOT* per condition.
 
-### 2.1 Header (4 bytes)
+### 1.1 Header (4 bytes)
 The header is always equivalent to `00 00 00 00` and has no impact on the cond itself. This is most likely used as a sort of integrity check.
 
-### 2.2 Cond Code (2 bytes)
+### 1.2 Cond Code (2 bytes)
 | Byte | Description                                                                                                                                                                                                   |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | The first byte of COND_CODE defines the total length excluding itself but including all subsequent bytes within the Cond - including the second byte; in some conds with many conditions this is set to `F0`. |
@@ -41,9 +34,9 @@ The header is always equivalent to `00 00 00 00` and has no impact on the cond i
 
 ---
 
-## 3. **Data Identifiers**
+## 2. **Data Identifiers**
 
-### 3.1 Reads
+### 2.1 Reads
 
 | Type            | Hex Code | Description                       |
 | --------------- | -------- | --------------------------------- |
@@ -51,7 +44,7 @@ The header is always equivalent to `00 00 00 00` and has no impact on the cond i
 | READ_LITERAL    | `32`     | Pushes a literal value (constant) |
 | READ_SUBSECTION | `34`     | Reads a subsection of memory/data |
 
-### 3.2 Special Markers
+### 2.2 Special Markers
 
 | Type            | Hex Code | Description                                    |
 | --------------- | -------- | ---------------------------------------------- |
@@ -59,7 +52,7 @@ The header is always equivalent to `00 00 00 00` and has no impact on the cond i
 
 ---
 
-## 4. **Operators**
+## 3. **Operators**
 
 Operators perform logical, arithmetic, or bitwise operations on one or more values.
 | Hex Code | Symbol | Num    | Operation                             | Notes                          |
@@ -91,9 +84,9 @@ Operators perform logical, arithmetic, or bitwise operations on one or more valu
 ---
 
 
-## 5. **Read Operations**
+## 4. **Read Operations**
 
-### 5.1 READ_MEMORY
+### 4.1 READ_MEMORY
 
 A READ_MEMORY entry is structured as:
 
@@ -112,12 +105,12 @@ READ_MEMORY
   * Literal Values are *big-endian*.
 * Optional **EXTENSION_DELIM+READ_SUBSECTION** chins allow unlimited nesting of subsections for multi-param functions.
 
-### 5.2 READ_LITERAL
+### 4.2 READ_LITERAL
 
 * Always followed by a **32-bit integer** (but may also be used for 16-bit, 8-bit, or boolean values, in which case it will still be padded to 4 bytes).
 * Values are **big-endian**.
 
-### 5.3 READ_SUBSECTION
+### 4.3 READ_SUBSECTION
 
 * Always follows an EXTENSION_DELIM/CTYPE combination.
 * Represents a smaller section of memory or another value block.
