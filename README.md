@@ -218,7 +218,7 @@ Cond Examples:
   * Overall this is what truly started the modern cond system.
 * ... future game's have not changed the format much aside from adding/removing CExpression Functions
 
-## 9. **W.I.P General Flow **
+## 9. W.I.P -- General Parsing Flow
 
 1. The system begins by reading and validating the HEADER and CONDCODE.
 2. Then it reads the next byte i.e. if its a READ_LITERAL, OPERATOR etc
