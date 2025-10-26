@@ -185,7 +185,7 @@ Cond Examples:
     * `28` - Used to tell the engine to keep reading so it correctly parses the params.
     * `00 06 02` - The CTYPE for an integer; refering to the input of `RunTrigger` aka the `TriggerID`
     * `34`- Similar purpose as `28`.
-    * `0E 6B 6F 6B` - Input of the funcion; pushes the function and params to the stack.
+    * `0E 6B 6F 6B` - Input of the funcion (in this case it's the `TriggerID`); pushes the function and params to the stack. 
     * No OPERATORs or other values; so it runs the above function and checks if the output is truthy; as this function is a `Set` not a `Get/Is/Has` function it always returns `1` (`true`); a *truthy* value.
 * Single Condition: GameClear (Has Main Story been completed):
   * `00 00 00 00 0F 05 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
