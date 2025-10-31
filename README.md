@@ -170,7 +170,7 @@ The Naming Schema of CExpression Functions can be shown as follows:
 * A mix of english and hepburn romanisation.
 * Quite rare typos, take for instance: `IsApeearMitibiki()`.
 * Abbreviations used such as `Util`, `Cnt` etc.
-* Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `""` and `"Has"`.
+* Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `"Target"`, `"Run"`, `""` and `"Has"`.
 * Common suffixes include `"Cnt"`, `"Num"`, `"Now"` and `"Rate"`.
 
 Cond Examples:
