@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>YW-Cond v1.391</title>
+  <title>YW-Cond v1.395</title>
   <style>
     :root{
       --bg:#0f1115; --panel:#0b0d10; --text:#e6eef6; --muted:#9aa6b2; --accent:#6ea8ff; --good:#8bd18b; --bad:#ff7b7b;
@@ -42,12 +42,41 @@
     .ok{color:var(--good)}
     .pseudo{white-space:pre;background:transparent;border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:6px;margin-top:8px}
 
-    /* dark mode toggle (light is inverse because nobody uses it) */
-    .light { --bg:#f6f8fb; --panel:#fff; --text: #243732; --muted: #667085; --accent:#dea200; --good:#0b8f3a; --bad:#c23333; } /* the accent color is shoo good! I ran it through a color inverter to find the exact shade of orange because I was too lazy to hand pick one but it worked out! But yeah light mode is a pain to do */
-    .light .pseudo {
-       border-color: rgba(0,0,0,0.06);
-      background: rgba(0,0,0,0.02);
-    }
+/* ====== Light Mode Enhancements ====== */
+.light {
+  --bg: #f4f6f8;
+  --panel: #ffffff;
+  --text: #222;
+  --muted: #6b7280;
+  --accent: #d08b00;
+  --good: #16803c;
+  --bad: #cc3b3b;
+}
+
+/* Give light mode a faint shadowed feel to offset white */
+.light body {
+  background: linear-gradient(180deg, #fafafa, #f3f4f6);
+}
+
+/* Light mode textarea and pseudo blocks pop slightly */
+.light textarea,
+.light .pseudo {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons and selects look more tactile in light mode */
+.light button,
+.light select {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.light button:hover,
+.light select:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.18);
+}
 
     /* modal basics */
     dialog{border:1px solid rgba(0,0,0,0.08);background:var(--panel);color:var(--text);padding:12px;border-radius:8px}
@@ -86,6 +115,154 @@
       color: var(--text);
       font-family: inherit;
     }
+
+/* ====== Global smooth transitions ====== */
+* {
+  transition: background 0.25s ease, border-color 0.25s ease,
+              color 0.25s ease, box-shadow 0.25s ease,
+              transform 0.2s ease;
+}
+
+/* Button hover animation */
+button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* In light mode */
+.light button:hover {
+  background: rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Node hover glow */
+.node {
+  transition: background 0.25s ease, transform 0.2s ease, border-color 0.25s ease;
+}
+.node:hover {
+  transform: scale(1.01);
+  background: rgba(255, 255, 255, 0.05);
+}
+.light .node:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Tree entry selection feedback */
+.node.selected {
+  border: 1px solid var(--accent);
+  background: rgba(110, 168, 255, 0.1);
+}
+
+.light textarea:focus {
+  box-shadow: 0 0 0 3px rgba(208, 139, 0, 0.2);
+}
+
+/* Pseudo-code block hover motion */
+.pseudo:hover {
+  transform: scale(1.01);
+  border-color: rgba(255,255,255,0.08);
+}
+.light .pseudo:hover {
+  border-color: rgba(0,0,0,0.1);
+}
+
+
+
+/*a*/
+/* === 1. Accent glow only on labels (not on nodes) === */
+@keyframes glow {
+  0%, 100% { text-shadow: 0 0 4px var(--accent); }
+  50%      { text-shadow: 0 0 10px var(--accent); }
+}
+
+.label:hover {
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+/* Prevent nodes from glowing */
+.node:hover, .node.selected {
+  text-shadow: none;
+}
+
+
+/* === 2. Modal (dialog) Styling === */
+dialog {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--panel);
+  color: var(--text);
+  padding: 16px 20px;
+  border-radius: 10px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  transform: translateY(-8px);
+  opacity: 0;
+}
+
+dialog[open] {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Backdrop blur for modern feel */
+dialog::backdrop {
+  backdrop-filter: blur(4px) brightness(0.9);
+  background: rgba(0,0,0,0.4);
+}
+
+/* Light mode dialog contrast */
+.light dialog {
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+}
+
+.light dialog::backdrop {
+  backdrop-filter: blur(4px) brightness(1.05);
+  background: rgba(255,255,255,0.45);
+}
+
+/* Modal buttons alignment */
+dialog button {
+  background: var(--panel);
+  border-color: rgba(255,255,255,0.08);
+}
+dialog button:hover {
+  background: rgba(255,255,255,0.06);
+}
+.light dialog button:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+
+/* === 3. Remove the bright blue focus ring & unify textarea focus === */
+textarea,
+input[type=text],
+select {
+  outline: none; /* removes system blue outline */
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+/* unified focus glow */
+textarea:focus,
+input[type=text]:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+  transform: scale(1.01);
+}
+
+/* Light mode version with adjusted contrast */
+.light textarea:focus,
+.light input[type=text]:focus,
+.light select:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
   </style>
 </head>
 <body>
@@ -127,9 +304,13 @@
 
   <script>
     // version
-    const ver = 1.391;
+    const ver = 1.395;
 
-    // known resource IDs for labeling
+    if(typeof level5 === 'undefined') level5 = {};
+    if(typeof level5.cond === 'undefined') level5.cond = {};
+    if(typeof level5.cond._internals === 'undefined') level5.cond._internals = {};
+
+    // manually labelled ones; some were before I decompiled it and some are just not in 1s
     const knownResourceIDs = {
       '2A 3D 45 43': 'Check for FLAG_INFO_0 Flag (YW1/YW2/YW3/IEGO)', // output is always a boolean value in the int type (00 06 02); passed param is the FlagID as an int (00 06 02) in BE order
       '10 B1 40 96': 'Is Main Story Completed (YW1/YW2)', // can be obtained from several places; one source (the first place this was found in) was Jungle Hunter shop conds, type: 00 01 00
@@ -138,23 +319,27 @@
       '9E 99 84 8C': 'Check for FLAG_INFO_1 Flag (YW1/YW2/YW3)', // output is always an int (00 06 02); passed param is the FlagID as an int (00 06 02) in BE order
       'DE 17 FE 18': 'Lifetime Oni Orbs Collected in Psychic Blasters (YW2)',
       'B6 B8 67 71': 'Yo-kai HP% (YW2)', // during battle; yokai targeted is dependent on the context of the cond executor - NOT the cond itself
-      'B9 19 36 DA': 'Unk State Bitmask (YW2)', // unk
+      'B9 19 36 DA': 'Phase (YW2)', // now known as GetPhase - this exists in YW1, YW2 most likely YWB, YW3 and YWB2
       '37 90 0A 0D': 'Unique Yo-kai Cam Photos Taken (YW2)', // type: 00 01 00
       'C6 54 8E E3': 'Unique Bug Species Caught? (YW2)', // ? type: 00 01 00
       '85 E3 BE AF': 'Unique Fish Species Caught? (YW2)', // ? type: 00 01 00
       '83 DD D1 64': 'Psychic Blasters Oni Orbs High Score (YW2)',
       'BE 04 A5 98': 'Quest State (YW2)', // FF = Complete
       '77 B4 63 E5': 'Grab Psychic Blasters Boss IsCleared (YW2)', // params: (int: index) 
-      '3F FC EE 50': 'Battle State Data (YW2)', // if the passed param is 0, returns the amount of ally yokai WITHOUT a positive inspirit. Other param values lead to unknown results
-      'EE CA 88 5A': 'Map Data2 (YW2)', // 2 param func, 2 params are IDs; example in load sample, used to check rank gates in npc-set
-      '48 A8 7F D3': 'Map Data1 (YW2)', // same but used to check if its closed
+      '3F FC EE 50': 'Battle State Data (YW2)', // if the passed param is 0, returns the amount of ally yokai WITHOUT a positive inspirit. Other param values lead to unknown results -- THIS WAS SLIGHTLY WRONG; actual namespace was GetActorForwardToritukuGoodCountLowerCnt and it takes no params dont know how I missed that :< --
+      'EE CA 88 5A': 'Map Data2 (YW2)', // 2 param func, 2 params are IDs; example in load sample, used to check certain data in npc-set
+      '48 A8 7F D3': 'Map Data1 (YW2)', // same but used to check a different state
 
+      '27 32 6D 47': 'Is Trophy Complete? (YW2)', // params: TrophyID, returns bool, some trophies dont use this cond
+
+      '74 03 A9 CE': 'Unk Phase-like Func (YW2)', // 3 params, 2 are usually function outputs and the 3rd/last seems to be phase; not in yw1
 
       // RESOURCE_ID_Bs (not Functions)
 
       // FlagIDs
       '89 20 FF E7': 'Infinite Tunnel Clear Count (YW2)',
     };
+    level5.cond._manual = knownResourceIDs; // backup
     const CExpressionInternalNames = [ // list of CExpression Functions; grouped based on similarities, NOT based on the order they are defined :)
       // ywBattleExpressionFunc
       'GetActorAgility',
@@ -250,9 +435,9 @@
       'GetChapter',
       'GetWatchRank',
 
-      'GetGlobalBitFlag', // FLAG_INFO_0; input: BE FlagID in XQ: get_global_bitflag()
-      'GetGlobalByteFlag', // FLAG_INFO_1; input: BE FlagID
-      'GetTempBitFlag',
+      'GetGlobalBitFlag', // grabs the value of a FlagID - you can find them in FLAG_INFO_0; input: BE FlagID in XQ: get_global_bitflag()
+      'GetGlobalByteFlag', // grabs the value of a FlagID - you can find them in FLAG_INFO_1; input: BE FlagID, returns 0 if something goes wrong i.e. the flag is null/dosent exist
+      'GetTempBitFlag', // grabs the value of a FlagID - you can find them in FLAG_INFO_3; input: BE FlagID, returns 0 if something goes wrong i.e. the flag is null/dosent exist
       'GetTempByteFlag',
       'GetTempMapBitFlag',
       'GetTempMapByteFlag',
@@ -266,7 +451,7 @@
       'GetMoney', // in yen so: $\£\€1.23 = 123y and 250W = 100y
       'GetPartyNum',
       'GetPhase', // basically a massive number meaning lots of complex positions and stuff in the story; this WILL be a pain and sadly you WILL see it frequently :/
-      'GetPlayerVarID',
+      'GetPlayerVarID', // no params output of 2 means female??
       'GetQuestCompNum',
       'GetQuestPhase', // FF = Quest Complete
 
@@ -274,21 +459,21 @@
       'GetTimeNow', // returns -1 if the world isnt loaded, 3 if the game time is null otherwise either 0, 1, 2 or 3 (the repetition of 3 is intentional - it is the default time)
       'GetWeatherNow', // returns -1 if the world isnt loaded (GameManager::spRPGWorld == 0), 0 if the weather data ptr is null else weather byte as uint
 
-      'InPartyMember', // returns 0 if the players party does not contain this yokai, else 1 (Checks CharaParamInfo so probably ParamID but could be BaseID I'm too lazy to check)
+      'InPartyMember', // input: (int: BaseID BE) returns 0 if the players party does not contain this yokai, else 1 (Uses CharaParamInfo)
       'IsApeearMitibiki', // typo is level5s fault not mine :/
       'IsAppearMitibiki', // this is not real, read the above one and then this comment: even though im 100% sure the ID will also include the typo, ill include the fixed version cuz why not :P
 
       'IsBicycleOn', // remember checks only happen when the condition is evaluated, for NPCs thats when the map loads, for shop items its when the shop is opened - dont expect a check using this function to update 60fps lmao (or 30fps outside of UIs this is the 3DS after all)
-      'IsFullParty', // returns 0 if party is null or isnt full, else 1
-      'IsHaveItem', // pass the ItemID as LE!!, 1 if the player has it, else 0; internally just checks if the quantity is not 0
+      'IsFullParty', // returns 0 (false) if party is null or isnt full, else 1 (true)
+      'IsHaveItem', // pass the ItemID as BE, 1 (true) if the player has it, else 0 (false); internally just checks if the quantity is not 0
       'IsNpcUtil', // bruh; The function checks if the NPC with a given ID exists in spNpcCtrl, if a second param is provided and is equal to 1, it queries a specific bit flag on that NPC; Returns 1 or 0 based on these checks.
 
-      'RunTrigger', // always returns 1
-      'SetGlobalBitFlag', // FLAG_INFO_0; always returns 1
-      'SetGlobalByteFlag', // FLAG_INFO_1; always returns 1
-      'SetQuestPhase', // input: QuestID BE and int; sets the Quests phase to the passed int; phase FF = complete; function always returns 1
-      'SetTempBitFlag', // input: FlagID and int; sets the temporary (non-global so not in flag_config) flag to the int; function always returns 1
-      'SetTempByteFlag', // input: FlagID and int; sets the temporary (non-global so not in flag_config) flag to the int; function always returns 1
+      'RunTrigger', // always returns 1 (true)
+      'SetGlobalBitFlag', // FLAG_INFO_0; always returns 1 (true)
+      'SetGlobalByteFlag', // FLAG_INFO_1; always returns 1 (true)
+      'SetQuestPhase', // input: QuestID BE and int; sets the Quests phase to the passed int; phase FF = complete; function always returns 1 (true)
+      'SetTempBitFlag', // input: FlagID and int; sets the temporary (non-global so not in flag_config) flag to the int; function always returns 1 (true)
+      'SetTempByteFlag', // input: FlagID and int; sets the temporary (non-global so not in flag_config) flag to the int; function always returns 1 (true)
       'UpdateQuestPurpose', // updates some NPC stuff, quest stuff im too lazy to document this BUT I will laugh at one of level5s infamous typos: CScnObjRPGWorld::UpdataQuestMiniMapIcon
 
       'YS_CheckYokaiBaseID', // Input: BaseID; Returns 1 if the BaseID can be found in a Yo-kai Spot, else 0
@@ -336,54 +521,393 @@
         'SetValueU32',
         'SetValueU8',
    ]
-
+   level5.cond.CExpressionInternalNames = CExpressionInternalNames;
 
    // CRC32 implementation (standard polynomial 0xEDB88320)
-function crc32(str) {
-  let crc = 0 ^ (-1);
+  function crc32(str) {
+    let crc = 0 ^ (-1);
 
-  for (let i = 0; i < str.length; i++) {
-    crc = (crc >>> 8) ^ table[(crc ^ str.charCodeAt(i)) & 0xFF];
-  }
-
-  return (crc ^ (-1)) >>> 0;
-}
-
-// Precompute CRC32 table for speed
-const table = (() => {
-  let c;
-  const tbl = [];
-  for (let n = 0; n < 256; n++) {
-    c = n;
-    for (let k = 0; k < 8; k++) {
-      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    for (let i = 0; i < str.length; i++) {
+      crc = (crc >>> 8) ^ table[(crc ^ str.charCodeAt(i)) & 0xFF];
     }
-    tbl[n] = c >>> 0;
-  }
-  return tbl;
-})();
 
-// Add CRC32 of each CExpression function to knownResourceIDs
-for (const funcName of CExpressionInternalNames) {
-  const crc = crc32(funcName);
-  // Convert CRC32 number to uppercase hex string spaced every 2 chars like 'AA BB CC DD'
-  const hexStr = crc.toString(16).padStart(8, '0').toUpperCase().match(/../g).join(' ');
-  knownResourceIDs[hexStr] = funcName;
-}
+    return (crc ^ (-1)) >>> 0;
+  }
+
+  // Precompute CRC32 table for speed
+  const table = (() => {
+    let c;
+    const tbl = [];
+    for (let n = 0; n < 256; n++) {
+      c = n;
+      for (let k = 0; k < 8; k++) {
+        c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      }
+      tbl[n] = c >>> 0;
+    }
+    return tbl;
+  })();
+     // got sidetracked optimising C++ code - so I ended up writing this code to free up 
+    level5.cond.CExpressionInternalMappings = (() => {
+      const temp = {};
+      for (const funcName of CExpressionInternalNames) {
+        const crc = crc32(funcName);
+        const hexStr = crc.toString(16).padStart(8, '0').toUpperCase().match(/../g).join(' ');
+        knownResourceIDs[hexStr] = funcName;
+        temp[hexStr] = funcName;
+      }
+      return temp;
+    })();
 
     // cond templates
-    const condTemplates = {
-      mainStory: { type: "b64", value: "AAAAAA8FNRCxQJYAAQAyAAAAAXg=", label: "Yo-kai Watch 2 – Main Story Completed" },
-      unmainStory: { type: "b64", value: "AAAAAA8FNRCxQJYAAQAyAAAAAHg=", label: "Yo-kai Watch 2 – Main Story Not Completed" },
-      rankXX: { type: "hex", template: "00 00 00 00 0f 05 35 dd 77 26 95 00 01 00 32 00 00 00 {RANK} 71", params: [{ name: "RANK", label: "Rank (00–FF)", placeholder: "e.g. 06" }], label: "Yo-kai Watch 2 – Rank XX or higher" },
-      hasItem: { type: "hex", template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 01 78", params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1678239 or 0x638297A etc" }], label: "Yo-kai Watch 2 – Has Item" },
-      tunnelXX: { type: "hex", template: "00 00 00 00 18 05 35 9e 99 84 8c 00 0a 01 28 00 06 02 34 89 20 ff e7 32 00 00 00 {COUNT} 78", params: [{ name: "COUNT", label: "Times Beaten (00–FF)", placeholder: "e.g. 05" }], label: "Yo-kai Watch 2 – Beaten Infinite Tunnel XX Times" },
-      npcFlagYW3: {type: "hex", template: "00 00 00 00 18 05 35 {RESOURCE_ID} 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 01 78", params: [{name: "FLAG_TYPE", label: "Flag Type", type: "select", options: [{ label: "FLAG_INFO_0", value: "2A 3D 45 43" }, { label: "FLAG_INFO_1", value: "9E 99 84 8C" }]},{ name: "FLAG", label: "Flag ID (4-byte big endian)", placeholder: "e.g. 12345678 or 0x00ABCDEF" }], label: "Yo-kai Watch 2/3 - Check for Flag (Activated)"},
-      unhasItem: { type: "hex", template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 00 78", params: [{ name: "ITEM", label: "Item ID (4-byte little endian)", placeholder: "e.g. 1678239 or 0x638297A etc" }], label: "Yo-kai Watch 2 – Does Not Have Item" },
-      unnpcFlagYW3: {type: "hex", template: "00 00 00 00 18 05 35 {RESOURCE_ID} 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 00 78", params: [{name: "FLAG_TYPE", label: "Flag Type", type: "select", options: [{ label: "FLAG_INFO_0", value: "2A 3D 45 43" }, { label: "FLAG_INFO_1", value: "9E 99 84 8C" }]},{ name: "FLAG", label: "Flag ID (4-byte big endian)", placeholder: "e.g. 12345678 or 0x00ABCDEF" }], label: "Yo-kai Watch 2/3 - Check for Flag (Not Activated)"},
+    level5.cond.condTemplates = {
+        mainStory: {
+            type: "b64", // I dont even know what this does anymore......
+            value: "AAAAAA8FNRCxQJYAAQAyAAAAAXg=", // direct value
+            label: "Yo-kai Watch 1/2 – Main Story Completed" // label
+            // no UI elements accept generate and cancel
+        },
+        unmainStory: {
+            type: "b64",
+            value: "AAAAAA8FNRCxQJYAAQAyAAAAAHg=",
+            label: "Yo-kai Watch 1/2 – Main Story Not Completed"
+        },
+        rankXX: {
+            type: "hex",
+            template: "00 00 00 00 0f 05 35 dd 77 26 95 00 01 00 32 00 00 00 {RANK} 71", // template
+            params: [
+                { 
+                    name: "RANK", // define rank
+                    label: "Rank (00–FF)", // UI label
+                    inputType: "hex", // input treated as hex
+                    max: 0xFF, // byte cap
+                    padding: 0x1, // pad as byte
+                    placeholder: "e.g. 06" // UI input placeholder
+                }
+            ],
+            label: "Yo-kai Watch 1/2 – Rank XX or higher" // label
+        },
+        hasItem: {
+            type: "hex",
+            template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 01 78",
+            params: [
+                { 
+                    name: "ITEM", 
+                    label: "Item ID (4-byte big endian)", 
+                    inputType: "default",
+                    padding: 0x4,
+                    max: 0xFFFFFFFF,
+                    byteCoerce: 4, // coerce to signed 32-bit integer
+                    placeholder: "e.g. 1678239 or 0x638297A" 
+                }
+            ],
+            label: "Yo-kai Watch 1/2 – Has Item"
+        },
+        tunnelXX: {
+            type: "hex",
+            template: "00 00 00 00 18 05 35 9e 99 84 8c 00 0a 01 28 00 06 02 34 89 20 ff e7 32 00 00 00 {COUNT} 78",
+            params: [
+                { 
+                    name: "COUNT", 
+                    label: "Times Beaten (00–FF)", 
+                    inputType: "hex",
+                    max: 0xFF,
+                    padding: 0x1,
+                    placeholder: "e.g. 05" 
+                }
+            ],
+            label: "Yo-kai Watch 2/3 – Beaten Infinite Tunnel XX Times"
+        },
+        npcFlagYW3: {
+            type: "hex",
+            template: "00 00 00 00 18 05 35 {FLAG_TYPE} 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 01 78",
+            params: [
+                {
+                    name: "FLAG_TYPE",
+                    label: "Flag Type",
+                    type: "select", // define a select
+                    options: [ // with options
+                        { label: "FLAG_INFO_0", value: "2A 3D 45 43" }, // label-value, key-value pair except it's not just {'FLAG_INFO_0', '2A 3D 45 43'} for whatever reason.... dont question my very questionable code
+                        { label: "FLAG_INFO_1", value: "9E 99 84 8C" }
+                    ]
+                },
+                {
+                    name: "FLAG",
+                    label: "Flag ID (4-byte big endian)",
+                    inputType: "default",
+                    padding: 0x4,
+                    max: 0xFFFFFFFF,
+                    byteCoerce: 4,
+                    placeholder: "e.g. 12345678 or 0x00ABCDEF"
+                }
+            ],
+            label: "Yo-kai Watch 1/2/3 - Check for Flag (Activated)"
+        },
+        unhasItem: {
+            type: "hex",
+            template: "00 00 00 00 18 05 35 8d 76 66 d8 00 0a 01 28 00 06 02 34 {ITEM} 32 00 00 00 00 78",
+            params: [
+                { 
+                    name: "ITEM", 
+                    label: "Item ID (4-byte big endian)", 
+                    inputType: "default",
+                    padding: 0x4,
+                    max: 0xFFFFFFFF,
+                    byteCoerce: 4,
+                    placeholder: "e.g. 1678239 or 0x638297A" 
+                }
+            ],
+            label: "Yo-kai Watch 1/2 – Does Not Have Item"
+        },
+        unnpcFlagYW3: {
+            type: "hex",
+            template: "00 00 00 00 18 05 35 {FLAG_TYPE} 00 0a 01 28 00 06 02 34 {FLAG} 32 00 00 00 00 78",
+            params: [
+                {
+                    name: "FLAG_TYPE",
+                    label: "Flag Type",
+                    type: "select",
+                    options: [
+                        { label: "FLAG_INFO_0", value: "2A 3D 45 43" },
+                        { label: "FLAG_INFO_1", value: "9E 99 84 8C" }
+                    ]
+                },
+                {
+                    name: "FLAG",
+                    label: "Flag ID (4-byte big endian)",
+                    inputType: "default",
+                    padding: 0x4,
+                    max: 0xFFFFFFFF,
+                    byteCoerce: 4,
+                    placeholder: "e.g. 12345678 or 0x00ABCDEF"
+                }
+            ],
+            label: "Yo-kai Watch 1/2/3 - Check for Flag (Not Activated)"
+        }
     };
 
-    // minimal internals for parsing hex/base64 -> normalized hex string
+    /* Templates V2.0 (+ a whole lot of suffering to get it to work) */
+    level5.cond.TemplateManager = class {
+        constructor(templates) {
+            if (!templates || typeof templates !== 'object') {
+                console.warn('TemplateManager: templates argument missing or invalid. Using empty object.');
+                templates = {};
+            }
+            this.templates = templates;
+        }
+
+        get(key) {
+            return this.templates[key];
+        }
+
+        populateSelect(selectEl) {
+            if (!selectEl) throw new Error('populateSelect: selectEl is required');
+            selectEl.innerHTML = '';
+
+            const keys = Object.keys(this.templates);
+            if (keys.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'No templates available';
+                selectEl.appendChild(opt);
+                return;
+            }
+
+            keys.forEach(key => {
+                const tpl = this.templates[key] || {};
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = tpl.label || key;
+                selectEl.appendChild(opt);
+            });
+        }
+
+        renderInputs(container, key) {
+            container.innerHTML = '';
+            const tpl = this.get(key);
+            if (!tpl || !Array.isArray(tpl.params)) return;
+
+            tpl.params.forEach(param => {
+                const label = document.createElement('label');
+                label.textContent = param.label + ': ';
+
+                let input;
+                if (param.type === 'select' && Array.isArray(param.options)) {
+                    input = document.createElement('select');
+                    param.options.forEach(opt => {
+                        const o = document.createElement('option');
+                        // Force literal string storage for values with spaces
+                        o.value = String(opt.value);
+                        o.textContent = opt.label;
+                        input.appendChild(o);
+                    });
+                } else {
+                    input = document.createElement('input');
+                    input.type = param.inputType === 'hex' ? 'text' : 'text';
+                    input.placeholder = param.placeholder || '';
+                    input.dataset.inputType = param.inputType || 'default'; // store type here
+
+                    if (param.inputType === 'hex' || param.inputType === 'default') {
+                        if (param.max) input.dataset.max = param.max;
+                        if (param.padding) input.dataset.padding = param.padding;
+                    }
+                }
+
+                input.id = `param_${param.name}`;
+                input.dataset.name = param.name;
+                input.style.marginLeft = '6px';
+
+                label.appendChild(input);
+                container.appendChild(label);
+                container.appendChild(document.createElement('br'));
+            });
+        }
+
+        getValues(container) {
+            const inputs = container.querySelectorAll('[id^=param_]');
+            const result = {};
+            // this method single handedly made me want to- :<<<<<
+            // so.... so many edge cases
+            inputs.forEach(inp => {
+                const name = inp.dataset.name;
+                let value;
+
+                // handle selects literally...
+                if (inp.tagName.toLowerCase() === 'select') {
+                    const selectedOpt = inp.options[inp.selectedIndex];
+                    value = selectedOpt?.value ?? '';
+                    result[name] = value;
+                    return;
+                }
+
+                // read text
+                value = inp.value.trim();
+                if (typeof value !== 'string') value = String(value);
+
+                const inputType = inp.dataset.inputType || 'default';
+                const padBytes = parseInt(inp.dataset.padding || '0', 10);
+                const byteCoerce = parseInt(inp.dataset.byteCoerce || '0', 10); // NEW
+                let num;
+
+                // parse numeric value
+                if (inputType === 'hex') {
+                    value = value.replace(/^0x/i, '').replace(/[^0-9A-Fa-f-]/g, '');
+                    num = parseInt(value || '0', 16);
+                } else {
+                    // "default" — allow 0x prefix for hex
+                    if (/^0x/i.test(value)) {
+                        num = parseInt(value, 16);
+                    } else {
+                        num = parseInt(value, 10);
+                    }
+                }
+
+                if (isNaN(num)) num = 0;
+
+                // apply the max, if there is one
+                const maxRaw = inp.dataset.max;
+                let max = 0;
+                if (maxRaw) {
+                    max = /^0x/i.test(maxRaw)
+                        ? parseInt(maxRaw, 16)
+                        : parseInt(maxRaw, 10);
+                }
+                if (!isNaN(max) && max > 0 && num > max) num = max;
+                
+                // apply byteCoerce
+                if (byteCoerce > 0) {
+                    switch (byteCoerce) {
+                        case 1: num = num & 0xFF; break; // unsigned 8-bit integer (uint8)
+                        case 2: num = num & 0xFFFF; break; // unsigned 16-bit integer (uint16)
+                        case 4: num = num >>> 0; break; // unsigned 32-bit integer (uint32)
+                        default: throw new SyntaxError("Invalid byteCoerce value"); // fancy :3
+                    }
+                } else if (padBytes > 0) { // else use padding
+                    if (padBytes === 1) num = num & 0xFF;
+                    else if (padBytes === 2) num = num & 0xFFFF;
+                    else if (padBytes === 4) num = num >>> 0;
+                }
+                
+                if (padBytes > 0) { // create the output
+                    let hex = (num >>> 0).toString(16).toUpperCase(); // ofc always treat as unsigned for padding
+                    value = hex.padStart(padBytes * 2, '0')
+                        .match(/.{1,2}/g)
+                        .join(' ');
+                } else {
+                    if (inputType === 'hex' || inputType === 'default') {
+                        value = num.toString(16).toUpperCase();
+                    } else {
+                        value = num.toString(10);
+                    }
+                }
+
+                result[name] = value;
+            });
+        
+            return result;
+        }
+        
+        
+        generate(key, params) {
+            const tpl = this.get(key);
+            if (!tpl) return null;
+
+            let resultStr = tpl.value ?? tpl.template ?? '';
+
+            if (tpl.template && params && typeof params === 'object') {
+                Object.entries(params).forEach(([name, value]) => {
+                    const token = new RegExp('\\{' + name + '\\}', 'g'); // escape curly braces properly
+                    resultStr = resultStr.replace(token, value);
+                });
+            }
+
+            return {
+                type: tpl.type,
+                value: resultStr,
+                label: tpl.label,
+            };
+        }
+
+    };
+    level5.cond.templateManager = new level5.cond.TemplateManager(level5.cond.condTemplates); // init class
+
+    /* UI schenaniganagaaggagagagagaggagagagaggagags */
+    document.addEventListener('DOMContentLoaded', () => {
+        const $ = el;
+
+        const tmplMgr = level5.cond.templateManager; // instance of class NOT the actual class
+        const generateModal = $('generateModal');
+        const condSelect = $('condSelect');
+        const extraInputs = $('extraInputs');
+
+        if (!Object.keys(level5.cond.condTemplates).length) {
+            console.info('no level5.cond.condTemplates :/ Current object:', level5.cond.condTemplates);
+        }
+
+        tmplMgr.populateSelect(condSelect);
+        tmplMgr.renderInputs(extraInputs, condSelect.value);
+
+        condSelect.addEventListener('change', () => tmplMgr.renderInputs(extraInputs, condSelect.value));
+
+        $('generateBtn')?.addEventListener('click', () => generateModal.showModal());
+        $('closeModalBtn')?.addEventListener('click', () => generateModal.close());
+
+        $('generateCondBtn')?.addEventListener('click', () => {
+            const key = condSelect.value;
+            const params = tmplMgr.getValues(extraInputs);
+            const result = tmplMgr.generate(key, params);
+            if (!result) {
+                alert('Invalid condition template!');
+                return;
+            }
+            console.log("wow", result)
+            el('input').value = result.value; // used innerText earlier lol; that broke some stuff somehow
+            el('parseBtn').click();
+            generateModal.close();
+        });
+    });
+
+    // very basic utils
     function normalizeInputRaw(text){ return (text||'').trim(); }
 
     function tryDecodeBase64(s){
@@ -410,11 +934,6 @@ for (const funcName of CExpressionInternalNames) {
     // helper: format hex string into spaced groups
     function hexSpaced(h){ return (h||'').match(/.{1,2}/g)?.join(' ') || ''; }
 
-    // ---- V3 parser implementation (strict sizes) ----
-    if(typeof level5 === 'undefined') level5 = {};
-    if(typeof level5.cond === 'undefined') level5.cond = {};
-    if(typeof level5.cond._internals === 'undefined') level5.cond._internals = {};
-
     // gotta organise this:
 
     // reads
@@ -424,7 +943,7 @@ for (const funcName of CExpressionInternalNames) {
 
     // extension markers?
     level5.cond.EXTENSION_DELIM = "28"; // not fully a read but helps with structure and is always near a READ_SUBSECTION
-    level5.cond.UPRM = "5D";
+    level5.cond.UPRM = "5D"; // just the + operator but since I havent rewritten the parser to be more stack-oriented this is neccessary for now
     // EOCIs
     level5.cond.EOCI = "8F";
     level5.cond.AEOCI = "90"; // this exists....
@@ -485,7 +1004,7 @@ for (const funcName of CExpressionInternalNames) {
       "^",           // 0x84  
    // "&&",          // 0x8F  
     //"||",          // 0x90  
-      "?:",          // ECHNICALLY  not an operator - but we'll consider it as one anyway; 0x96  
+      "?:",          // TECHNICALLY  not an operator - but we'll consider it as one anyway; 0x96  
     ] // kept seperated into 2 arrays because I didnt want to risk breaking my old code
 
     level5.cond.dataTypes = [
@@ -498,24 +1017,27 @@ for (const funcName of CExpressionInternalNames) {
       "float", // 6 float32 (float)
       // rest are unknown rn
     ]
-    level5.cond.DEFAULT_OPERATOR = "(==?)"; // unconfirmed
+    level5.cond.DEFAULT_OPERATOR = "=="; // kinda true, kinda wrong
 
     // CTYPEs
     level5.cond.CTYPES = {
       "00 13 02": "2 Param Function",
       "00 1C 03": "3 Param Function",
-      "00 0A 01": "Function", // since conds dont have an array/list type there will often be functions that are just getData(int: index)
+      "00 0A 01": "1 Param Function", // since conds dont have an array/list type there will often be functions that are just getData(int: index)
       "00 06 02": "Int",
-      "00 01 00": "Const",
+      "00 01 00": "0 Param Function",
     }
     level5.cond.DEFAULT_CTYPE = "(00 01 00?)"; // unconfirmed
-
+    level5.cond.isFunction = (ctype) => {
+      return ctype.toUpperCase().replace(/\s+/g,"") != "000602";
+    }
+    level5.cond.isFunc = level5.cond.isFunction; // simple alias because I cant make up my mind :P
     // COMPARISON_VALUEs
     level5.cond.DEFAULT_COMPARISON_VALUE  = true; // (0x00000000) maybe??? confirm this
     level5.cond.COMPARISON_VALUE_LABELS = {
       "00 00 00 01": "true",
       "00 00 00 00": "false",
-      "00 00 00 FF": "Special Case!", // sometimes means max, but is too situational to mention
+      "00 00 00 FF": "Special Case!", // sometimes means max, but is too situational to mention; as a QuestPhase this means quest complete
     }
     // misc
     level5.cond._internals.consumeBytes = function(hexStr, n){ const take = hexStr.slice(0, n*2); const rest = hexStr.slice(n*2); return [rest, take.toUpperCase()]; };
@@ -532,8 +1054,34 @@ for (const funcName of CExpressionInternalNames) {
       function parseClause(){ 
         if(hex.length < 2) err('Unexpected EOF while expecting READ_MEMORY or READ_LITERAL');
         // add operator check?
-        if(!$.startsWith(hex, level5.cond.READ_MEMORY) && !$.startsWith(hex, level5.cond.READ_LITERAL)) err('Clause must start with READ_MEMORY or READ_LITERAL', hex.slice(0,2));
 
+        if ( // done past me :P
+          !$.startsWith(hex, level5.cond.READ_MEMORY) &&
+          !$.startsWith(hex, level5.cond.READ_LITERAL) &&
+          !level5.cond.OPERATORS.includes(hex.slice(0, 2))
+        ) {
+          err('Clause must start with READ_MEMORY, READ_LITERAL, or OPERATOR', hex.slice(0,2));
+        }
+
+        // handle OPERATOR as a clause starter
+        if (level5.cond.OPERATORS.includes(hex.slice(0, 2))) {
+          const clause = [];
+          let consumed;
+          [hex, consumed] = $.consumeBytes(hex, 1);
+          clause.push(['OPERATOR', consumed]);
+          
+          // optional: operators might be followed by another READ_MEMORY / READ_LITERAL clause
+          if ($.startsWith(hex, level5.cond.READ_MEMORY) || $.startsWith(hex, level5.cond.READ_LITERAL)) {
+            // Recursively parse the next clause
+            parsedCond.push(['CONDITION', clause]);
+            parseClause();
+            return;
+          }
+          
+          // otherwise just treat it as a standalone operator clause
+          parsedCond.push(['CONDITION', clause]);
+          return;
+        }
         // temp READ_LITERAL logic; might not work in all cases; I should add V2 fallback parsing
 
         if($.startsWith(hex, level5.cond.READ_LITERAL)){
@@ -557,10 +1105,9 @@ for (const funcName of CExpressionInternalNames) {
 
           if ($.startsWith(hex, level5.cond.EOCI)) {
             console.warn("c")
-  parsedCond.push(['CONDITION', clause]); // this 
-  return;
-
-}
+            parsedCond.push(['CONDITION', clause]); // this 
+             return;
+          }
 
           if(level5.cond.OPERATORS.includes(hex.slice(0,2))){
             [hex, consumed] = $.consumeBytes(hex,1); clause.push(['OPERATOR', consumed]); 
@@ -587,8 +1134,8 @@ for (const funcName of CExpressionInternalNames) {
           if($.startsWith(hex, level5.cond.READ_LITERAL)){
             [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_LITERAL', consumed]); 
             if(hex.length < 8) err('Expected COMPARISON_VALUE after READ_LITERAL', hex.slice(0,8));
-            [hex, consumed] = $.consumeBytes(hex,4); clause.push(['COMPARISON_VALUE', consumed]);
-if (hex.length === 0) {
+            [hex, consumed] = $.consumeBytes(hex,4); clause.push(['COMPARISON_VALUE', consumed]); 
+if (hex.length === 0) {// no I did not copy this from a different version of my parser - why would you assume that? :P
   // end-of-input: finish condition
   parsedCond.push(['CONDITION', clause]);
   return;
@@ -602,10 +1149,9 @@ if (hex.length < 2) {
 const afterComp = hex.slice(0,2);
 
 // Another READ_LITERAL after the comparison indicates another comparison follows.
-// IMPORTANT: do NOT consume the READ_LITERAL here — keep original behavior (top-level parsing
-// expects to see READ_LITERAL and will consume it in its normal flow).
+// do NOT consume the READ_LITERAL here because top-level parsing expects to see READ_LITERAL and will consume it :<
 if ($.startsWith(hex, level5.cond.READ_LITERAL)) {
-  // allow the parse to loop so the subsequent COMPARISON_VALUE is handled normally
+  // allow the parse to loop so the subsequent COMPARISON_VALUE is handled normally (fancy words :0 lol)
   continue;
 }
 
@@ -710,13 +1256,16 @@ while (hex.length > 0) {
     parsedCond.push(['EOCI', z]);
     continue; // B.
   }
-  // Case 2: Expect READ_MEMORY or READ_LITERAL at top level
+
+  // Case 2: Expect READ_MEMORY, READ_LITERAL, or OPERATOR at top level
   if (
     !$.startsWith(hex, level5.cond.READ_MEMORY) &&
-    !$.startsWith(hex, level5.cond.READ_LITERAL)
+    !$.startsWith(hex, level5.cond.READ_LITERAL) &&
+    !level5.cond.OPERATORS.includes(hex.slice(0, 2))
   ) {
-    err('Expected READ_MEMORY or READ_LITERAL at top-level but found', hex.slice(0, 8));
+    err('Expected READ_MEMORY, READ_LITERAL, or OPERATOR at top-level but found', hex.slice(0, 8));
   }
+
 
   // Parse clause
   parseClause();
@@ -741,7 +1290,7 @@ while (hex.length > 0) {
     err('Trailing/Unexpected bytes after clause(s)', hex.slice(0, 8));
   }
 }
-
+console.log("parsed cond", parsedCond);
       return parsedCond;
     };
  
@@ -754,6 +1303,11 @@ while (hex.length > 0) {
       const spaced = hexSpaced(hexBytes.toUpperCase().replace(/\s+/g,''));
       return knownResourceIDs[spaced];
     }
+    function descriptionForResource(hexBytes){ // hexBytes are expected to be formatted as 'AABBCCDD' or 'AA BB CC DD'
+      const spaced = hexSpaced(hexBytes.toUpperCase().replace(/\s+/g,''));
+      return level5.cond._manual[spaced] ?? knownResourceIDs[spaced];
+    }
+
 
     function labelForOperator(opByte) {
       const ops = Object.fromEntries(level5.cond.OPERATORS.map((op, i) => [op, level5.cond.OPERATOR_LABELS[i]]));
@@ -765,224 +1319,473 @@ while (hex.length > 0) {
     const spaced = hexSpaced(ctypeBytes.toUpperCase().replace(/\s+/g, '')); // normalise input
     return ctypes[spaced] || null;
   }
-// Helper: turn a single CONDITION clause (array of [name, val]) into a C-like expression
-function toCExpression(clause) {
-  // Collect the relevant pieces (may be missing in many cases)
-  let resourceA = null;
-  let resourceB = null;
-  let ctypeA = null;
-  let ctypeB = null;
-  let operator = null;
-  let comparisonVal = null;
-
-  clause.forEach(([name, val]) => {
-    if (name.startsWith('RESOURCE_ID')) {
-      if (name.endsWith('_A')) resourceA = hexSpaced(val);
-      else if (name.endsWith('_B')) resourceB = hexSpaced(val);
-      else if (!resourceA) resourceA = hexSpaced(val); // fallback
-    } else if (name.startsWith('CTYPE')) {
-      if (name.endsWith('_A')) ctypeA = labelForCType(val) || hexSpaced(val);
-      else if (name.endsWith('_B')) ctypeB = labelForCType(val) || hexSpaced(val);
-      else if (!ctypeA) ctypeA = labelForCType(val) || hexSpaced(val);
-    } else if (name === 'OPERATOR') {
-      operator = labelForOperator(val) || ('0x' + val.replace(/\s+/g,''));
-    } else if (name === 'COMPARISON_VALUE') {
-      // comparisonVal is bytes like "00 00 00 01" — try to parse small ints, otherwise show hex
-      const raw = val.replace(/\s+/g,'');
-      // parse as little-endian 32-bit if length==8, otherwise hex string
-      if (raw.length === 8) {
-        // interpret as big-endian? Many comparison values appear as BE in file; try both fallbacks
-        const intBE = parseInt(raw, 16);
-        comparisonVal = intBE;
-      } else {
-        comparisonVal = '0x' + raw.toUpperCase();
-      }
-    }
-  });
-
-  // Build a readable resource/function name
-  const labelA = resourceA ? labelForResource(resourceA) : null;
-  const readableA = labelA ? labelA.replace(/^Check (for|if player has) /i,'').replace(/\s+/g,'') : (resourceA ? 'ReadMemory_' + resourceA.replace(/\s+/g,'') : null);
-
-  // Choose the defaults
-  const op = operator || level5.cond.DEFAULT_OPERATOR; // c.
-  const cmp = (typeof comparisonVal === 'number') ? comparisonVal : (comparisonVal || level5.cond.DEFAULT_COMPARISON_VALUE);
-
-  // Known semantic patterns
-  if (labelA && /Item/i.test(labelA)) {
-    let itemId = null;
-    if (resourceB) itemId = '0x' + resourceB.replace(/\s+/g,'');
-
-     if (typeof comparisonVal === 'number' && comparisonVal !== 0 && !itemId) itemId = '0x' + comparisonVal.toString(16).toUpperCase();
-
-    if (!itemId) itemId = '?';
-    return `HasItem(${"0x" + itemId.slice(2).match(/../g).reverse().join("")}) ${op} ${(typeof comparisonVal === 'number' || typeof comparisonVal === 'boolean' ? ('0x' + comparisonVal.toString(16).toUpperCase()) : level5.cond.DEFAULT_COMPARISON_VALUE)}`;  // endiannes is variable; ItemIDs are LE, Flag IDs are BE
-  }
-
-  if (labelA && /Main Story/i.test(labelA)) {
-    return `MainStoryCompleted() ${op} ${(typeof comparisonVal === 'number' || typeof comparisonVal === 'boolean' ? ('0x' + comparisonVal.toString(16).toUpperCase()) : level5.cond.DEFAULT_COMPARISON_VALUE)}`;
-  }
-
-  if (labelA && /Watch Rank/i.test(labelA)) {
-    return `GetWatchRank() ${op} ${(typeof comparisonVal === 'number' || typeof comparisonVal === 'boolean' ? ('0x' + comparisonVal.toString(16).toUpperCase()) : level5.cond.DEFAULT_COMPARISON_VALUE)}`;
-  }
-
-  if (labelA && /FLAG_INFO/i.test(labelA)) {
-    let x = null;
-    if(/FLAG_INFO_1/i.test(labelA)) {
-      x = "FLAG_INFO_1"
-    }
-    if(/FLAG_INFO_0/i.test(labelA)) {
-      x = "FLAG_INFO_0"
-    }
-    if(/FLAG_INFO_2/i.test(labelA)) {
-      x = "FLAG_INFO_2"
-    }
-    if(/FLAG_INFO_3/i.test(labelA)) {
-      x = "FLAG_INFO_3"
-    }
-    if(/FLAG_INFO_4/i.test(labelA)) {
-      x = "FLAG_INFO_4"
-    }
-    if(/FLAG_INFO_5/i.test(labelA)) {
-      x = "FLAG_INFO_5"
-    }
-    if(!x) x = "<unk>"
-    // flags: resourceA indicates flag type, resourceB is usually the flag id (big-endian)
-    const flagIdDisp = resourceB ? ('0x' + resourceB.replace(/\s+/g,'')) : (typeof comparisonVal === 'number' ? ('0x' + comparisonVal.toString(16).toUpperCase()) : level5.cond.DEFAULT_COMPARISON_VALUE);
-    // If CTYPE_B indicated param/int we show a boolean check
-    return `CheckFlag(${flagIdDisp}, ${x}) ${op} ${(typeof comparisonVal === 'number' || typeof comparisonVal === 'boolean' ? ('0x' + comparisonVal.toString(16).toUpperCase()) : level5.cond.DEFAULT_COMPARISON_VALUE)}`;
-  }
-
-  // Generic fallback that uses ctype names when available
-  const ctypeLabel = ctypeA || level5.cond.DEFAULT_CTYPE;
-  const resArg = resourceA ? ('0x' + resourceA.replace(/\s+/g,'')) : 'ADDR';
-  return `${readableA}(${ctypeLabel}, ${resArg}) ${op} ${cmp}`;
-}
 
 // Updated renderParsed: generates tree + test C-like pseudo output
 function renderParsed(parsed) {
-  const tree = document.getElementById('tree'); tree.innerHTML = '';
-  const pseudo = document.getElementById('pseudo'); pseudo.textContent = '';
+  const tree = document.getElementById('tree');
+  tree.innerHTML = '';
+  const pseudo = document.getElementById('pseudo');
+  pseudo.textContent = '';
 
-  let condGroup = []; // expressions for the current logical group
   let seenHeader = false; // avoid duplicating header printing
 
   parsed.forEach(node => {
     const type = node[0];
 
-    // keep tree rendering the same
+    // --- HEADER_BLOCK (unchanged for tree) ---
     if (type === 'HEADER_BLOCK') {
-      const wrap = document.createElement('div'); wrap.className = 'node';
+      const wrap = document.createElement('div');
+      wrap.className = 'node';
       wrap.innerHTML = '<strong>HEADER</strong> <span class="small muted">(header + condcode)</span>';
-      const inner = document.createElement('div'); inner.className='small muted';
+
+      const inner = document.createElement('div');
+      inner.className = 'small muted';
       node[1].forEach(x => {
         inner.innerHTML += '<div>' + x[0] + ': <span class="label">' + hexSpaced(x[1]) + '</span></div>';
       });
-      wrap.appendChild(inner); tree.appendChild(wrap);
+      wrap.appendChild(inner);
+      tree.appendChild(wrap);
 
       // print header/condCode only once (keep as comment in pseudo)
       if (!seenHeader) {
-        pseudo.textContent += '// #header ' + hexSpaced(node[1][0][1]) + '\n';
-        pseudo.textContent += '// #condCode ' + hexSpaced(node[1][1][1]) + '\n\n';
+    //    pseudo.textContent += '// #header ' + hexSpaced(node[1][0][1]) + '\n';
+     //   pseudo.textContent += '// #condCode ' + hexSpaced(node[1][1][1]) + '\n\n';
         seenHeader = true;
       }
     }
 
+    // --- CONDITION (unchanged for tree) ---
     else if (type === 'CONDITION') {
       const clause = node[1];
-      const wrap = document.createElement('div'); wrap.className = 'node';
+      const wrap = document.createElement('div');
+      wrap.className = 'node';
       wrap.innerHTML = '<strong>CONDITION</strong>';
-      const inner = document.createElement('div'); inner.className = 'small muted';
 
-      // populate tree view with fields
+      const inner = document.createElement('div');
+      inner.className = 'small muted';
       clause.forEach(f => {
         const name = f[0];
         const val = f[1];
         let lbl = null;
-        if (name.startsWith('RESOURCE_ID')) lbl = labelForResource(val);
+        if (name.startsWith('RESOURCE_ID')) lbl = descriptionForResource(val);
         else if (name.startsWith('COMPARISON_VALUE')) lbl = labelForCompVal(val);
         else if (name.startsWith('CTYPE')) lbl = labelForCType(val);
         else if (name === 'OPERATOR') lbl = labelForOperator(val);
 
-        inner.innerHTML += '<div><strong>' + name + '</strong>: <span class="label">' +
-          hexSpaced(val) + '</span>' + (lbl ? (' <span class="small muted"> — ' + lbl + '</span>') : '') + '</div>';
+        inner.innerHTML +=
+          '<div><strong>' + name + '</strong>: <span class="label">' +
+          hexSpaced(val) + '</span>' +
+          (lbl ? (' <span class="small muted"> — ' + lbl + '</span>') : '') +
+          '</div>';
       });
 
-      wrap.appendChild(inner); tree.appendChild(wrap);
-
-      // generate a single expression from the whole clause and queue it
-      try {
-        const expr = toCExpression(clause);
-        condGroup.push(expr);
-      } catch (e) {
-        // if conversion fails just push a safe fallback string
-        condGroup.push('/* parse_error */ true');
-        console.error('toCExpression failed', e);
-      }
+      wrap.appendChild(inner);
+      tree.appendChild(wrap);
     }
 
-    else if (type === 'EOCI') {
-      // render EOCI in tree
-      const wrap = document.createElement('div'); wrap.className = 'node';
-      wrap.innerHTML = '<strong>EOCI</strong>: <span class="label">' + hexSpaced(node[1]) + '</span>';
+    // --- EOCI / AEOCI / other types still rendered in tree ---
+    else if (type === 'EOCI' || type === 'AEOCI') {
+      const wrap = document.createElement('div');
+      wrap.className = 'node';
+      wrap.innerHTML = `<strong>${type}</strong>: <span class="label">${hexSpaced(node[1])}</span>`;
       tree.appendChild(wrap);
-
-      // flush the current condition group as a C-style if-block
-      if (condGroup.length > 0) {
-        const combined = condGroup.join(' && ');
-        pseudo.textContent += `if (${combined}) {\n    // condition satisfied\n}\n\n`;
-        condGroup = [];
-      }
-
-      // annotate EOCI as comment (keeps output compact)
-      pseudo.textContent += `// EOCI ${hexSpaced(node[1])}\n\n`;
-    } else if (type === 'AEOCI') {
-      // render AEOCI in tree
-      const wrap = document.createElement('div'); wrap.className = 'node';
-      wrap.innerHTML = '<strong>AEOCI</strong>: <span class="label">' + hexSpaced(node[1]) + '</span>';
-      tree.appendChild(wrap);
-
-      // flush the current condition group as a C-style if-block
-      if (condGroup.length > 0) {
-        const combined = condGroup.join(' && ');
-        pseudo.textContent += `if (${combined}) {\n    // condition satisfied\n}\n\n`;
-        condGroup = [];
-      }
-
-      // annotate AEOCI as comment (keeps output compact)
-      pseudo.textContent += `// AEOCI ${hexSpaced(node[1])}\n\n`;
     }
 
-    // any other node types are simply ignored for pseudo (but still present in tree)
     else {
-      // noop for pseudo
+      // Other node types: show in tree only
+      const wrap = document.createElement('div');
+      wrap.className = 'node small muted';
+      wrap.textContent = type + ' (ignored in pseudo)';
+      tree.appendChild(wrap);
     }
   });
 
-  // final flush: if parser ended without an EOCI, still emit any pending group
-  if (condGroup.length > 0) {
-    const combined = condGroup.join(' && ');
-    pseudo.textContent += `if (${combined}) {\n    // condition satisfied\n}\n\n`;
-    condGroup = [];
+  // --- PSEUDO GENERATION ---
+  // Use level5.cond.condToC for the entire parsed structure
+  try {
+    const generatedPseudo = level5.cond.condToC(parsed);
+    pseudo.textContent += generatedPseudo + '\n';
+  } catch (err) {
+    console.error('condToC failed:', err);
+    pseudo.textContent += '/* condToC parse error */\n';
   }
 }
 
+// basic attempt at cond -> C
+level5.cond.condToC = function(parsedArray) { // this was so difficult to finish........ WHY LEVEL5, WH- ok no this is actually an epic, cool system I love this; GBHJKIUHGBNMOI\GRUOWRIPHRSUIZEADSLSFKNM
+  const norm = s => String(s || '').replace(/\s+/g, '').toUpperCase();
 
+  const opMap = { // temporarily separated from the main logic until I fix the parser
+    '46': '++','47': '--','50': '~','51': '!',
+    '5A': '*','5B': '/','5C': '%','5D': '+','5E': '-',
+    '64': '<<','65': '>>','6E': '<','6F': '<=','70': '>','71': '>=',
+    '78': '==','79': '!=','82': '&','83': '|','84': '^',
+    '8F': '&&','90': '||','96': '?:'
+  };
+  function mapOperator(hexOrSymbol) {
+    if (hexOrSymbol === undefined || hexOrSymbol === null) return '??';
+    const s = String(hexOrSymbol);
+    if (/^[\!\=\&\|\+\-\*\/<>%\^~?:]+$/.test(s)) return s;
+    const h = norm(s);
+    return opMap[h] || s;
+  }
 
+  // render helpers
+  function renderValue(node) {
+    if (!node) return '/*null*/';
+    if (typeof node === 'string') return node;
+    if (node.type === 'LITERAL') return node.val;
+    if (node.type === 'GROUP' && node.kind === 'ADDITION') return '(' + node.items.map(renderValue).join(' + ') + ')';
+    if (node.type === 'FUNCTION') {
+      const args = node.params.map(p => p == null ? '/*?*/' : renderValue(p)).join(', ');
+      if(level5.cond.CExpressionInternalMappings[node.id.match(/../g).join(" ")]) return level5.cond.CExpressionInternalMappings[node.id.match(/../g).join(" ")] + `(${args})`;
+      return `FUNC_${node.id}(${args})`;
+    }
+    if (node.type === 'EXPR') return node.expr;
+    return String(node);
+  }
 
-    // ---- UI actions ----
-    const el = id => document.getElementById(id);
+  // parseValue consumes tokens starting at i; returns { node, nextIndex }
+  function parseValue(flat, i) {
+    const key = String(flat[i][0] || '').toUpperCase();
+    const raw = flat[i][1];
 
-    function log(msg, kind){ const l = el('log'); const pfx = kind==='error'?'Error: ': kind==='warn'?'Warning: ': ''; l.textContent = pfx + msg; }
+    // READ_LITERAL + optional COMPARISON_VALUE
+    if (key === 'READ_LITERAL' || key === '32') {
+      const next = flat[i + 1];
+      if (next) {
+        const nk = String(next[0] || '').toUpperCase();
+        if (nk.includes('COMPAR')) {
+          const hex = norm(next[1] || '0');
+          const num = parseInt(hex || '0', 16);
+          const val = (num === 1) ? 'true' : (num === 0 ? 'false' : String(num));
+          return { node: { type: 'LITERAL', val }, nextIndex: i + 2 };
+        }
+      }
+      const hex = norm(raw || '0');
+      const num = parseInt(hex || '0', 16);
+      const val = (num === 1) ? 'true' : (num === 0 ? 'false' : String(num));
+      return { node: { type: 'LITERAL', val }, nextIndex: i + 1 };
+    }
 
-    function doParseFromInput(text){ try{ const hex = inputToHexString(text); if(!hex) { log('No input', 'warn'); return; } const parsed = level5.cond.parsev3Cond(hex); renderParsed(parsed); log('Parsed OK.'); } catch(e){ log(e.message, 'error'); console.error(e); } }
+    // direct COMPARISON_VALUE
+    if (key.includes('COMPAR')) {
+      const hex = norm(raw || '0');
+      const num = parseInt(hex || '0', 16);
+      const val = (num === 1) ? 'true' : (num === 0 ? 'false' : String(num));
+      return { node: { type: 'LITERAL', val }, nextIndex: i + 1 };
+    }
 
-    el('parseBtn').addEventListener('click', ()=> doParseFromInput(el('input').value));
-    el('parseB64Btn').addEventListener('click', ()=>{ try{ const raw = el('input').value.trim(); if(/\s/.test(raw)) throw new Error('Base64 must not contain internal whitespace'); const dec = tryDecodeBase64(raw); const hex = Array.from(dec).map(c => (typeof c==='string' ? c.charCodeAt(0) : c).toString(16).padStart(2,'0')).join('').toUpperCase(); el('input').value = hexSpaced(hex); doParseFromInput(hex); } catch(e){ log('Base64 decode failed: '+e.message,'error'); } });
+    // READ_SUBSECTION: by default may be a nested FUNCTION(resource), but caller can request literal parsing
+    if (key === 'READ_SUBSECTION' || key === '34') {
+      const next = flat[i + 1];
+      if (next && String(next[0] || '').toUpperCase().includes('RESOURCE')) {
+        const id = norm(next[1] || '');
+        if (/^[0-9A-F]{8,}$/.test(id)) return { node: { type: 'FUNCTION', id, params: [] }, nextIndex: i + 2 };
+      }
+      return { node: { type: 'LITERAL', val: 'SUBSECTION_UNKNOWN' }, nextIndex: i + 1 };
+    }
 
-       el('sampleBtn').addEventListener('click', ()=>{ // random sample list
-      let samples = [
+    // READ_MEMORY: function/resource detection; this was the BIGGEST PAIN EVER TO IMPLEMENTBDFGUIJADFILHFDS\UD\FSIH;IDSFOUOUDSFHUPSDFOUHDSFBSFUAUSDHIADFHOIHFDS
+    if (key === 'READ_MEMORY' || key === '35') {
+      // locate resource and ctype nearby
+      let ridIdx = -1, ctypeIdx = -1;
+      for (let j = i + 1; j <= i + 6 && j < flat.length; j++) {
+        const kj = String(flat[j][0] || '').toUpperCase();
+        if (ridIdx === -1 && kj.includes('RESOURCE')) ridIdx = j;
+        if (ctypeIdx === -1 && kj.includes('CTYPE')) ctypeIdx = j;
+      }
+
+      if (ridIdx !== -1) {
+        const resourceId = norm(flat[ridIdx][1] || '');
+        const ctypeRaw = ctypeIdx !== -1 ? norm(flat[ctypeIdx][1] || '') : null;
+
+        // If ctype exists and is NOT a function -> resource as literal hex
+        if (ctypeRaw && !level5.cond.isFunction(ctypeRaw)) {
+          const lit = { type: 'LITERAL', val: `0x${resourceId}` };
+          const nextIndex = Math.max(ridIdx, ctypeIdx) + 1;
+          return { node: lit, nextIndex };
+        }
+
+        // Otherwise its..... you guessed it! a function
+        let paramCount = 0;
+        if (ctypeRaw) {
+          const lastByte = ctypeRaw.slice(-2) || '00';
+          paramCount = Number('0x' + lastByte) || 0;
+        }
+        const funcNode = { type: 'FUNCTION', id: resourceId, params: new Array(paramCount).fill(null) };
+        let cursor = Math.max(ridIdx, ctypeIdx !== -1 ? ctypeIdx : ridIdx) + 1;
+
+        for (let p = 0; p < paramCount; p++) {
+          if (cursor >= flat.length) break;
+
+          // detect explicit CTYPE token for this param
+          let localCtype = null;
+          if (String(flat[cursor][0] || '').toUpperCase().includes('CTYPE')) {
+            localCtype = norm(flat[cursor][1] || '');
+            cursor++;
+          }
+
+          // handle EXTENSION_DELIM if present
+          if (cursor < flat.length && (String(flat[cursor][0] || '').toUpperCase() === 'EXTENSION_DELIM' || String(flat[cursor][1]) === '28')) {
+            cursor++;
+            if (cursor < flat.length && String(flat[cursor][0] || '').toUpperCase().includes('CTYPE')) {
+              localCtype = norm(flat[cursor][1] || '');
+              cursor++;
+            }
+          }
+
+          // IMPORTANT: if localCtype indicates non-function, parse next tokens as LITERAL if possible
+          if (localCtype && !level5.cond.isFunction(localCtype)) {
+            if (cursor < flat.length) {
+              const litRes = parseAsLiteralIfPossible(flat, cursor);
+              if (litRes) {
+                funcNode.params[p] = litRes.node;
+                cursor = litRes.nextIndex;
+                continue;
+              }
+              // fallback to parseValue if special-case didn't match
+              const res = parseValue(flat, cursor);
+              funcNode.params[p] = res.node;
+              cursor = res.nextIndex;
+              continue;
+            } else {
+              funcNode.params[p] = { type: 'LITERAL', val: '/*?*/' };
+              break;
+            }
+          } else {
+            // localCtype indicates a function (or absent) -> parse normally (may produce FUNCTION node)
+            if (cursor < flat.length) {
+              const res = parseValue(flat, cursor);
+              funcNode.params[p] = res.node;
+              cursor = res.nextIndex;
+              continue;
+            } else {
+              funcNode.params[p] = { type: 'LITERAL', val: '/*?*/' };
+              break;
+            }
+          }
+        }
+        return { node: funcNode, nextIndex: cursor };
+      }
+
+      // fallback: next token may be raw hex id
+      const nextToken = flat[i + 1];
+      const att = nextToken ? norm(nextToken[1] || '') : '';
+      if (/^[0-9A-F]{8,}$/.test(att)) return { node: { type: 'FUNCTION', id: att, params: [] }, nextIndex: i + 2 };
+      return { node: { type: 'LITERAL', val: 'FUNC_UNKNOWN' }, nextIndex: i + 1 };
+    }
+
+    // RESOURCE token alone
+    if (key.includes('RESOURCE')) {
+      const id = norm(raw || '');
+      if (/^[0-9A-F]{8,}$/.test(id)) return { node: { type: 'FUNCTION', id, params: [] }, nextIndex: i + 1 };
+    }
+
+    // fallback literal
+    return { node: { type: 'LITERAL', val: String(raw) }, nextIndex: i + 1 };
+  } // end parseValue
+
+  // helper: try to parse a literal form (resource/subsection/literal) starting at cursor
+  // returns { node, nextIndex } or null if it couldn't recognize a simple literal
+  function parseAsLiteralIfPossible(flat, cursor) {
+    if (cursor >= flat.length) return null;
+    const tk = String(flat[cursor][0] || '').toUpperCase();
+    const tv = flat[cursor][1];
+
+    // READ_SUBSECTION + RESOURCE -> literal hex
+    if (tk === 'READ_SUBSECTION' || tk === '34') {
+      const next = flat[cursor + 1];
+      if (next && String(next[0] || '').toUpperCase().includes('RESOURCE')) {
+        const id = norm(next[1] || '');
+        if (/^[0-9A-F]{8,}$/.test(id)) {
+          return { node: { type: 'LITERAL', val: `0x${id}` }, nextIndex: cursor + 2 };
+        }
+      }
+    }
+
+    // RESOURCE token directly -> literal hex
+    if (tk.includes('RESOURCE')) {
+      const id = norm(tv || '');
+      if (/^[0-9A-F]{8,}$/.test(id)) {
+        return { node: { type: 'LITERAL', val: `0x${id}` }, nextIndex: cursor + 1 };
+      }
+    }
+
+    // READ_LITERAL + COMPARISON_VALUE -> literal true/false/number
+    if (tk === 'READ_LITERAL' || tk === '32') {
+      const next = flat[cursor + 1];
+      if (next) {
+        const nk = String(next[0] || '').toUpperCase();
+        if (nk.includes('COMPAR')) {
+          const hex = norm(next[1] || '0');
+          const num = parseInt(hex || '0', 16);
+          const val = (num === 1) ? 'true' : (num === 0 ? 'false' : String(num));
+          return { node: { type: 'LITERAL', val }, nextIndex: cursor + 2 };
+        }
+      }
+      // fallback numeric literal from raw
+      const hex = norm(tv || '0');
+      if (/^[0-9A-F]+$/.test(hex)) {
+        const num = parseInt(hex || '0', 16);
+        return { node: { type: 'LITERAL', val: String(num) }, nextIndex: cursor + 1 };
+      }
+    }
+
+    // COMPARISON_VALUE alone
+    if (tk.includes('COMPAR')) {
+      const hex = norm(tv || '0');
+      const num = parseInt(hex || '0', 16);
+      const val = (num === 1) ? 'true' : (num === 0 ? 'false' : String(num));
+      return { node: { type: 'LITERAL', val }, nextIndex: cursor + 1 };
+    }
+
+    // couldn't produce a literal
+    return null;
+  }
+
+  // helper: consume valueStack for operator (last=right, second-last=left, group for 3+)
+  const comparisonOps = new Set(['==','!=','<','<=','>','>=']);
+  function consumeForOperator(valueStack, opSymbol) {
+    const len = valueStack.length;
+    let leftNode, rightNode;
+
+    if (len === 0) {
+      leftNode = { type: 'LITERAL', val: '0' };
+      rightNode = { type: 'LITERAL', val: '1' };
+      valueStack.length = 0;
+    } else if (len === 1) {
+      leftNode = valueStack.pop();
+      rightNode = { type: 'LITERAL', val: '1' };
+    } else if (len === 2) {
+      rightNode = valueStack.pop();
+      leftNode = valueStack.pop();
+    } else {
+      rightNode = valueStack.pop();
+      leftNode = { type: 'GROUP', kind: 'ADDITION', items: valueStack.splice(0) };
+    }
+
+    const exprStr = `(${renderValue(leftNode)} ${opSymbol} ${renderValue(rightNode)})`;
+    return { type: 'EXPR', expr: exprStr, leftNode, rightNode };
+  }
+
+  // Step 1: header comments
+  const outLines = [];
+  for (const blk of parsedArray) {
+    if (String(blk[0] || '').toUpperCase() === 'HEADER_BLOCK') {
+     // outLines.push('// Header');
+      for (const it of (blk[1] || [])) {
+        outLines.push(`// ${it[0]}: ${it[1]}`);
+        if(it[0] == 'COND_CODE') outLines.push('\n'); // seperate headers and stuff; im too lazy to implement this properly
+      }
+    }
+  }
+
+  // Step 2: process top-level entries, building clauses and nested structure like v6
+  const clauses = [];
+  const clauseCombiners = [];
+  const valueStack = [];
+
+  for (let topIdx = 0; topIdx < parsedArray.length; topIdx++) {
+    const top = parsedArray[topIdx];
+    const topKey = String(top[0] || '').toUpperCase();
+
+    if (topKey === 'HEADER_BLOCK') continue;
+
+    if (topKey === 'EOCI' || topKey === 'AEOCI') {
+      clauseCombiners.push(mapOperator(top[1]));
+      continue;
+    }
+
+    if (topKey === 'CONDITION') {
+      const inner = top[1] || [];
+      let i = 0;
+      while (i < inner.length) {
+        const key = String(inner[i][0] || '').toUpperCase();
+        const val = inner[i][1];
+
+        if (key === 'EXTENSION_DELIM' || String(val) === '28') { i++; continue; }
+
+        if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
+          const opSymbol = mapOperator(val === undefined ? key : val);
+          if (comparisonOps.has(opSymbol)) {
+            const node = consumeForOperator(valueStack, opSymbol);
+            clauses.push(node.expr);
+            valueStack.length = 0;
+            i++;
+            continue;
+          } else {
+            const node = consumeForOperator(valueStack, opSymbol);
+            valueStack.push(node);
+            i++;
+            continue;
+          }
+        }
+
+        // otherwise parse a value
+        const res = parseValue(inner, i);
+        valueStack.push(res.node);
+        i = res.nextIndex;
+      }
+      continue;
+    }
+
+    // stray OPERATOR at top
+    if (topKey === 'OPERATOR') {
+      clauseCombiners.push(mapOperator(top[1]));
+      continue;
+    }
+  }
+
+  // finalize leftover valueStack as a clause if present
+  if (valueStack.length > 0) {
+    if (valueStack.length === 1) clauses.push(`(${renderValue(valueStack[0])} == 1)`);
+    else if (valueStack.length === 2) {
+      const r = valueStack.pop(); const l = valueStack.pop();
+      clauses.push(`(${renderValue(l)} == ${renderValue(r)})`);
+    } else {
+      const r = valueStack.pop();
+      const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: valueStack };
+      clauses.push(`(${renderValue(leftGroup)} == ${renderValue(r)})`);
+    }
+    valueStack.length = 0;
+  }
+
+  // render clauses: nested ifs on && (default)
+ // outLines.push('// Condition'); ab.
+  if (clauses.length === 0) {
+    outLines.push('if (0 == 1) {', '    success();', '}');
+    outLines.push('fail();'); // little last minute patch :3
+    return outLines.join('\n');
+  }
+
+  const allAnd = clauseCombiners.length === 0 || clauseCombiners.every(c => c === '&&');
+  if (allAnd) {
+    for (let k = 0; k < clauses.length; k++) {
+      const ind = '    '.repeat(k);
+      outLines.push(`${ind}if ${clauses[k]} {`);
+    }
+    outLines.push('    '.repeat(clauses.length) + 'success();');
+    for (let k = 0; k < clauses.length; k++) {
+      const ind = '    '.repeat(clauses.length - 1 - k);
+      outLines.push(`${ind}}`);
+    }
+    outLines.push('fail();'); // little last minute patch :3
+    return outLines.join('\n');
+  }
+
+  // otherwise combine into single expression
+  let expr = clauses[0];
+  for (let idx = 0; idx < clauses.length - 1; idx++) {
+    const comb = clauseCombiners[idx] || '&&';
+    expr = `(${expr} ${comb} ${clauses[idx + 1]})`;
+  }
+  outLines.push(`if ${expr} {`, '    success();', '}');
+  outLines.push('fail();'); // little last minute patch :3
+  return outLines.join('\n\n');
+}
+
+    level5.cond.samples = [
                       '00 00 00 00 f0 3b 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 01 32 00 00 00 01 78 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 02 32 00 00 00 01 78 8f 35 77 b4 63 e5 00 0a 01 28 00 06 02 32 00 00 00 03 32 00 00 00 01 78 8f', /* random chain cond */
                       '00 00 00 00 0f 05 35 10 b1 40 96 00 01 00 32 00 00 00 01 78', /* main story completed yw2 simple format */
                       '00 00 00 00 18 05 35 2a 3d 45 43 00 0a 01 28 00 06 02 34 00 12 34 56 32 00 00 00 01 78', /* has flag 0x00123456 yw3; basic extended format */
@@ -996,7 +1799,25 @@ function renderParsed(parsed) {
                       '00 00 00 00 09 02 35 7E E8 60 18 00 01 00', /* an extremely simple BATTLE_AI_ACT_CONDITION from yw2 */
                       'AAAAACcONd4X/hgAAQAyAAAD6HE1xlSO4wABADWF476vAAEAXTIAAAAecY8=', /* SV Snaggerjag Psychic Blasters Requirement Cond YW2 */
                       'AAAAAPA7NXe0Y+UACgEoAAYCMgAAAAEyAAAAAXg1d7Rj5QAKASgABgIyAAAAAjIAAAABeI81d7Rj5QAKASgABgIyAAAAAzIAAAABeI81d7Rj5QAKASgABgIyAAAABDIAAAABeI81d7Rj5QAKASgABgIyAAAABTIAAAABeI81d7Rj5QAKASgABgIyAAAABjIAAAABeI81d7Rj5QAKASgABgIyAAAABzIAAAABeI81d7Rj5QAKASgABgIyAAAACDIAAAABeI81d7Rj5QAKASgABgIyAAAACTIAAAABeI81d7Rj5QAKASgABgIyAAAACjIAAAABeI8=', /* hinozalls yw2 psychic blasters cond, demonstrates function calls emulating array access */
+                      'AAAAAD8XMgAAAAE12ONpHwABADIAAAABeI8yAAAAAY8yAAAAATWemYSMAAoBKAAGAjQxBWKvMgAAAAJ4jzIAAAABj5A=', /* a yw3 exclusion config cond - you can tell just from the HORRIBLE stack that its from yw3 :<<< */
+                      'AAAAADkONd4X/hgAAQAyAAAH0HE1npmEjAAKASgABgI0KzMh6jWemYSMAAoBKAAGAjRW3zFYXTIAAAAecY8=', /* good example of stack merging */
+                      'AAAAAAIBcQ==', /* bruh */
+                      'AAAAAAcDMgAAAAF4', /* bruh (but a little less) */
                     ];
+
+
+    // ---- love my UI schenanamimigans ----
+    const el = id => document.getElementById(id);
+
+    function log(msg, kind){ const l = el('log'); const pfx = kind==='error'?'Error: ': kind==='warn'?'Warning: ': ''; l.textContent = pfx + msg; }
+
+    function doParseFromInput(text){ try{ const hex = inputToHexString(text); if(!hex) { log('No input', 'warn'); return; } const parsed = level5.cond.parsev3Cond(hex); renderParsed(parsed); log('Parsed OK.'); } catch(e){ log(e.message, 'error'); console.error(e); } }
+
+    el('parseBtn').addEventListener('click', ()=> doParseFromInput(el('input').value));
+    el('parseB64Btn').addEventListener('click', ()=>{ try{ const raw = el('input').value.trim(); if(/\s/.test(raw)) throw new Error('Base64 must not contain internal whitespace'); const dec = tryDecodeBase64(raw); const hex = Array.from(dec).map(c => (typeof c==='string' ? c.charCodeAt(0) : c).toString(16).padStart(2,'0')).join('').toUpperCase(); el('input').value = hexSpaced(hex); doParseFromInput(hex); } catch(e){ log('Base64 decode failed: '+e.message,'error'); } });
+
+       el('sampleBtn').addEventListener('click', ()=>{ // random sample list
+      let samples = level5.cond.samples;
       el('input').value = samples[Math.round(Math.random() * (samples.length - 1))];
       el('parseBtn').click();
     });
@@ -1006,80 +1827,6 @@ function renderParsed(parsed) {
     el('copyPseudoBtn').addEventListener('click', ()=>{ const txt = el('pseudo').textContent; if(!txt){ log('Nothing to copy','warn'); return;} navigator.clipboard?.writeText(txt).then(()=> log('Pseudocode copied to clipboard'), ()=> log('Copy failed','warn')); });
 
     el('downloadBtn').addEventListener('click', ()=>{ const pseudo = el('pseudo').textContent || ''; const blob = new Blob([pseudo], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'cond.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
-
-    // generate modal
-    const generateModal = el('generateModal'); const condSelect = el('condSelect'); const extraInputs = el('extraInputs');
-    Object.keys(condTemplates).forEach(key=>{ const opt = document.createElement('option'); opt.value = key; opt.textContent = condTemplates[key].label || key; condSelect.appendChild(opt); });
-
-    function updateExtraInputs(){ // modal UI stuff lol
-      extraInputs.innerHTML = ''; 
-      const sel = condTemplates[condSelect.value]; 
-      if(sel?.params){ 
-        sel.params.forEach(p=>{ 
-          const label = document.createElement('label'); 
-          label.textContent = p.label + ': '; 
-          let input;
-         
-          if (p.type === 'select' && Array.isArray(p.options)) {
-            input = document.createElement('select');
-            p.options.forEach(opt => {
-              const o = document.createElement('option');
-              o.value = opt.value;
-              o.textContent = opt.label;
-              input.appendChild(o);
-            });
-          } else {
-            input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = p.placeholder || '';
-          }
-          
-          input.id = 'param_' + p.name;
-          input.style = 'margin-left:6px';
-          label.appendChild(input);
-          extraInputs.appendChild(label);
-          extraInputs.appendChild(document.createElement('br'));
-        });
-      }
-    }
-    condSelect.addEventListener('change', updateExtraInputs); updateExtraInputs();
-
-    el('generateBtn').addEventListener('click', ()=> generateModal.showModal()); el('closeModalBtn').addEventListener('click', ()=> generateModal.close());
-
-    function intToHexNoPad(n){ const hex = n.toString(16).toUpperCase(); return hex.length % 2 ? '0'+hex : hex; }
-    function parseBigEndianId(input){ let num; if(input.startsWith('0x')||input.startsWith('0X')) num = parseInt(input,16); else num = parseInt(input,10); if(isNaN(num)) throw new Error('Invalid flag ID'); num = (num >>> 0); const arr = new Uint8Array(4); const dv = new DataView(arr.buffer); dv.setUint32(0, num, false); return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join(' ');
-    }
-    function parseItemId(input){ let num; if(input.startsWith('0x')||input.startsWith('0X')) num = parseInt(input,16); else num = parseInt(input,10); if(isNaN(num)) throw new Error('Invalid item ID'); num = (num >> 0); const arr = new Uint8Array(4); const dv = new DataView(arr.buffer); dv.setInt32(0, num, true); return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join(' ');
-    }
-
-    el('generateCondBtn').addEventListener('click', ()=>{
-      const selected = condTemplates[condSelect.value]; let finalText = selected.value || selected.template; try{
-        if(selected.params){
-          selected.params.forEach(p=>{
-            let val = el('param_'+p.name).value.trim();
-            if(p.name === 'RANK' || p.name === 'COUNT'){ 
-              const intVal = parseInt(val,10); 
-              if(isNaN(intVal)||intVal<0||intVal>255) throw new Error('Invalid '+p.label); 
-              val = intToHexNoPad(intVal); 
-            } 
-            else if(p.name === 'ITEM'){ 
-              val = parseItemId(val); 
-            } 
-            else if(p.name === 'FLAG'){ 
-              val = parseBigEndianId(val); 
-            }
-            
-            // Handle the select for FLAG_TYPE
-            if(p.name === 'FLAG_TYPE'){
-              finalText = finalText.replace('{RESOURCE_ID}', val);
-            } else {
-              finalText = finalText.replace('{'+p.name+'}', val);
-            }
-          });
-         }
-        el('input').value = finalText; generateModal.close(); el('parseBtn').click();
-      } catch(err){ log('Generation failed: '+err.message,'error'); }
-    });
 
     // light mode toggle
     el('lightMode').addEventListener('change', (ev)=>{ document.body.classList.toggle('light', ev.target.checked); });
