@@ -223,3 +223,14 @@ Cond Examples:
 
 ---
 <!-- secret easter egg: n123 is coolz (or am I?) -->
+
+# Roadmap
+## v1.4
+* Has most of the features in the current version (v1.3976 as of me writing this), but with:
+  * Improved parsing - removing legacy parsing remains such as EOCIs and AEOCIs
+  * Cond Workshop
+    * A subpage which can be used to easily edit, merge and create entirely new conds!
+  * Improved Light Mode 
+## v1.5
+* This update will mainly focus on making things easier to use; the lib will be easily seperatable from the UI, there will be more configs etc
+  * This will be done in preperation for being built into `yw-mod`, an upcoming project I'm working on!
