@@ -289,7 +289,7 @@ select:focus {
       <div style="flex:1">
         <div class="tree" id="tree" role="region" aria-label="Parsed tree"></div>
       </div>
-      <div style="width:46%">
+      <div id="len3" style="width:46%">
         <div class="pseudo" id="pseudo"></div>
       </div>
     </div>
@@ -323,13 +323,19 @@ select:focus {
     </label>
   </div>
   
-  <h4 style="margin-top:10px; margin-bottom:6px; color:var(--accent);">Appearence</h4>
+  <h4 style="margin-top:10px; margin-bottom:6px; color:var(--accent);">Appearence Tweaks</h4>
 
   <div style="margin-top:6px">
   <label style="display:block; margin-bottom:8px;">
     <input type="checkbox" id="lightMode"> 
     <strong>Light Mode</strong> — toggle light/dark theme for the UI (trust me; dark mode is better :P).
   </label>
+
+  <label style="display:block; margin-bottom:8px;">
+  <input type="checkbox" id="widePsuedoChk"> 
+  <strong>Wide Psuedo</strong> — wider display for the Psuedo section.
+</label>
+
 </div>
 
   <div style="margin-top:12px">
@@ -345,7 +351,7 @@ select:focus {
   <script>
 
     // version
-    const ver = 1.3976;
+    const ver = 1.3977;
     document.title = `YW-Cond: v${ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${ver}` // wait no FULLY auto-updating after all this time :000
@@ -1125,10 +1131,35 @@ indices.forEach(i => {
 
 
 level5.cond.settings = { // moved this to the back of the script
-  'showBool': true,
-  'showPow': true,
-  'showLim': true,
+  showBool: true,
+  showPow: true,
+  showLim: true,
+  /* even more new ones for config! */
+  widePsuedo: false, // default off
+
+   lightMode: false, // this was actually added first, but just now got reworked more into settings for localStorage persistence
 }
+
+// Load settings from localStorage if available
+const loadSettings = () => {
+  const saved = localStorage.getItem('level5_cond_settings');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      Object.assign(level5.cond.settings, parsed);
+    } catch(e) {
+      console.warn("Failed to parse settings from localStorage:", e);
+    }
+  }
+};
+
+// Save current settings to localStorage
+const saveSettings = () => {
+  localStorage.setItem('level5_cond_settings', JSON.stringify(level5.cond.settings));
+};
+
+// Initialize
+loadSettings();
 
   level5.cond._internals.numberQOL = function(input) {
     if(input === 1 && level5.cond.settings.showBool) return `true`
@@ -1151,26 +1182,77 @@ level5.cond.settings = { // moved this to the back of the script
   const configSaveBtn = document.getElementById('configSaveBtn');
   const configCancelBtn = document.getElementById('configCancelBtn');
   
-  // Open config modal and sync checkboxes
-  configBtn.addEventListener('click', () => {
-    showBoolChk.checked = level5.cond.settings.showBool;
-    showPowChk.checked  = level5.cond.settings.showPow;
-    showLimChk.checked  = level5.cond.settings.showLim;
-    configModal.showModal();
+  const widePsuedoChk = document.getElementById('widePsuedoChk');
+  let prevWidePsuedo = level5.cond.settings.widePsuedo;
+
+// Map of appearance toggles
+const appearanceToggles = [
+  {
+    checkbox: lightMode,
+    settingKey: 'lightMode',
+    apply: (checked) => document.body.classList.toggle('light', checked)
+  },
+  {
+    checkbox: widePsuedoChk,
+    settingKey: 'widePsuedo',
+    apply: (checked) => {
+      const elLen3 = el('len3');
+      if (elLen3) elLen3.style.width = checked ? '65%' : '46%';
+    }
+  }
+];
+
+// Open modal: sync checkboxes with current settings
+configBtn.addEventListener('click', () => {
+  prevWidePsuedo = level5.cond.settings.widePsuedo;
+
+  // QOL checkboxes
+  showBoolChk.checked = level5.cond.settings.showBool;
+  showPowChk.checked  = level5.cond.settings.showPow;
+  showLimChk.checked  = level5.cond.settings.showLim;
+
+  // Appearance toggles
+  appearanceToggles.forEach(toggle => {
+    toggle.checkbox.checked = !!level5.cond.settings[toggle.settingKey];
+    toggle.apply(toggle.checkbox.checked);
+
+    // live preview while modal is open
+    toggle.checkbox.onchange = (ev) => toggle.apply(ev.target.checked);
   });
 
-  // Confirm button: apply settings
-  configSaveBtn.addEventListener('click', () => {
-    level5.cond.settings.showBool = showBoolChk.checked;
-    level5.cond.settings.showPow  = showPowChk.checked;
-    level5.cond.settings.showLim  = showLimChk.checked;
-    configModal.close();
+  configModal.showModal();
+});
+
+// Confirm: save all settings
+configSaveBtn.addEventListener('click', () => {
+  // QOL
+  level5.cond.settings.showBool = showBoolChk.checked;
+  level5.cond.settings.showPow  = showPowChk.checked;
+  level5.cond.settings.showLim  = showLimChk.checked;
+
+  // Appearance
+  appearanceToggles.forEach(toggle => {
+    level5.cond.settings[toggle.settingKey] = toggle.checkbox.checked;
   });
 
-  // Cancel button: close without saving
-  configCancelBtn.addEventListener('click', () => configModal.close());
+  saveSettings();
+  configModal.close();
+});
 
-  
+// Cancel: revert changes
+configCancelBtn.addEventListener('click', () => {
+  appearanceToggles.forEach(toggle => {
+    const value = level5.cond.settings[toggle.settingKey];
+    toggle.checkbox.checked = !!value;
+    toggle.apply(value);
+  });
+  configModal.close();
+});
+
+// Apply saved appearance settings immediately on load
+appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.settingKey]));
+
+
     // gotta organise this:
 
     // reads
