@@ -227,7 +227,7 @@ Cond Examples:
 # Roadmap
 ## v1.4
 * Has most of the features in the current version (v1.3977 as of now), but with:
-  * Improved parsing - removing legacy parsing remains such as EOCIs and AEOCIs
+  * Improved parsing - removing legacy parsing remenants such as EOCIs and AEOCIs
   * Cond Workshop
     * A subpage which can be used to easily edit, merge and create entirely new conds!
   * Improved Light Mode 
