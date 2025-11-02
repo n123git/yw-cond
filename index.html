@@ -337,11 +337,15 @@ select:focus {
     <button id="configCancelBtn">Cancel</button>
   </div>
 </dialog>
-
+<div>
+  <noscript>
+    This should be obvious but uhh you kinda need JS for this page to work :P Search up "Enable JavaScript in Web Browser" to fix this if you somehow disabled it on accident :3
+  </noscript>
+</div>
   <script>
 
     // version
-    const ver = 1.3975;
+    const ver = 1.3976;
     document.title = `YW-Cond: v${ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${ver}` // wait no FULLY auto-updating after all this time :000
