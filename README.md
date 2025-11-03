@@ -30,7 +30,7 @@ The header is always equivalent to `00 00 00 00` and has no impact on the cond i
 
 
 * The **first byte** is *NOT* included in the length.
-* The **second byte** is usually unknown but part of the header and counts towards the first byte's length calculation.
+* The **second byte** is unknown but part of the header and counts towards the first byte's length calculation.
 
 ---
 
