@@ -55,31 +55,31 @@ The header is always equivalent to `00 00 00 00` and has no impact on the cond i
 ## 3. **Operators**
 
 Operators perform logical, arithmetic, or bitwise operations on one or more values.
-| Hex Code | Symbol | Num    | Operation                             | Notes                          |
-| -------- | ------ | ------ | ------------------------------------- | ------------------------------ |
-| `46`     | ++     | 1      | Incrementation                        |                                |
-| `47`     | --     | 2      | Decrementation                        |                                |
-| `50`     | ~      | 3      | Bitwise NOT                           |                                |
-| `51`     | !      | 4      | Logical NOT                           |                                |
-| `5A`     | *      | 5      | Multiply                              |                                |
-| `5B`     | /      | 6      | Divide                                |                                |
-| `5C`     | %      | 7      | Modulus                               |                                |
-| `5D`     | +      | 8      | Addition                              |                                |
-| `5E`     | -      | 9      | Subtraction                           |                                |
-| `64`     | <<     | 10     | Left shift                            |                                |
-| `65`     | >>     | 11     | Right shift                           |                                |
-| `6E`     | <      | 12     | Less than                             |                                |
-| `6F`     | <=     | 13     | Less or equal                         |                                |
-| `70`     | >      | 14     | Greater than                          |                                |
-| `71`     | >=     | 15     | Greater or equal                      |                                |
-| `78`     | ==     | 16     | Equal                                 |                                |
-| `79`     | !=     | 17     | Not equal                             |                                |
-| `82`     | &      | 18     | Bitwise AND                           |                                |
-| `83`     | \|     | 19     | Bitwise OR                            |                                |
-| `84`     | ^      | 20     | Bitwise XOR                           |                                |
-| `8F`     | &&     | 21     | Logical AND                           | By far the most common         |
-| `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`. |
-| `96`     | ?:     | 23     | Ternary conditional (pseudo-operator) | May be a goto.                 |
+| Hex Code | Symbol | Num    | Operation                             | Notes                                      |
+| -------- | ------ | ------ | ------------------------------------- | ------------------------------------------ |
+| `46`     | ++     | 1      | Incrementation                        |                                            |
+| `47`     | --     | 2      | Decrementation                        |                                            |
+| `50`     | ~      | 3      | Bitwise NOT                           |                                            |
+| `51`     | !      | 4      | Logical NOT                           |                                            |
+| `5A`     | *      | 5      | Multiply                              |                                            |
+| `5B`     | /      | 6      | Divide                                |                                            |
+| `5C`     | %      | 7      | Modulus                               |                                            |
+| `5D`     | +      | 8      | Addition                              |                                            |
+| `5E`     | -      | 9      | Subtraction                           |                                            |
+| `64`     | <<     | 10     | Left shift                            |                                            |
+| `65`     | >>     | 11     | Right shift                           |                                            |
+| `6E`     | <      | 12     | Less than                             |                                            |
+| `6F`     | <=     | 13     | Less or equal                         |                                            |
+| `70`     | >      | 14     | Greater than                          |                                            |
+| `71`     | >=     | 15     | Greater or equal                      |                                            |
+| `78`     | ==     | 16     | Equal                                 |                                            |
+| `79`     | !=     | 17     | Not equal                             |                                            |
+| `82`     | &      | 18     | Bitwise AND                           |                                            |
+| `83`     | \|     | 19     | Bitwise OR                            |                                            |
+| `84`     | ^      | 20     | Bitwise XOR                           |                                            |
+| `8F`     | &&     | 21     | Logical AND                           | By far the most common                     |
+| `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`.             |
+| `96`     | ?:     | 23     | Ternary conditional (pseudo-operator) | Jumps to an offset if the input is truthy. |
 
 ---
 
