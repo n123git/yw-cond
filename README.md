@@ -29,7 +29,7 @@ The header is always equivalent to `00 00 00 00` and has no impact on the cond i
 > Example: `00 00 00 00 - 0F 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`,
 
 
-* The **first byte** is *NOT* included in the length.
+* The **first byte** is *NOT* included in the length calculation.
 * The **second byte** is unknown but part of the header and counts towards the first byte's length calculation.
 
 ---
