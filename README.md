@@ -7,7 +7,7 @@ This parser is for the Yo-kai Watch franchise which has a much more complex cond
 
 # CExpression (Cond) System Documentation
 
-The **CExpression**, or **Cond system**, is a proprietary (usually Base64-encoded) system used for evaluating runtime conditions; it contains *zero* or more conditions and can consist of:
+The **CExpression**, or **Cond system**, is a proprietary (usually Base64-encoded) system used for evaluating runtime conditions using RPN (Reverse Polish Notation); it contains *zero* or more conditions and can consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
   * Operators (arithmetic, logical, bitwise, and rarely structural)
