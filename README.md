@@ -24,7 +24,7 @@ The header is always equivalent to `00 00 00 00` and has no impact on the cond i
 | Byte | Description                                                                                                                                                                                                   |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | The first byte of COND_CODE defines the total length excluding itself but including all subsequent bytes within the Cond - including the second byte; in some conds with many conditions this is set to `F0`. |
-| 2    | Most likely represents the number of pushes to the stack, although due to it's inconsistency and my laziness the true purpose is unknown.                                                                     |
+| 2    | This byte appears to encode an engine-side descriptor used during cond evaluation. It frequently correlates with the number of evaluation “units” the engine will push/expect (CTYPES, pushed values, operator/marker tokens), but it is not strictly equal to any single observable count (e.g. #literals or #functions). In some cases the value behaves like a small token-count; in others it behaves like a composite bitfield? Although due to it's inconsistency and my laziness the exact purpose is currently unknown. |
 
 > Example: `00 00 00 00 - 0F 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`,
 
