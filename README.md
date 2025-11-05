@@ -81,7 +81,9 @@ Operators perform logical, arithmetic, or bitwise operations on one or more valu
 | `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`.             |
 | `96`     | ?:     | 23     | Ternary conditional (pseudo-operator) | Jumps to an offset if the input is truthy. |
 
+
 Operators can be sorted into groups based on their *high nibble* and whether the low nibble is 0-9 or A-F referred to as normal vs extended (ext.) positions respectively:
+
 | High Nibble  | Group Name                             | Notes                                       |
 | ------------ | -------------------------------------- | ------------------------------------------- |
 | `4`          | Stepper Ops                            | Includes Incrementation and Decrementation. |
@@ -93,6 +95,7 @@ Operators can be sorted into groups based on their *high nibble* and whether the
 | `8`          | Bitwise Logic                          | -                                           |
 | `8` (ext.)   | Logical AND Op                         | -                                           |
 | `9`          | Logical OR and Jump Ops                | Holds `96` (ternary/jump) & Logical OR ops. |
+
 ---
 
 
