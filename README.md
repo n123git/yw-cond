@@ -82,13 +82,13 @@ Operators perform logical, arithmetic, or bitwise operations on one or more valu
 | `96`     | ?:     | 23     | Ternary conditional (pseudo-operator) | Jumps to an offset if the input is truthy. |
 
 
-Operators can be sorted into groups based on their *high nibble* and whether the low nibble is 0-9 or A-F referred to as normal vs extended (ext.) positions respectively:
+Operators can be grouped by their *high nibble* (first hex digit), and further subdivided by whether the *low nibble* falls within 0–9 (normal position) or A–F (extended/ext position). Here is the grouping:
 
 | High Nibble  | Group Name                             | Notes                                       |
 | ------------ | -------------------------------------- | ------------------------------------------- |
 | `4`          | Stepper Ops                            | Includes Incrementation and Decrementation. |
 | `5`          | Unary Ops                              | `4X` is also Unary.                         |
-| `5` (ext.)   | Arithemtic Ops                         | -                                           |
+| `5` (ext.)   | Arithmetic Ops                         | -                                           |
 | `6`          | Bit Shifts                             | -                                           |
 | `6` (ext.)   | Lower Comparisons (< / <=)             | Contains < and <=.                          |
 | `7`          | Comparisons                            | Holds the remaining comparisons.            |
@@ -198,9 +198,9 @@ Cond Examples:
     * `69 84 E3 AF` - The CRC32 hash of `RunTrigger`.
     * `00 0A 01` - The CTYPE for a function that takes one parameter aka `RunTrigger` in this example.
     * `28` - Used to tell the engine to keep reading so it correctly parses the params.
-    * `00 06 02` - The CTYPE for an integer; refering to the input of `RunTrigger` aka the `TriggerID`
+    * `00 06 02` - The CTYPE for an integer; referring to the input of `RunTrigger` aka the `TriggerID`
     * `34`- Similar purpose as `28`.
-    * `0E 6B 6F 6B` - Input of the funcion (in this case it's the `TriggerID`); pushes the function and params to the stack. 
+    * `0E 6B 6F 6B` - Input of the function (in this case it's the `TriggerID`); pushes the function and params to the stack. 
     * No OPERATORs or other values; so it runs the above function and checks if the output is truthy; as this function is a `Set` not a `Get/Is/Has` function it always returns `1` (`true`); a *truthy* value.
 * Single Condition: GameClear (Has Main Story been completed):
   * `00 00 00 00 0F 05 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
@@ -242,10 +242,10 @@ Cond Examples:
 # Roadmap
 ## v1.4
 * Has most of the features in the current version (v1.3977 as of now), but with:
-  * Improved parsing - removing legacy parsing remenants such as EOCIs and AEOCIs
+  * Improved parsing - removing legacy parsing remnants such as EOCIs and AEOCIs
   * Cond Workshop
     * A subpage which can be used to easily edit, merge and create entirely new conds!
   * Improved Light Mode 
 ## v1.5
-* This update will mainly focus on making things easier to use; the lib will be easily seperatable from the UI, there will be more configs etc
+* This update will mainly focus on making things easier to use; the lib will be easily separable from the UI, there will be more configs etc
   * This will be done in preperation for being built into `yw-mod`, an upcoming project I'm working on!
