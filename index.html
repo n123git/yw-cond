@@ -350,14 +350,15 @@ select:focus {
 </div>
   <script>
 
-    // version
-    const ver = 1.3977;
-    document.title = `YW-Cond: v${ver}`; // finally auto-updating somewhat :3
-    const el = id => document.getElementById(id); // gotta move it all the way up here
-    el('ver2').innerText = `v${ver}` // wait no FULLY auto-updating after all this time :000
-
     if(typeof level5 === 'undefined') level5 = {};
     if(typeof level5.cond === 'undefined') level5.cond = {};
+
+    // version
+    level5.cond.ver = 1.3978;
+    document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
+    const el = id => document.getElementById(id); // gotta move it all the way up here
+    el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
+
     if(typeof level5.cond._internals === 'undefined') level5.cond._internals = {};
 
     // manually labelled ones; some were before I decompiled it and some are just not in 1s
@@ -420,7 +421,7 @@ select:focus {
     };
     level5.cond._manual = { ...knownResourceIDs }; // backup NOT reference; I originally tried to use .valueOf(); to fix it but that also returns a reference apparently; screw JS 
     const CExpressionInternalNames = [ // list of CExpression Functions; grouped based on similarities, NOT based on the order they are defined :)
-      // ywBattleExpressionFunc
+      // yw::btl::ywBattleExpressionFunc
       'GetActorAgility',
       'GetActorAttack',
       'GetActorDefence',
@@ -507,9 +508,10 @@ select:focus {
       'IsTargetForwardMagicDamageDown',
       'IsTargetForwardWazaDamageDown',
 
+      'DebugPrint', // no-opped; always returns 1 (true) in published games
       'GetFalse', // ??? not in yw::util::CExpression, but should be?
 
-      // ywGDExpressionFunc
+      // yw::<somethingidr>::ywGDExpressionFunc
       'GameClear', // returns 1 if the main story has been completed, 0 otherwise
       'GetChapter',
       'GetWatchRank',
@@ -540,7 +542,7 @@ select:focus {
 
       'InPartyMember', // input: (int: BaseID BE) returns 0 if the players party does not contain this yokai, else 1 (Uses CharaParamInfo)
       'IsApeearMitibiki', // typo is level5s fault not mine :/
-      'IsAppearMitibiki', // this is not real, read the above one and then this comment: even though im 100% sure the ID will also include the typo, ill include the fixed version cuz why not :P
+         'IsAppearMitibiki', // this is not real, read the above one and then this comment: even though im 100% sure the ID will also include the typo, ill include the fixed version cuz why not :P
 
       'IsBicycleOn', // remember checks only happen when the condition is evaluated, for NPCs thats when the map loads, for shop items its when the shop is opened - dont expect a check using this function to update 60fps lmao (or 30fps outside of UIs this is the 3DS after all)
       'IsFullParty', // returns 0 (false) if party is null or isnt full, else 1 (true)
@@ -1990,12 +1992,13 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
 
   // Step 1: header comments
   const outLines = [];
+  outLines.push(`// parsed with yw-cond version: v${level5.cond.ver}`); // r.
   for (const blk of parsedArray) {
     if (String(blk[0] || '').toUpperCase() === 'HEADER_BLOCK') {
      // outLines.push('// Header');
       for (const it of (blk[1] || [])) {
         outLines.push(`// ${it[0]}: ${it[1]}`);
-        if(it[0] == 'COND_CODE') outLines.push('\n'); // seperate headers and stuff; im too lazy to implement this properly
+        if(it[0] == 'COND_CODE') outLines.push(''); // r3-4/5. (sp2) seperate headers and stuff; im too lazy to implement this properly
       }
     }
   }
@@ -2075,7 +2078,7 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
   if (clauses.length === 0) {
     outLines.push('if (0 == 1) {', '    success();', '}');
     outLines.push('fail();'); // little last minute patch :3
-    return outLines.join('\n');
+    return outLines.join(''); // r3-1.
   }
 
   const allAnd = clauseCombiners.length === 0 || clauseCombiners.every(c => c === '&&');
@@ -2090,7 +2093,7 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
       outLines.push(`${ind}}`);
     }
     outLines.push('fail();'); // little last minute patch :3
-    return outLines.join('\n');
+    return outLines.join('\n'); // r3-2.
   }
 
   // otherwise combine into single expression
@@ -2101,7 +2104,7 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
   }
   outLines.push(`if ${expr} {`, '    success();', '}');
   outLines.push('fail();'); // little last minute patch :3
-  return outLines.join('\n\n');
+  return outLines.join('\n'); // r3-3. (diff)
 }
 
     level5.cond._internals.hexToBase64 = function(hexString) {
