@@ -354,7 +354,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.3978;
+    level5.cond.ver = 1.39781;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -2184,11 +2184,31 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
     });
 
 
-       el('sampleBtn').addEventListener('click', ()=>{ // random sample list
-      let samples = level5.cond.samples;
-      el('input').value = samples[Math.round(Math.random() * (samples.length - 1))];
-      el('parseBtn').click();
-    });
+  let sampleIndex = 0;
+  let direction = 1; // 1 = forward, -1 = backward
+
+  el('sampleBtn').addEventListener('click', () => {
+    const samples = level5.cond.samples;
+    if (!samples || samples.length === 0) return;
+
+    // Set the input to the current sample
+    el('input').value = samples[sampleIndex];
+    el('parseBtn').click();
+
+    // Move index
+    sampleIndex += direction;
+
+    // If we hit the end, reverse direction
+    if (sampleIndex >= samples.length) {
+      sampleIndex = samples.length - 2;
+      direction = -1;
+    }
+    // If we hit the start, reverse direction again
+    else if (sampleIndex < 0) {
+      sampleIndex = 1;
+      direction = 1;
+    }
+  });
     
    // removed to save UI space and in favour of Parse auto clearing if the input is empty : el('clearBtn').addEventListener('click', ()=>{ el('input').value=''; el('tree').innerHTML=''; el('pseudo').textContent=''; el('log').textContent='Ready.'; });
 
