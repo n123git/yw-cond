@@ -321,7 +321,12 @@ select:focus {
       <input type="checkbox" id="showLimChk"> 
       <strong>Show Special Values</strong> — display max/special values as hex i.e. <code>255</code> = <code>0xFF</code>, <code>65535</code> = <code>0xFFFF</code>, etc.
     </label>
-  </div>
+
+  <label style="display:block; margin-bottom:8px;">
+    <input type="checkbox" id="shortenIfBlocksChk"> 
+    <strong>Shorten If Blocks</strong> — insert "\n&nbsp;&nbsp;" after every || or && for if conditions > 65 chars.
+  </label>
+  </div> <!-- yeah it ws originaly in Appearence Tweaks which is why the codebase does this; also for modularity reasons my apperence section was programmed a bit better -->
   
   <h4 style="margin-top:10px; margin-bottom:6px; color:var(--accent);">Appearence Tweaks</h4>
 
@@ -334,11 +339,6 @@ select:focus {
   <label style="display:block; margin-bottom:8px;">
   <input type="checkbox" id="widePsuedoChk"> 
   <strong>Wide Psuedo</strong> — wider display for the Psuedo section.
-</label>
-
-  <label style="display:block; margin-bottom:8px;">
-  <input type="checkbox" id="shortenIfBlocksChk"> 
-  <strong>Shorten If Blocks</strong> — insert "\\n  " after every || or && for if conditions > 65 chars.
 </label>
 
 
@@ -361,7 +361,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.39782;
+    level5.cond.ver = 1.39783;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -2130,7 +2130,7 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
     if (valueStack.length === 1) clauses.push(`(${renderValue(valueStack[0])} == 1)`);
     else if (valueStack.length === 2) {
       const r = valueStack.pop(); const l = valueStack.pop();
-      clauses.push(`(${renderValue(l)} == ${renderValue(r)})`);
+      clauses.push(`(${renderValue(l)} == ${renderValue(r)})`); // after what happened a bit ago I'mma stick my name around here in the code:  n--1--2--3-- g-- -i -- -- t/n123original (dashes incase anyone tries to ctrl+f replace :P)
     } else {
       const r = valueStack.pop();
       const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: valueStack };
