@@ -336,6 +336,13 @@ select:focus {
   <strong>Wide Psuedo</strong> — wider display for the Psuedo section.
 </label>
 
+  <label style="display:block; margin-bottom:8px;">
+  <input type="checkbox" id="shortenIfBlocksChk"> 
+  <strong>Shorten If Blocks</strong> — insert "\\n  " after every || or && for if conditions > 65 chars.
+</label>
+
+
+
 </div>
 
   <div style="margin-top:12px">
@@ -354,7 +361,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.39781;
+    level5.cond.ver = 1.39782;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -534,9 +541,9 @@ select:focus {
       'GetPhase', // basically a massive number meaning lots of complex positions and stuff in the story; this WILL be a pain and sadly you WILL see it frequently :/
       'GetPlayerVarID', // no params output of 2 means female??
       'GetQuestCompNum',
-      'GetQuestPhase', // FF = Quest Complete
+      'GetQuestPhase', // FF = Quest Complete; other phase nums are quest-dependant
 
-      'GetTimeHour', // returns 0 if game time is null and if not the hour which is derived from (time in ticks) / 0x2A30
+      'GetTimeHour', // returns 0 if game time is null and if not the hour which is derived from (time in seconds) / 0x2A30
       'GetTimeNow', // returns -1 if the world isnt loaded, 3 if the game time is null otherwise either 0, 1, 2 or 3 (the repetition of 3 is intentional - it is the default time)
       'GetWeatherNow', // returns -1 if the world isnt loaded (GameManager::spRPGWorld == 0), 0 if the weather data ptr is null else weather byte as uint
 
@@ -1140,6 +1147,7 @@ level5.cond.settings = { // moved this to the back of the script
   widePsuedo: false, // default off
 
    lightMode: false, // this was actually added first, but just now got reworked more into settings for localStorage persistence
+   shortenIfBlocks: true,
 }
 
 // Load settings from localStorage if available
@@ -1201,6 +1209,11 @@ const appearanceToggles = [
       const elLen3 = el('len3');
       if (elLen3) elLen3.style.width = checked ? '65%' : '46%';
     }
+  },
+  {
+    checkbox: shortenIfBlocksChk,
+    settingKey: 'shortenIfBlocks',
+    apply: (checked) => {} // it being applied is enough; no extra action is needed lol
   }
 ];
 
@@ -1967,6 +1980,59 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
 
   // helper: consume valueStack for operator (last=right, second-last=left, group for 3+)
   const comparisonOps = new Set(['==','!=','<','<=','>','>=']);
+
+  function formatIfBlocksSafe(code) {
+  let result = '';
+  let i = 0;
+  let temp = level5.cond.settings.shortenIfBlocks; // just in the EXTREMELY off case that somehow it gets changed mid execution
+  while (i < code.length && temp) {
+    // Look for 'if(' or 'if ('
+    if (code.startsWith('if', i) && /\bif\b/.test(code.slice(i, i + 3))) {
+      let j = i + 2;
+
+      // Skip whitespace
+      while (j < code.length && /\s/.test(code[j])) j++;
+
+      if (code[j] === '(') {
+        let depth = 1;
+        let startCond = ++j;
+        let endCond = -1;
+
+        // find matching closing parenthesis
+        while (j < code.length && depth > 0) {
+          if (code[j] === '(') depth++;
+          else if (code[j] === ')') depth--;
+          j++;
+        }
+
+        if (depth === 0) {
+          endCond = j - 1;
+          const condition = code.slice(startCond, endCond);
+          let formatted = condition;
+
+          // Apply formatting only if condition is long enough
+          if (condition.length >= 65) {
+            formatted = condition
+              .replace(/(\&\&)/g, '$1\n  ')
+              .replace(/(\|\|)/g, '$1\n  ');
+          }
+
+          // reconstruct
+          result += `if (${formatted})`;
+          i = endCond + 1;
+          continue;
+        }
+      }
+    }
+
+    // default copy
+    result += code[i];
+    i++;
+  }
+
+  return temp ? result : code;
+}
+
   function consumeForOperator(valueStack, opSymbol) {
     const len = valueStack.length;
     let leftNode, rightNode;
@@ -2104,7 +2170,7 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
   }
   outLines.push(`if ${expr} {`, '    success();', '}');
   outLines.push('fail();'); // little last minute patch :3
-  return outLines.join('\n'); // r3-3. (diff)
+  return formatIfBlocksSafe(outLines.join('\n')); // r3-3. (diff)
 }
 
     level5.cond._internals.hexToBase64 = function(hexString) {
