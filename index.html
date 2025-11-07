@@ -361,7 +361,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.39787;
+    level5.cond.ver = 1.397871;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -666,6 +666,23 @@ select:focus {
             label: "Yo-kai Watch 1/2 – Main Story" // label
             // no UI elements accept generate and cancel
         },
+        gender: {
+            type: "hex", // I dont even know what this does anymore......
+            template: "00 00 00 00 0F 05 35 26 EF 79 C8 00 01 00 32 00 00 00 02 {GENCHECKOP}", // direct value
+            params: [
+                {
+                    name: "GENCHECKOP",
+                    label: "State",
+                    type: "select", // define a select
+                    options: [ // with options
+                        { label: "Male", value: "79" }, 
+                        { label: "Female", value: "78" }
+                    ]
+                }
+            ],
+            label: "Yo-kai Watch 1/2 – Gender" // label
+            // no UI elements accept generate and cancel
+        },
        /* unmainStory: {
             type: "b64",
             value: "AAAAAA8FNRCxQJYAAQAyAAAAAHg=",
@@ -698,6 +715,63 @@ select:focus {
                 }
             ],
             label: "Yo-kai Watch 1/2 – Watch Rank" // label
+        }, 
+        chapterXX: {
+            type: "hex",
+            template: "00 00 00 00 0f 05 35 0A 52 7C E2 00 01 00 32 00 00 00 {CHAPTER} {MATCH}", // template
+            params: [
+                {
+                    name: "MATCH",
+                    label: "Match Type",
+                    type: "select", // define a select
+                    options: [ // with options
+                        { label: "Atleast", value: "71" },
+                        { label: "Exactly", value: "78" },
+                        { label: "Not", value: "79" },
+                        { label: "Under", value: "6E" },
+                        { label: "Maximum of", value: "6F" },
+                        { label: "Over", value: "70" }
+                    ]
+                },
+                { 
+                    name: "CHAPTER", // define rank
+                    label: "Chapter (0-255)", // UI label
+                    inputType: "default", // input NOT treated as hex by default
+                    max: 0xFF, // byte cap
+                    padding: 0x1, // pad as byte
+                    placeholder: "e.g. 5, 7, 0x3 etc." // UI input placeholder
+                }
+            ],
+            label: "Yo-kai Watch 1 - Chapter" // label
+        },
+        phase: {
+            type: "hex",
+            template: "00 00 00 00 0f 05 35 B9 19 36 DA 00 01 00 32 {PHASE} {MATCH}", // template
+            params: [
+                {
+                    name: "MATCH",
+                    label: "Match Type",
+                    type: "select", // define a select
+                    options: [ // with options
+                        { label: "Atleast", value: "71" },
+                        { label: "Exactly", value: "78" },
+                        { label: "Not", value: "79" },
+                        { label: "Under", value: "6E" },
+                        { label: "Maximum of", value: "6F" },
+                        { label: "Over", value: "70" }
+                    ]
+                },
+                { 
+                    name: "PHASE", // define rank
+                    label: "Phase", // UI label
+                    inputType: "default", // input NOT treated as hex by default
+                    max: 0xFFFFFFFF, // byte cap
+                    padding: 0x4, // pad as 4 bytes
+                    byteCoerce: 0x4, // coerce to int32
+                    placeholder: "e.g. 10010, 40135, 0xEA6A etc." // UI input placeholder
+                }
+            ],
+            label: "Yo-kai Watch 1/2 - Phase" // label
         },
         hasItem: {
             type: "hex",
@@ -723,6 +797,22 @@ select:focus {
                 }
             ],
             label: "Yo-kai Watch 1/2 – Items"
+        },
+        runTrigger: {
+            type: "hex",
+            template: "00 00 00 00 12 02 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 {TRIGGER}",
+            params: [
+                { 
+                    name: "TRIGGER", 
+                    label: "Trigger ID (4-byte big endian)", 
+                    inputType: "default",
+                    padding: 0x4,
+                    max: 0xFFFFFFFF,
+                    byteCoerce: 4, // coerce to signed 32-bit integer
+                    placeholder: "e.g. 1678239 or 0x638297A" 
+                },
+            ],
+            label: "Yo-kai Watch 1/2 – Run Trigger"
         },
         tunnelXX: {
             type: "hex",
@@ -785,7 +875,9 @@ select:focus {
                     type: "select",
                     options: [
                         { label: "FLAG_INFO_0", value: "2A 3D 45 43" }, // normal
-                        { label: "FLAG_INFO_1", value: "9E 99 84 8C", altElements: [0, 1] } // activates altElements[0] and altElements[1]
+                        { label: "FLAG_INFO_1", value: "9E 99 84 8C", altElements: [0, 1] }, // activates altElements[0] and altElements[1]
+                        { label: "FLAG_INFO_3", value: "9F 35 86 B4" }, // normal
+                        { label: "TempMapBitFlag", value: "32 14 7A 90"}
                     ]
                 },
                 {
