@@ -361,7 +361,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.39783;
+    level5.cond.ver = 1.39787;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -1277,7 +1277,7 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
 
     // extension markers?
     level5.cond.EXTENSION_DELIM = "28"; // not fully a read but helps with structure and is always near a READ_SUBSECTION
-    level5.cond.UPRM = "5D"; // just the + operator but since I havent rewritten the parser to be more stack-oriented this is neccessary for now
+    // finally retired... level5.cond.UPRM = "5D"; // just the + operator but since I havent rewritten the parser to be more stack-oriented this is neccessary for now
     // EOCIs
     level5.cond.EOCI = "8F";
     level5.cond.AEOCI = "90"; // this exists....
@@ -1311,8 +1311,8 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       "82",  // & (bitwise AND)  
       "83",  // | (bitwise OR)  
       "84",  // ^ (bitwise XOR)  
-  //  "8F",  // && (logical AND)  
-  //  "90",  // || (logical OR)  
+      "8F",  // && (logical AND)  
+      "90",  // || (logical OR)  
       "96"   // TECHNICALLY  not an operator - but we'll consider it as one anyway; ?: (conditional jump/ternary)  
       ];
     level5.cond.OPERATOR_LABELS = [
@@ -1336,10 +1336,15 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       "&",           // 0x82  
       "|",           // 0x83  
       "^",           // 0x84  
-   // "&&",          // 0x8F  
-    //"||",          // 0x90  
+      "&&",          // 0x8F  
+      "||",          // 0x90  
       "?:",          // TECHNICALLY  not an operator - but we'll consider it as one anyway; 0x96  
     ] // kept seperated into 2 arrays because I didnt want to risk breaking my old code
+
+    level5.cond.L_OPERATORS = {
+      "8F": "&&",
+      "90": "||"
+    }
 
     level5.cond.dataTypes = [
       "int8", // 0 (char)
@@ -1379,7 +1384,7 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       const parsedCond = [];
       function err(msg, hexSuffix){ const ctx = hexSuffix ? (' (next: '+hexSuffix+')') : ''; throw new SyntaxError(msg + ctx); }
 
-      function parseHeader(){ if(hex.length < 12) err('Too short for header+condcode', hex.slice(0,12)); if(!$.startsWith(hex,'00000000')) err('Are you sure this is a real cond? Header invalid (expected 00000000)'); let consumed; [hex, consumed] = $.consumeBytes(hex,4); const headerBlock = [['HEADER', consumed]]; [hex, consumed] = $.consumeBytes(hex,2); headerBlock.push(['COND_CODE', consumed]); parsedCond.push(['HEADER_BLOCK', headerBlock]); }
+      function parseHeader(){ if(hex.length < 12) err('Too short for header+condcode', hex.slice(0,12)); if(!$.startsWith(hex,'00000000') && !$.startsWith(hex,'00000001')) err('Are you sure this is a real cond? Header invalid (expected int32: 0x0 / int32: 0x1)'); let consumed; [hex, consumed] = $.consumeBytes(hex,4); const headerBlock = [['HEADER', consumed]]; [hex, consumed] = $.consumeBytes(hex,2); headerBlock.push(['COND_CODE', consumed]); parsedCond.push(['HEADER_BLOCK', headerBlock]); }
 
       function parseClause(){ 
         if(hex.length < 2) err('Unexpected EOF while expecting READ_MEMORY or READ_LITERAL');
@@ -1394,7 +1399,7 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
         }
 
         // handle OPERATOR as a clause starter
-        if (level5.cond.OPERATORS.includes(hex.slice(0, 2))) {
+      /*  if (level5.cond.OPERATORS.includes(hex.slice(0, 2))) {
           const clause = [];
           let consumed;
           [hex, consumed] = $.consumeBytes(hex, 1);
@@ -1411,7 +1416,38 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
           // otherwise just treat it as a standalone operator clause
           parsedCond.push(['CONDITION', clause]);
           return;
-        }
+        }*/ // sunset technique
+
+if (level5.cond.OPERATORS.includes(hex.slice(0, 2))) {
+  const clause = [];
+  let consumed;
+
+  // Check if first operator is L_OPERATOR: sunset behavior
+  const firstOp = hex.slice(0,2);
+  if (level5.cond.L_OPERATORS[firstOp]) {
+    parsedCond.push(['CONDITION', clause]);
+    return; // do not consume the L_OPERATOR
+  }
+
+  // Loop through all consecutive normal operators
+  while (level5.cond.OPERATORS.includes(hex.slice(0, 2))) {
+    [hex, consumed] = $.consumeBytes(hex, 1);
+    clause.push(['OPERATOR', consumed]);
+  }
+
+  // After all operators, optionally parse next READ_MEMORY/READ_LITERAL
+  if ($.startsWith(hex, level5.cond.READ_MEMORY) || $.startsWith(hex, level5.cond.READ_LITERAL)) {
+    parsedCond.push(['CONDITION', clause]);
+    parseClause(); // recursive call handles the next clause
+    return;
+  }
+
+  // If nothing follows, close the condition
+  parsedCond.push(['CONDITION', clause]);
+  return;
+}
+
+
         // temp READ_LITERAL logic; might not work in all cases; I should add V2 fallback parsing
 
         if($.startsWith(hex, level5.cond.READ_LITERAL)){
@@ -1433,17 +1469,32 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
               return; // A.
           }
 
-          if ($.startsWith(hex, level5.cond.EOCI)) {
-            console.warn("c")
-            parsedCond.push(['CONDITION', clause]); // this 
-             return;
-          }
 
-          if(level5.cond.OPERATORS.includes(hex.slice(0,2))){
+       /*   if(level5.cond.OPERATORS.includes(hex.slice(0,2))){
             [hex, consumed] = $.consumeBytes(hex,1); clause.push(['OPERATOR', consumed]); 
             parsedCond.push(['CONDITION', clause]); return;
           } // e.
+*/
+if(level5.cond.OPERATORS.includes(hex.slice(0,2))) {
+  const nextOp = hex.slice(0,2);
 
+  // Treat L_OPERATOR as global op: push and return without consuming
+  if(level5.cond.L_OPERATORS[nextOp]) {
+    parsedCond.push(['CONDITION', clause]);
+    return;
+  }
+
+  let consumed;
+  // Consume all consecutive normal operators
+  while(level5.cond.OPERATORS.includes(hex.slice(0,2))) {
+    [hex, consumed] = $.consumeBytes(hex,1);
+    clause.push(['OPERATOR', consumed]);
+  }
+
+  // Push the clause once, as in original
+  parsedCond.push(['CONDITION', clause]);
+  return;
+} // e. // sunset technique
 
           err('Expected READ_LITERAL or READ_MEMORY after COMPARISON_VALUE', hex.slice(0,2));
         }
@@ -1457,10 +1508,10 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       
         while(hex.length > 0){ 
           const nextByte = hex.slice(0,2);
-          if($.startsWith(hex, level5.cond.UPRM)) {
-          const clause = []; let consumed;
-          [hex, consumed] = $.consumeBytes(hex,1); clause.push(['UPRRM', consumed]);
-          }
+        /*  if($.startsWith(hex, level5.cond.UPRM)) {
+          let consumed;
+          [hex, consumed] = $.consumeBytes(hex,1); clause.push(['URRM', consumed]);
+          } */ // finally retired
           if($.startsWith(hex, level5.cond.READ_LITERAL)){
             [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_LITERAL', consumed]); 
             if(hex.length < 8) err('Expected COMPARISON_VALUE after READ_LITERAL', hex.slice(0,8));
@@ -1485,13 +1536,32 @@ if ($.startsWith(hex, level5.cond.READ_LITERAL)) {
   continue;
 }
 
-// OPERATOR -> consume it and finish this condition
+/*// OPERATOR -> consume it and finish this condition
 if (level5.cond.OPERATORS.includes(afterComp)) {
   [hex, consumed] = $.consumeBytes(hex,1);
   clause.push(['OPERATOR', consumed]);
   parsedCond.push(['CONDITION', clause]);
   return;
+}*/
+// OPERATOR -> consume all consecutive operators and finish this condition
+while (level5.cond.OPERATORS.includes(hex.slice(0,2))) {
+  const nextOp = hex.slice(0,2);
+
+  // Treat L_OPERATOR as global op: push and return without consuming
+  if (level5.cond.L_OPERATORS[nextOp]) {
+    parsedCond.push(['CONDITION', clause]);
+    return;
+  }
+
+  // Normal operator: consume and add to clause
+  [hex, consumed] = $.consumeBytes(hex,1);
+  clause.push(['OPERATOR', consumed]);
 }
+
+// Push the clause once, as in original
+parsedCond.push(['CONDITION', clause]);
+return; // sunset technique
+/*
 // EOCI -> consume and finish this condition
 if ($.startsWith(hex, level5.cond.EOCI)) {
 //  [hex, consumed] = $.consumeBytes(hex,1);
@@ -1504,11 +1574,11 @@ if ($.startsWith(hex, level5.cond.EOCI)) {
 if ($.startsWith(hex, level5.cond.AEOCI)) {
   parsedCond.push(['CONDITION', clause]);
   return;
-}
-if($.startsWith(hex, level5.cond.UPRM)) { // just in case - this has never been proved to actually occur 
-  const clause = []; let consumed;
-  [hex, consumed] = $.consumeBytes(hex,1); clause.push(['UPRRM', consumed]);
-}
+}*/ // finally retired
+/*if($.startsWith(hex, level5.cond.UPRM)) { // just in case - this has never been proved to actually occur 
+  let consumed;
+  [hex, consumed] = $.consumeBytes(hex,1); clause.push(['UPRM', consumed]);
+}*/ // finally retired
 
 // READ_MEMORY -> do NOT consume it here; close this condition and let the outer loop handle the new clause
 if ($.startsWith(hex, level5.cond.READ_MEMORY)) {
@@ -1532,10 +1602,27 @@ err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, 
             [hex, consumed] = $.consumeBytes(hex,4); clause.push(['RESOURCE_ID_B', consumed]); 
             continue;
           }
-          else if(level5.cond.OPERATORS.includes(nextByte)){
+        /*  else if(level5.cond.OPERATORS.includes(nextByte)){
             [hex, consumed] = $.consumeBytes(hex,1); clause.push(['OPERATOR', consumed]); 
-            parsedCond.push(['CONDITION', clause]); return;
-          } else if($.startsWith(hex, level5.cond.EOCI)){
+            parsedCond.push(['CONDITION', clause]); return; */
+else if(level5.cond.OPERATORS.includes(nextByte)) {
+  let consumed;
+
+  // Check if the first operator is an L_OPERATOR
+  if(level5.cond.L_OPERATORS[nextByte]) {
+    parsedCond.push(['CONDITION', clause]);
+    return; // do not consume the L_OPERATOR
+  }
+
+  // Consume all consecutive normal operators
+  while(level5.cond.OPERATORS.includes(hex.slice(0,2))) {
+    [hex, consumed] = $.consumeBytes(hex,1);
+    clause.push(['OPERATOR', consumed]);
+  }
+
+  parsedCond.push(['CONDITION', clause]);
+  return; // sunset technique
+      /*    } else if($.startsWith(hex, level5.cond.EOCI)){
           //  [hex, consumed] = $.consumeBytes(hex,1); clause.push(['EOCI', consumed]); 
             parsedCond.push(['CONDITION', clause]); return;
           } else if($.startsWith(hex, level5.cond.AEOCI)){ 
@@ -1544,7 +1631,7 @@ err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, 
           }  else if($.startsWith(hex, level5.cond.READ_MEMORY)){
               parsedCond.push(['CONDITION', clause]); 
               parseClause();                          
-              return;
+              return;*/
           } else {
             parsedCond.push(['CONDITION', clause]); return;
             err('Unknown byte in CLAUSE (unable to progress parse)', nextByte);
@@ -1573,19 +1660,27 @@ err('After COMPARISON_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, 
 while (hex.length > 0) {
   let z;
 
-  // Case 1: starts with AOECI
-  if ($.startsWith(hex, level5.cond.AEOCI)) {
-    [hex, z] = $.consumeBytes(hex, 1);
-    parsedCond.push(['AEOCI', z]);
-    continue; // B.
-  }
+// Case 1: consecutive OPERATORS at top-level
+let consumedAny = false;
+while (level5.cond.OPERATORS.includes(hex.slice(0, 2))) {
+  [hex, z] = $.consumeBytes(hex, 1);
+  parsedCond.push(['OPERATOR', z]);
+  consumedAny = true;
+}
 
-    // Case 1: starts with EoCI
+if (consumedAny) {
+  continue; // only skip to next iteration if we actually consumed operators
+}
+
+// go to next iteration of top-level parsing loop
+
+
+  /*  // Case 1: starts with EoCI
   if ($.startsWith(hex, level5.cond.EOCI)) {
     [hex, z] = $.consumeBytes(hex, 1);
     parsedCond.push(['EOCI', z]);
     continue; // B.
-  }
+  }*/
 
   // Case 2: Expect READ_MEMORY, READ_LITERAL, or OPERATOR at top level
   if (
@@ -1600,20 +1695,27 @@ while (hex.length > 0) {
   // Parse clause
   parseClause();
 
-  // Case 3: End of clause indicator
-  if ($.startsWith(hex, level5.cond.EOCI)) {
-    let c;
-    [hex, c] = $.consumeBytes(hex, 1);
-    parsedCond.push(['EOCI', c]);
-    continue;
-  }
+  console.log(hex)
+  console.warn("bruh")
+// Case 1: consecutive OPERATORS at top-level
+consumedAny = false;
+while (level5.cond.OPERATORS.includes(hex.slice(0, 2))) {
+  let c;
+  [hex, c] = $.consumeBytes(hex, 1);
+  parsedCond.push(['OPERATOR', c]);
+  consumedAny = true;
+}
 
-  // Case 1: starts with AOECI
+if (consumedAny) {
+  continue; // only skip to next iteration if we actually consumed operators
+}
+
+  /* Case 1: starts with AOECI
   if ($.startsWith(hex, level5.cond.AEOCI)) {
     [hex, z] = $.consumeBytes(hex, 1);
     parsedCond.push(['AEOCI', z]);
     continue; // B.
-  }
+  }*/
   // Case 4: End or trailing bytes
   if (hex.length === 0) break;
   if (!$.startsWith(hex, level5.cond.READ_MEMORY) && !$.startsWith(hex, level5.cond.READ_LITERAL)) {
@@ -1716,7 +1818,7 @@ function renderParsed(parsed) {
     }
 
     // --- EOCI / AEOCI / other types still rendered in tree ---
-    else if (type === 'EOCI' || type === 'AEOCI') {
+    else if (type === 'OPERATOR') { // 68.
       const wrap = document.createElement('div');
       wrap.className = 'node';
       wrap.innerHTML = `<strong>${type}</strong>: <span class="label">${hexSpaced(node[1])}</span>`;
@@ -1743,8 +1845,13 @@ function renderParsed(parsed) {
   }
 }
 
+// restored and edited
+
 // basic attempt at cond -> C
-level5.cond.condToC = function(parsedArray) { // this was so difficult to finish........ WHY LEVEL5, WH- ok no this is actually an epic, cool system I love this; GBHJKIUHGBNMOI\GRUOWRIPHRSUIZEADSLSFKNM
+
+// basic attempt at cond -> C
+level5.cond.condToC = function(parsedArray) {
+  // this was so difficult to finish........ WHY LEVEL5, WH- ok no this is actually an epic, cool system I love this; GBHJKIUHGBNMOI\GRUOWRIPHRSUIZEADSLSFKNM
   const norm = s => String(s || '').replace(/\s+/g, '').toUpperCase();
 
   const opMap = { // temporarily separated from the main logic until I fix the parser
@@ -1754,6 +1861,10 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
     '78': '==','79': '!=','82': '&','83': '|','84': '^',
     '8F': '&&','90': '||','96': '?:'
   };
+
+  // New: L_OPERATORS mapping (will prefer the one on level5.cond if present)
+  const L_OPERATORS = level5.cond.L_OPERATORS || { "8F": "&&", "90": "||" };
+
   function mapOperator(hexOrSymbol) {
     if (hexOrSymbol === undefined || hexOrSymbol === null) return '??';
     const s = String(hexOrSymbol);
@@ -1761,8 +1872,6 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
     const h = norm(s);
     return opMap[h] || s;
   }
-
-
 
   // render helpers
   function renderValue(node) {
@@ -1982,56 +2091,56 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
   const comparisonOps = new Set(['==','!=','<','<=','>','>=']);
 
   function formatIfBlocksSafe(code) {
-  let result = '';
-  let i = 0;
-  let temp = level5.cond.settings.shortenIfBlocks; // just in the EXTREMELY off case that somehow it gets changed mid execution
-  while (i < code.length && temp) {
-    // Look for 'if(' or 'if ('
-    if (code.startsWith('if', i) && /\bif\b/.test(code.slice(i, i + 3))) {
-      let j = i + 2;
+    let result = '';
+    let i = 0;
+    let temp = level5.cond.settings.shortenIfBlocks; // just in the EXTREMELY off case that somehow it gets changed mid execution
+    while (i < code.length && temp) {
+      // Look for 'if(' or 'if (' 
+      if (code.startsWith('if', i) && /\bif\b/.test(code.slice(i, i + 3))) {
+        let j = i + 2;
 
-      // Skip whitespace
-      while (j < code.length && /\s/.test(code[j])) j++;
+        // Skip whitespace
+        while (j < code.length && /\s/.test(code[j])) j++;
 
-      if (code[j] === '(') {
-        let depth = 1;
-        let startCond = ++j;
-        let endCond = -1;
+        if (code[j] === '(') {
+          let depth = 1;
+          let startCond = ++j;
+          let endCond = -1;
 
-        // find matching closing parenthesis
-        while (j < code.length && depth > 0) {
-          if (code[j] === '(') depth++;
-          else if (code[j] === ')') depth--;
-          j++;
-        }
-
-        if (depth === 0) {
-          endCond = j - 1;
-          const condition = code.slice(startCond, endCond);
-          let formatted = condition;
-
-          // Apply formatting only if condition is long enough
-          if (condition.length >= 65) {
-            formatted = condition
-              .replace(/(\&\&)/g, '$1\n  ')
-              .replace(/(\|\|)/g, '$1\n  ');
+          // find matching closing parenthesis
+          while (j < code.length && depth > 0) {
+            if (code[j] === '(') depth++;
+            else if (code[j] === ')') depth--;
+            j++;
           }
 
-          // reconstruct
-          result += `if (${formatted})`;
-          i = endCond + 1;
-          continue;
+          if (depth === 0) {
+            endCond = j - 1;
+            const condition = code.slice(startCond, endCond);
+            let formatted = condition;
+
+            // Apply formatting only if condition is long enough
+            if (condition.length >= 65) {
+              formatted = condition
+                .replace(/(\&\&)/g, '$1\n  ')
+                .replace(/(\|\|)/g, '$1\n  ');
+            }
+
+            // reconstruct
+            result += `if (${formatted})`;
+            i = endCond + 1;
+            continue;
+          }
         }
       }
+
+      // default copy
+      result += code[i];
+      i++;
     }
 
-    // default copy
-    result += code[i];
-    i++;
+    return temp ? result : code;
   }
-
-  return temp ? result : code;
-}
 
   function consumeForOperator(valueStack, opSymbol) {
     const len = valueStack.length;
@@ -2059,6 +2168,7 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
   // Step 1: header comments
   const outLines = [];
   outLines.push(`// parsed with yw-cond version: v${level5.cond.ver}`); // r.
+
   for (const blk of parsedArray) {
     if (String(blk[0] || '').toUpperCase() === 'HEADER_BLOCK') {
      // outLines.push('// Header');
@@ -2094,21 +2204,40 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
 
         if (key === 'EXTENSION_DELIM' || String(val) === '28') { i++; continue; }
 
-        if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
-          const opSymbol = mapOperator(val === undefined ? key : val);
-          if (comparisonOps.has(opSymbol)) {
-            const node = consumeForOperator(valueStack, opSymbol);
-            clauses.push(node.expr);
-            valueStack.length = 0;
-            i++;
-            continue;
-          } else {
-            const node = consumeForOperator(valueStack, opSymbol);
-            valueStack.push(node);
-            i++;
-            continue;
-          }
-        }
+        // new logic: detect if this operator token actually maps to an L_OPERATOR hex -> treat as top-level combiner
+if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
+  // We're INSIDE a CONDITION: always treat this as a normal operator,
+  // not a top-level clause combiner (L_OPERATORS are only for top-level tokens).
+  // Determine the textual operator to use (prefer explicit symbol in val if present).
+  let rawOp = null;
+
+  if (key === 'OPERATOR') {
+    // operator token; val may be a hex like '8F' or a symbol like '>='
+    rawOp = (val === undefined || val === null) ? key : String(val);
+  } else {
+    // key itself is a hex token like '8F' or a symbol string
+    rawOp = key;
+  }
+
+  // mapOperator handles hex or symbol forms
+  const opSymbol = mapOperator(rawOp);
+
+  // comparison ops terminate the current valueStack into a clause
+  if (comparisonOps.has(opSymbol)) {
+    const node = consumeForOperator(valueStack, opSymbol);
+    clauses.push(node.expr);
+    valueStack.length = 0;
+    i++;
+    continue;
+  } else {
+    // other operators produce an expression node pushed back onto the value stack
+    const node = consumeForOperator(valueStack, opSymbol);
+    valueStack.push(node);
+    i++;
+    continue;
+  }
+}
+
 
         // otherwise parse a value
         const res = parseValue(inner, i);
@@ -2118,9 +2247,15 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
       continue;
     }
 
-    // stray OPERATOR at top
+    // stray OPERATOR at top - same hex detection as above
     if (topKey === 'OPERATOR') {
-      clauseCombiners.push(mapOperator(top[1]));
+      let topHex = null;
+      if (top[1] && /^[0-9A-F]{2}$/i.test(String(top[1]))) topHex = norm(top[1]);
+      if (topHex && L_OPERATORS[topHex]) {
+        clauseCombiners.push(L_OPERATORS[topHex]);
+      } else {
+        clauseCombiners.push(mapOperator(top[1]));
+      }
       continue;
     }
   }
@@ -2139,12 +2274,11 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
     valueStack.length = 0;
   }
 
-  // render clauses: nested ifs on && (default)
- // outLines.push('// Condition'); ab.
+  // render clauses: nested ifs on && (default)  // outLines.push('// Condition'); ab.
   if (clauses.length === 0) {
     outLines.push('if (0 == 1) {', '    success();', '}');
     outLines.push('fail();'); // little last minute patch :3
-    return outLines.join(''); // r3-1.
+    return outLines.join('');
   }
 
   const allAnd = clauseCombiners.length === 0 || clauseCombiners.every(c => c === '&&');
@@ -2159,7 +2293,7 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
       outLines.push(`${ind}}`);
     }
     outLines.push('fail();'); // little last minute patch :3
-    return outLines.join('\n'); // r3-2.
+    return outLines.join('\n');
   }
 
   // otherwise combine into single expression
@@ -2172,6 +2306,8 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
   outLines.push('fail();'); // little last minute patch :3
   return formatIfBlocksSafe(outLines.join('\n')); // r3-3. (diff)
 }
+
+
 
     level5.cond._internals.hexToBase64 = function(hexString) {
       // Remove all spaces
@@ -2193,6 +2329,7 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
       return base64String;
     }
 
+
     level5.cond.samples = [
                       '00 00 00 00 0f 05 35 10 b1 40 96 00 01 00 32 00 00 00 01 78', /* main story completed yw2 simple format */
                       '00 00 00 00 18 05 35 2a 3d 45 43 00 0a 01 28 00 06 02 34 00 12 34 56 32 00 00 00 01 78', /* has flag 0x00123456 yw3; basic extended format */
@@ -2212,6 +2349,8 @@ level5.cond.condToC = function(parsedArray) { // this was so difficult to finish
                       'AAAAAAcDMgAAAAF4', /* bruh (but a little less) */
                       'AAAAADALNb4EpZgACgEoAAYCNFpFOBwyAAAA/3g1Kj1FQwAKASgABgI0lHk1KzIAAAABeI8=', /* mapo tofu requirement yw2 */
                       'AAAAADwXNWI5O+gAAQAyAAAAA3g1Yjk76AABADIAAAAEeJA1Yjk76AABADIAAAAFeJA1WpnI/wABADIAAAAAeI8=', /* yw2 t131d01 (Rice Paddy Path) oneplace OP_SOUND_POINT_6; checks time and weather*/
+                      'AAAAAJYvMgAAAAE1uRk22gABADIAAHU6cY81npmEjAAKASgABgI0A7iP/TIAAAAHeI81npmEjAAKASgABgI03PHmiDIAAAADcY8yAAAAAY8yAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjQDuI/9MgAAAAh4jzWemYSMAAoBKAAGAjTc8eaIMgAAAANxjzIAAAABj5A=', /* _ (Oneplace) MINIMAP_POINT 6 */
+                      'AAAAAXd3MgAAAAE1uRk22gABADIAAHU6cY81npmEjAAKASgABgI0A7iP/TIAAAAJeI81npmEjAAKASgABgI03PHmiDIAAAADcY8yAAAAAY8yAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjSasd5HMgAAADV4jzWemYSMAAoBKAAGAjRF+LcyMgAAAANxjzIAAAABj5AyAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjSasd5HMgAAADZ4jzWemYSMAAoBKAAGAjRF+LcyMgAAAANxjzIAAAABj5AyAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjSasd5HMgAAADd4jzWemYSMAAoBKAAGAjRF+LcyMgAAAANxjzIAAAABj5AyAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjSasd5HMgAAADh4jzWemYSMAAoBKAAGAjRF+LcyMgAAAANxjzIAAAABj5A=',  /* _ (Oneplace) MINIMAP_POINT 7; I dont even know what to think of this........ */
                     ];
 
 
