@@ -95,7 +95,7 @@ Operators can be grouped by their *high nibble* (first hex digit), and further s
 | `7`         | Comparison Ops               | Holds `>` and `>=` operators.               |
 | `8`         | Bitwise Logic Ops            | Handles bitwise AND/OR/XOR.                 |
 | `8` (ext.)  | Logical AND Ops              | Contains `&&`.                              |
-| `9`         | Logical OR / Conditional Ops | Contains `||` and the ternary/jump (`?:`). |
+| `9`         | Logical OR / Conditional Ops | Contains `\|\|` and the ternary/jump (`?:`). |
 
 ---
 
