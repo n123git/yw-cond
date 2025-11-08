@@ -18,7 +18,7 @@ Each Cond begins with a **4-byte header** and a **2-byte COND_CODE**.
 > Note: This is *PER-COND as a whole, NOT* per condition.
 
 ### 1.1 Header (4 bytes)
-The header is always equivalent to `00 00 00 00` and has no impact on the cond itself. This is most likely used as a sort of integrity check.
+The header was previously thought to always be equivalent to `00 00 00 00`, and was used as an integrity check. We know now it acts as a sort of version identifier. Out of thousands of cond's in a given sample nearly all will be `0x0` conds (has a header of `00 00 00 00`). Although recently a `0x1` cond has been discovered; this version identifier seems to only affect the functioning of `COND_CODE`.
 
 ### 1.2 Cond Code (2 bytes)
 | Byte | Description                                                                                                                                                                                                           |
