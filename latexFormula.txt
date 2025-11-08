@@ -1,0 +1,1 @@
+https://latex.codecogs.com/gif.image?\dpi{200}(\text{unique%20CTYPEs}+\text{unique%20LITERAL\_VALUEs}+\text{unique%20OPERATORs}%20-%203)+(2\times\text{conditionCnt})
