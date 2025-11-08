@@ -85,17 +85,17 @@ Operators perform logical, arithmetic, or bitwise operations on one or more valu
 
 Operators can be grouped by their *high nibble* (first hex digit), and further subdivided by whether the *low nibble* falls within 0–9 (normal position) or A–F (extended/ext position). Here is the grouping:
 
-| High Nibble | Group Name                   | Notes                                       | 
-| ----------- | ---------------------------- | ------------------------------------------- | 
-| `4`         | Stepper Ops                  | Includes increment and decrement operators. | 
-| `5`         | Unary Ops                    | `4X` is also unary but only covers ++/--.   | 
-| `5` (ext.)  | Arithmetic Ops               | Standard arithmetic operations.             |
-| `6`         | Bit Shift Ops                | Handles left/right bit shifting.            |
-| `6` (ext.)  | Lower Comparison Ops         | Contains `<` and `<=`.                      |
-| `7`         | Comparison Ops               | Holds `>` and `>=` operators.               |
-| `8`         | Bitwise Logic Ops            | Handles bitwise AND/OR/XOR.                 |
-| `8` (ext.)  | Logical AND Ops              | Contains `&&`.                              |
-| `9`         | Logical OR / Conditional Ops | Contains `\|\|` and the ternary/jump (`?:`). |
+| High Nibble | Group Name                   | Notes                                         | 
+| ----------- | ---------------------------- | --------------------------------------------- | 
+| `4`         | Stepper Ops                  | Includes increment and decrement operators.   | 
+| `5`         | Unary Ops                    | `4X` is also unary but only covers ++/--.     | 
+| `5` (ext.)  | Arithmetic Ops               | Standard arithmetic operations.               |
+| `6`         | Bit Shift Ops                | Handles left/right bit shifting.              |
+| `6` (ext.)  | Lower Comparison Ops         | Contains `<` and `<=`.                        |
+| `7`         | Comparison Ops               | Holds `>` and `>=` operators.                 |
+| `8`         | Bitwise Logic Ops            | Handles bitwise AND/OR/XOR.                   |
+| `8` (ext.)  | Logical AND Ops              | Contains `&&`.                                |
+| `9`         | Logical OR / Conditional Ops | Contains `\|\|` and the ternary/jump (`?->`). |
 
 ---
 
