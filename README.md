@@ -86,7 +86,7 @@ Operators perform logical, arithmetic, or bitwise operations on one or more valu
 | `84`     | ^      | 20     | Bitwise XOR                           |                                            |
 | `8F`     | &&     | 21     | Logical AND                           | By far the most common                     |
 | `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`.             |
-| `96`     | ?->    | 23     | Ternary/Jump Operator (pseudo-op)     | Jumps forward Y bytes if X is falsy.       |
+| `96`     | ?->    | 23     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy.       |
 | `97`     | ->     | 23     | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap.|
 
 Operators can be grouped by their *high nibble* (first hex digit), and further subdivided by whether the *low nibble* falls within 0–9 (normal position) or A–F (extended/ext position). Here is the grouping:
