@@ -332,6 +332,12 @@ select:focus {
     <strong>Shorten If Blocks</strong> — insert "\n&nbsp;&nbsp;" after every || or && for if conditions > 65 chars.
   </label>
   </div> <!-- yeah it ws originaly in Appearence Tweaks which is why the codebase does this; also for modularity reasons my apperence section was programmed a bit better -->
+
+  <label style="display:block; margin-bottom:8px;">
+    <input type="checkbox" id="debugModeChk"> 
+    <strong>Debug Mode</strong> — don't enable this unless something isnt working (in which case also DM me, @n123original on discord!)
+  </label>
+  </div>
   
   <h4 style="margin-top:10px; margin-bottom:6px; color:var(--accent);">Appearence Tweaks</h4>
 
@@ -369,7 +375,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.39788;
+    level5.cond.ver = 1.39789;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -1289,6 +1295,7 @@ level5.cond.settings = { // moved this to the back of the script
    lightMode: false, // this was actually added first, but just now got reworked more into settings for localStorage persistence
    shortenIfBlocks: true,
    shouldHighlightPsuedo: true, // why wouldn't you want this; it took a good 5 minutes to make how wasteful :P
+   debugMode: false,
 }
 
 // Load settings from localStorage if available
@@ -1336,7 +1343,7 @@ loadSettings();
   const widePsuedoChk = document.getElementById('widePsuedoChk');
   const highlightPseudoChk = document.getElementById('highlightPseudoChk');
   let prevWidePsuedo = level5.cond.settings.widePsuedo;
-
+  const debugModeChk = document.getElementById('debugModeChk');
 // Map of appearance toggles
 const appearanceToggles = [
   {
@@ -1361,7 +1368,12 @@ const appearanceToggles = [
     checkbox: highlightPseudoChk,
     settingKey: 'shouldHighlightPsuedo',
     apply: (checked) => {} // it being applied is enough; no extra action is needed lol
-  }
+  },
+  {
+    checkbox: debugModeChk,
+    settingKey: 'debugMode',
+    apply: (checked) => {} // it being applied is enough; no click callback is needed (can't keep the comments consistnet for too long :P)
+  },
 ];
 
 // Open modal: sync checkboxes with current settings
@@ -1494,6 +1506,10 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       "8F": "&&",
       "90": "||"
     }
+    level5.cond.L_OPERATORS2 = [
+      "&&",
+      "||"
+  ]
 
     level5.cond.dataTypes = [
       "int8", // 0 (char)
@@ -2053,8 +2069,6 @@ function renderParsed(parsed) {
 // restored and edited
 
 // basic attempt at cond -> C
-
-// basic attempt at cond -> C
 level5.cond.condToC = function(parsedArray) {
   // this was so difficult to finish........ WHY LEVEL5, WH- ok no this is actually an epic, cool system I love this; GBHJKIUHGBNMOI\GRUOWRIPHRSUIZEADSLSFKNM
   const norm = s => String(s || '').replace(/\s+/g, '').toUpperCase();
@@ -2077,7 +2091,7 @@ level5.cond.condToC = function(parsedArray) {
     if (!node) return '/*null*/';
     if (typeof node === 'string') return node;
     if (node.type === 'LITERAL') return node.val;
-    if (node.type === 'GROUP' && node.kind === 'ADDITION') return '(' + node.items.map(renderValue).join(' + ') + ')';
+    if (node.type === 'GROUP' && node.kind === 'ADDITION') return '(' + node.items.map(renderValue).join(' ??? ') + ')';
     if (node.type === 'FUNCTION') {
       const args = node.params.map(p => p == null ? '/*?*/' : renderValue(p)).join(', ');
       if(level5.cond.CExpressionInternalMappings[node.id.match(/../g).join(" ")]) return level5.cond.CExpressionInternalMappings[node.id.match(/../g).join(" ")] + `(${args})`;
@@ -2471,39 +2485,92 @@ if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
       clauses.push(`(${renderValue(leftGroup)} == ${renderValue(r)})`);
     }
     valueStack.length = 0;
-  }
+  } // 341.
 
   // render clauses: nested ifs on && (default)  // outLines.push('// Condition'); ab.
-  if (clauses.length === 0) {
-    outLines.push('if (0 == 1) {', '    success();', '}');
-    outLines.push('fail();'); // little last minute patch :3
-    return outLines.join('');
+if (clauses.length === 0) {
+  outLines.push('if (0 == 1) {', '    success();', '}');
+  outLines.push('fail();'); // little last minute patch :3
+
+  // --- DEBUG DUMP ---
+  if (level5.cond.settings.debugMode) {
+    outLines.unshift('// --- DEBUG DUMP ---');
+    outLines.unshift('// Clause Combiners: ' + JSON.stringify(typeof clauseCombiners == 'undefined' ? ['En inglés lo llamamos un problema de habilidad.'] : clauseCombiners)); // too lazy to check if it's defined at this point; dont mind the spanish I just wanted to troll :P
+    outLines.unshift('// Clauses: ' + JSON.stringify(typeof clauses == 'undefined' ? ['En inglés lo llamamos un problema de habilidad.'] : clauses));
+    outLines.unshift('// Parsed Array: ' + JSON.stringify(parsedArray, null, 2));
+    outLines.unshift('// ------------------');
   }
 
-  const allAnd = clauseCombiners.length === 0 || clauseCombiners.every(c => c === '&&');
-  if (allAnd) {
-    for (let k = 0; k < clauses.length; k++) {
-      const ind = '    '.repeat(k);
-      outLines.push(`${ind}if ${clauses[k]} {`);
-    }
-    outLines.push('    '.repeat(clauses.length) + 'success();');
-    for (let k = 0; k < clauses.length; k++) {
-      const ind = '    '.repeat(clauses.length - 1 - k);
-      outLines.push(`${ind}}`);
-    }
-    outLines.push('fail();'); // little last minute patch :3
-    return outLines.join('\n');
+  // Normalize lines: ensure proper line endings
+  const normalized = outLines.map(line => line.replace(/\r?\n/g, '') + '\n').join('');
+
+  // Apply formatting safely and strip trailing whitespace
+  const formatted = formatIfBlocksSafe(normalized).replace(/[ \t]+$/gm, '') + '\n';
+
+  return formatted;
+}
+
+
+const allAnd = clauseCombiners.length === 0 || clauseCombiners.every(c => c === '&&');
+if (allAnd) {
+  for (let k = 0; k < clauses.length; k++) {
+    const ind = '    '.repeat(k);
+    outLines.push(`${ind}if ${clauses[k]} {`);
   }
+  outLines.push('    '.repeat(clauses.length) + 'success();');
+  for (let k = 0; k < clauses.length; k++) {
+    const ind = '    '.repeat(clauses.length - 1 - k);
+    outLines.push(`${ind}}`);
+  }
+  outLines.push('fail();'); // little last minute patch :3
+
+  // --- DEBUG DUMP ---
+  if (level5.cond.settings.debugMode) {
+    outLines.unshift('// --- DEBUG DUMP ---');
+    outLines.unshift('// Clause Combiners: ' + JSON.stringify(clauseCombiners));
+    outLines.unshift('// Clauses: ' + JSON.stringify(clauses));
+    outLines.unshift('// Parsed Array: ' + JSON.stringify(parsedArray, null, 2));
+    outLines.unshift('// ------------------');
+  }
+
+  // Normalize lines: ensure proper line endings
+  const normalized = outLines.map(line => line.replace(/\r?\n/g, '') + '\n').join('');
+
+  // Apply formatting safely and strip trailing whitespace
+  const formatted = formatIfBlocksSafe(normalized).replace(/[ \t]+$/gm, '') + '\n';
+
+  return formatted;
+}
+
 
   // otherwise combine into single expression
   let expr = clauses[0];
   for (let idx = 0; idx < clauses.length - 1; idx++) {
-    const comb = clauseCombiners[idx] || '&&';
+    const comb = clauseCombiners[idx] || '?&?&'; // ?-1
     expr = `(${expr} ${comb} ${clauses[idx + 1]})`;
   }
   outLines.push(`if ${expr} {`, '    success();', '}');
   outLines.push('fail();'); // little last minute patch :3
-  return formatIfBlocksSafe(outLines.join('\n')); // r3-3. (diff)
+  if (level5.cond.settings.debugMode) {
+    outLines.unshift('// --- DEBUG DUMP ---');
+    outLines.unshift('// Clause Combiners: ' + JSON.stringify(clauseCombiners));
+    outLines.unshift('// Clauses: ' + JSON.stringify(clauses));
+    outLines.unshift('// Parsed Array: ' + JSON.stringify(parsedArray, null, 2));
+    outLines.unshift('// ------------------');
+  }
+  // Ensure consistent line separation even in minimal/invalid conds
+const joined = outLines.join('\n');
+
+// Guarantee at least one newline at the end for clean output
+// Ensure each line is properly terminated with a newline
+const normalized = outLines.map(line => line.replace(/\r?\n/g, '') + '\n').join('');
+
+// Apply formatting for if blocks and strip trailing whitespace
+const formatted = formatIfBlocksSafe(normalized).replace(/[ \t]+$/gm, '') + '\n';
+
+return formatted;
+
+// r3-3. (diff)
 }
 
 
