@@ -125,7 +125,7 @@ READ_MEMORY
 
 * The **4-byte literal value** is the value (for integers; although usually still an ID) or CRC32 ISO-HDLC hash of the function name (for functions).
   * Literal Values are *big-endian*.
-* Optional **EXTENSION_DELIM+READ_SUBSECTION** chains allow unlimited nesting of subsections for multi-param functions.
+* Optional **EXTENSION_DELIM+READ_SUBSECTION** chains  <!-- for a bit this was chins 😭 --> allow unlimited nesting of subsections for multi-param functions.
 
 ### 4.2 READ_LITERAL
 
