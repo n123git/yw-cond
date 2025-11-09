@@ -19,7 +19,7 @@ Each Cond begins with a **4-byte header** and a **2-byte COND_CODE**.
 > Note: This is *PER-COND as a whole, NOT* per condition.
 
 ### 1.1 Header (4 bytes)
-The header was previously thought to always be equivalent to `00 00 00 00`, and was used as an integrity check. We know now it acts as 2 uint16's.
+Previously, the header was assumed to always be `00 00 00 00` and serve as an integrity check. Current research shows that it actually contains two uint16 values.
 | Byte | Description                                                                                                                                                                                                                                                       |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1-2  | When decoded using a standard decoder; this always appears as `00 00`. Although in level5's decoder they write a uint16 to it equivalent to the amount of bytes in the cond proceeding it.                                                                        |
