@@ -183,6 +183,7 @@ CExpression Functions aren't always read only - take for instance `RunTrigger()`
 The Naming Schema of CExpression Functions can be shown as follows:
 * Always Pascal Case; unlike normal IDs where level5 uses a mix of lowercase and snakecase.
 * A mix of english and hepburn romanisation.
+  * The english is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Ogre instead of Oni.
 * Quite rare typos, take for instance: `IsApeearMitibiki()`.
 * Abbreviations used such as `Util`, `Cnt` etc.
 * Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `"Target"`, `"Run"`, `""` and `"Has"`.
