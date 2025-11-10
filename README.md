@@ -1,5 +1,5 @@
 # yw-cond
-“A web-based work-in-progress library and UI for parsing, decompiling, analyzing and generating Yo-kai Watch conds, with frequent updates.
+A web-based work-in-progress library and UI for parsing, decompiling, analyzing and generating Yo-kai Watch conds, with frequent updates.
 
 This parser is for the Yo-kai Watch franchise which has a much more complex cond set (and some slight changes) from Inazuma Eleven, for IEGO cond parsing take a look at the newly released [level5_condition](https://github.com/Tiniifan/level5_condition/) made by Tiniifan themself!
 
