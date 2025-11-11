@@ -3,6 +3,13 @@ A web-based work-in-progress library and UI for parsing, decompiling, analyzing 
 
 This parser is for the Yo-kai Watch franchise which has a much more complex cond set (and some slight changes) from Inazuma Eleven, for IEGO cond parsing take a look at the newly released [level5_condition](https://github.com/Tiniifan/level5_condition/) made by Tiniifan themself!
 
+Examples of how the games use conds can be shown below:
+* Battle AI
+* NPC/Treasure Chest Availability
+* Quest/Trophy Conditions
+* Shop Item/Price Conditions
+* and much, much more!
+
 
 [The website can be downloaded or viewed here](https://n123git.github.io/yw-cond).
 
