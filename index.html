@@ -6,8 +6,18 @@
   <title>YW-Cond - Loading Version...</title>
   <style>
     :root{
-      --bg:#0f1115; --panel:#0b0d10; --text:#e6eef6; --muted:#9aa6b2; --accent:#6ea8ff; --contaccent: #d08b00; --good:#8bd18b; --bad:#ff7b7b; --accent2: #5fb3ff; --funcaccent: #ffae54;
+      --bg:#0f1115; --panel:#0b0d10; --text:#e6eef6; --muted:#9aa6b2; --accent:#6ea8ff; --contaccent: #d08b00; --good:#8bd18b; --bad:#ff7b7b; --accent2: #5fb3ff; --funcaccent: #ffae54;  --true: #8bd18b; --false: #ff7b7b;
     }
+
+/* Boolean highlighting :0 (How did I forget this.....) */
+.true {
+  color: var(--true);
+}
+
+.false {
+  color: var(--false); /* lets ignore that this is the same color as a certain other one.... */
+}
+
     .accent2 { color: var(--accent2); }
     .funcaccent { color: var(--funcaccent); }
 
@@ -282,9 +292,10 @@ select:focus {
       <button id="sampleBtn">Load Sample</button>
     <!--  <button id="clearBtn">Clear</button> removed to save UI space and in favour of Parse auto clearing if the input is empty -->
       <button id="copyPseudoBtn">Copy Pseudocode</button>
-      <button id="downloadBtn">Download Pseudocode</button>
+    <!--  <button id="downloadBtn">Download Pseudocode</button> removed because 1. save UI space 2. nobody's using it lol-->
       <button id="generateBtn">Generate Cond Template(s)</button> <!-- rename Generate Known Cond(s) to Generate Cond Template(s)-->
       <button id="configBtn">Config</button>
+      <button id="mergeBtn">Merge Conds (BETA)</button> <!-- beta -->
       <!-- <label class="small muted" style="margin-left:8px"><input type="checkbox" id="lightMode"> Light mode</label> removed to save UI space and in favour of config-->
     </div>
 
@@ -364,6 +375,35 @@ select:focus {
     <button id="configCancelBtn">Cancel</button>
   </div>
 </dialog>
+<dialog id="mergeModal">
+  <h3>Merge Conds</h3>
+
+  <p class="small muted">
+    Cond A = the main cond input.
+  </p>
+
+  <label>Cond B:<br>
+    <textarea id="mergeInputB" style="width:100%;height:80px"></textarea>
+  </label>
+
+  <br/>
+
+  <label>Combination Mode:<br>
+    <select id="mergeMode" style="margin-bottom:8px">
+      <option value="AND">AND</option>
+      <option value="OR">OR</option>
+      <option value="XNOR">XNOR/EQV</option>
+      <option value="NAND">NAND</option>
+    </select>
+  </label>
+
+  <div style="margin-top:12px">
+    <button id="mergeDoBtn">Merge</button>
+    <button id="mergeCancelBtn">Cancel</button>
+  </div>
+</dialog>
+
+
 <div>
   <noscript>
     This should be obvious but uhh you kinda need JS for this page to work :P Search up "Enable JavaScript in Web Browser" to fix this if you somehow disabled it on accident :3
@@ -375,7 +415,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.39789;
+    level5.cond.ver = 1.397898;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -405,6 +445,9 @@ select:focus {
       '27 32 6D 47': 'Is Trophy Complete? (YW2)', // params: TrophyID, returns bool, some trophies dont use this cond
 
       '74 03 A9 CE': 'Unk Func (YW2)', // 3 params, the first is a GlobalBitFlag, the 2nd is an unkID and the 3rd is a number i.e. 3830 (too small to be a phase); not in yw1
+
+      'EC 2D FC E6': 'DroppedRareDrop? ParamID (YW2)', // param: ParamID; output: boolean int i.e. 0 or 1; // plug in kyryn to see if the bun of oness has been dropped
+      '9E 6F 9F 21': 'Unk; related to Det.Holdit/Yo-Criminals (YW2)', // no params; returns a number
 
       // RESOURCE_ID_Bs (not Functions)
 
@@ -446,14 +489,14 @@ select:focus {
       'GetActorAgility',
       'GetActorAttack',
       'GetActorDefence',
-      'GetActorHP',
-      'GetActorHPRate',
-      'GetActorPartsHP',
-      'GetActorPartsHPRate',
+      'GetActorHP', // does nothing if not in the right btl context; otherwise loops through all 12 actors; finds the one the context points to; grabs the HP of the selected yokai's part if it has parts otherwise grabs the HP of the yokai
+      'GetActorHPRate', // same as GetActorHP but this one returns percentage int
+      'GetActorPartsHP', // param: partIndex; does the same as 'GetActorHP' (still works for yokai without parts) but lets you specify what part to pick; if no params is passed and the yokai has parts; it picks the first part
+      'GetActorPartsHPRate', // same as GetActorPartsHP but this one returns percentage int
       'GetActorMagic',
       'GetActorMode',
 
-      'GetActorForwardCnt',
+      'GetActorForwardCnt', // like all btl conds does nothing without right context; otherwise gets the amount of "forward" actorss
       'GetActorForwardAtkToritukuCnt',
 
       'GetActorForwardAverageHPRate',
@@ -478,7 +521,7 @@ select:focus {
       'GetActorForwardToritukuGoodCountHigherCnt',
       'GetActorForwardToritukuGoodCountLowerCnt',
 
-      'GetActorSpecialCancelOffset',
+      'GetActorSpecialCancelOffset', // Looks up the actor’s current command in the battle command table (handles multi-part actors), fetches its special cancel offset, and writes it to CValue; returns 0 if no valid actor, part, or command exists.
     
       'GetActorToritukuBadCnt',
       'GetActorToritukuGoodCnt',
@@ -488,16 +531,16 @@ select:focus {
       'GetCommonToritukuBadCountOpCnt',
       'GetCommonToritukuGoodCountOpCnt',
 
-      'GetPartyDeadCnt',
+      'GetPartyDeadCnt', // Counts dead party yokai (max 6), handles multi-part actors, loops over slots checking battle flags for alive/dead, writes total dead count to CValue
 
-      'GetTargetForwardAtkElemDefFactorHigherCnt',
-      'GetTargetForwardAtkElemDefFactorLowerCnt',
+      'GetTargetForwardAtkElemDefFactorHigherCnt', // Counts forward enemy yokai whose elemental defense vs actor's current attack is <= threshold (default 100%), skipping dead, using part[0] if multi-part, writes count to outVar. TLDR; the amount of yokai weaker to the element than the current threshold 
+      'GetTargetForwardAtkElemDefFactorLowerCnt',  // Counts forward enemy yokai whose elemental defense vs actor's current attack is >= threshold (default 100%), skipping dead, using part[0] if multi-part, writes count to outVar. TLDR; the amount of yokai less weak to the element than the current threshold 
       'GetTargetForwardAtkToritukuCnt',
       'GetTargetForwardChargeCnt',
       'GetTargetForwardCnt',
 
-      'GetTargetForwardHpRateHigherCnt',
-      'GetTargetForwardHpRateLowerCnt',
+      'GetTargetForwardHpRateHigherCnt',  // params: (int: HPPercent) similar to GetActorHPRate; Counts the number of units (yokai/actors) on the relevant team whose current HP / max HP is greater than or equal to the specified percentage (int).
+      'GetTargetForwardHpRateLowerCnt',   // params: (int: HPPercent) similar to GetActorHPRate; Counts the number of units (yokai/actors) on the relevant team whose current HP / max HP is less than or equal to the specified percentage (int).
       'GetTargetForwardAverageHPRate',
 
       'GetTargetForwardLowestDefence',
@@ -507,7 +550,7 @@ select:focus {
       'GetTargetForwardToritukuBadCountHigherCnt',
       'GetTargetForwardToritukuBadCountLowerCnt',
       'GetTargetForwardToritukuGoodCountEqualCnt',
-      'GetTargetForwardToritukuGoodCountHigherCnt',
+      'GetTargetForwardToritukuGoodCountHigherCnt', // small wrapper around GetCommonToritukuGoodCountOpCnt; returns amount of character that match the condition
       'GetTargetForwardToritukuGoodCountLowerCnt',
 
       'GetTargetPartyAtkToritukuCnt',
@@ -532,7 +575,7 @@ select:focus {
       'DebugPrint', // safely no-opped; always returns 1 (true) in published games
       'GetFalse', // ??? not in yw::util::CExpression, but should be?
 
-      // yw::<somethingidr>::ywGDExpressionFunc
+      // yw::ywGDExpressionFunc
       'GameClear', // returns 1 if the main story has been completed, 0 otherwise
       'GetChapter',
       'GetWatchRank',
@@ -557,7 +600,7 @@ select:focus {
       'GetQuestCompNum',
       'GetQuestPhase', // FF = Quest Complete; other phase nums are quest-dependant
 
-      'GetTimeHour', // returns 0 if game time is null and if not the hour which is derived from (time in seconds) / 0x2A30
+      'GetTimeHour', // returns 0 if game time is null and if not the hour which is derived from (time in seconds) / 0x2A30; most likely returns 0-23
       'GetTimeNow', // returns -1 if the world isnt loaded, 3 if the game time is null otherwise either 0, 1, 2 or 3 (the repetition of 3 is intentional - it is the default time)
       'GetWeatherNow', // returns -1 if the world isnt loaded (GameManager::spRPGWorld == 0), 0 if the weather data ptr is null else weather byte as uint
 
@@ -700,8 +743,8 @@ level5.cond.CExpressionInternalMappingsRev = level5.cond._internals.invert(level
                     label: "State",
                     type: "select", // define a select
                     options: [ // with options
-                        { label: "Male", value: "79" }, 
-                        { label: "Female", value: "78" }
+                        { label: "Male", value: "79" }, // !=
+                        { label: "Female", value: "78" } // ==
                     ]
                 }
             ],
@@ -1473,7 +1516,7 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       "8F",  // && (logical AND)  
       "90",  // || (logical OR)  
       "96",   // TECHNICALLY  not an operator - but we'll consider it as one anyway; ?-> (conditional jump/ternary)  
-      "97",
+      "97", // uncoditional jump (->)
       ];
     level5.cond.OPERATOR_LABELS = [
       "++",          // 0x46  
@@ -1499,7 +1542,7 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       "&&",          // 0x8F  
       "||",          // 0x90  
       "?->",          // TECHNICALLY  not an operator - but we'll consider it as one anyway; 0x96  
-      "->",
+      "->", // 0x97
     ] // kept seperated into 2 arrays because I didnt want to risk breaking my old code
 
     level5.cond.L_OPERATORS = {
@@ -1510,6 +1553,14 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       "&&",
       "||"
   ]
+
+    level5.cond.UNARY_OPS = [ // for a future rewrite; unused rn
+      "++",
+      "--",
+      "~",
+      "!",
+      "->"
+    ]
 
     level5.cond.dataTypes = [
       "int8", // 0 (char)
@@ -1925,7 +1976,7 @@ console.log("parsed cond", parsedCond);
   }
 
   labelForHeader = (val) => `0x${Number("0x" + String(val).replace(/\s+/g, "")).toString(16).toUpperCase()} Cond${Number("0x" + String(val).replace(/\s+/g, "")) == '0' ? " (Normal)" : (Number("0x" + String(val).replace(/\s+/g, "")) == '1' ? " (Special)" : "; This exists??")}`; 
-  
+
 function highlightPseudo(code) {
   if (!code) return '';
 
@@ -1937,16 +1988,19 @@ function highlightPseudo(code) {
 
   code = esc(code);
 
-  // We’ll tokenize but keep spacing intact
   return code.replace(
-    /\b(0x[0-9A-Fa-f]+|\d+)\b|([A-Za-z_]\w*)(?=\s*\()|\b(if|else|for|while|switch|case|break|continue|return|success|fail)\b|\/\/[^\n]*|"(?:\\.|[^"\\])*"/g,
+    /\b(0x[0-9A-Fa-f]+|\d+|true|false)\b|([A-Za-z_]\w*)(?=\s*\()|\b(if|else|for|while|switch|case|break|continue|return|success|fail)\b|\/\/[^\n]*|"(?:\\.|[^"\\])*"/g,
     match => {
+      // Booleans
+      if (/^(true|false)$/.test(match))
+        return `<span class="${match}">${match}</span>`; // cmon thats a creative way to do it!
+
       // Numbers (e.g., 0xFF, 42)
       if (/^0x/i.test(match) || /^\d+$/.test(match))
         return `<span class="accent2">${match}</span>`;
 
-      // Keywords; must be propritised over function identifiers for situations like "if ()"
-      if (/^(if|else|for|while|switch|case|break|continue|return|success|fail)$/.test(match)) // for now only if is used
+      //  Keywords; must be propritised over function identifiers for situations like "if ()"
+      if (/^(if|else|for|while|switch|case|break|continue|return|success|fail)$/.test(match))
         return `<span class="danger">${match}</span>`;
 
       // Functions (identifier followed by '(')
@@ -1965,6 +2019,7 @@ function highlightPseudo(code) {
     }
   );
 }
+
 
 
 
@@ -2354,6 +2409,18 @@ level5.cond.condToC = function(parsedArray) {
 
     return temp ? result : code;
   }
+function renderValueStackAsClause(stack) {
+  if (stack.length === 0) return '(0 == 1)';
+  if (stack.length === 1) return `(${renderValue(stack[0])})`;
+  if (stack.length === 2) {
+    const r = stack.pop(), l = stack.pop();
+    return `(${renderValue(l)} == ${renderValue(r)})`;
+  }
+  const r = stack.pop();
+  const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: stack.splice(0) };
+  return `(${renderValue(leftGroup)} == ${renderValue(r)})`;
+}
+
 
   function consumeForOperator(valueStack, opSymbol) {
     const len = valueStack.length;
@@ -2377,6 +2444,26 @@ level5.cond.condToC = function(parsedArray) {
     const exprStr = `(${renderValue(leftNode)} ${opSymbol} ${renderValue(rightNode)})`;
     return { type: 'EXPR', expr: exprStr, leftNode, rightNode };
   }
+
+    // helper: finalize the current valueStack into a single clause (if any)
+  function finalizeValueStackIntoClause() {
+    if (valueStack.length === 0) return;
+    if (valueStack.length === 1) {
+      clauses.push(`(${renderValue(valueStack[0])})`);
+    } else if (valueStack.length === 2) {
+      const r = valueStack.pop();
+      const l = valueStack.pop();
+      clauses.push(`(${renderValue(l)} == ${renderValue(r)})`);
+    } else {
+      const r = valueStack.pop();
+      // take the entire remaining stack as the left-side group
+      const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: valueStack.splice(0) };
+      clauses.push(`(${renderValue(leftGroup)} == ${renderValue(r)})`);
+    }
+    // clear the stack
+    valueStack.length = 0;
+  }
+
 
   // Step 1: header comments
   const outLines = [];
@@ -2419,7 +2506,7 @@ level5.cond.condToC = function(parsedArray) {
 
         // new logic: detect if this operator token actually maps to an L_OPERATOR hex -> treat as top-level combiner
 if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
-  // We're INSIDE a CONDITION: always treat this as a normal operator,
+  // We're INSIDE a cond: always treat this as a normal operator,
   // not a top-level clause combiner (L_OPERATORS are only for top-level tokens).
   // Determine the textual operator to use (prefer explicit symbol in val if present).
   let rawOp = null;
@@ -2457,11 +2544,20 @@ if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
         valueStack.push(res.node);
         i = res.nextIndex;
       }
+
+      // --- finalize this CONDITION into a single clause and clear the valueStack ---
+
+
       continue;
     }
 
-    // stray OPERATOR at top - same hex detection as above
+    // stray OPERATOR at top - finalize any pending values into a clause first,
+    // then treat the token as a clause-combiner (may come from L_OPERATORS).
     if (topKey === 'OPERATOR') {
+      // finalize any pending expression(s) into a clause BEFORE handling this top-level operator
+      finalizeValueStackIntoClause();
+
+      // Now map the top-level operator token into a combiner (prefer explicit L_OPERATORS mapping)
       let topHex = null;
       if (top[1] && /^[0-9A-F]{2}$/i.test(String(top[1]))) topHex = norm(top[1]);
       if (topHex && L_OPERATORS[topHex]) {
@@ -2471,21 +2567,14 @@ if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
       }
       continue;
     }
+
+
+
   }
 
   // finalize leftover valueStack as a clause if present
-  if (valueStack.length > 0) {
-    if (valueStack.length === 1) clauses.push(`(${renderValue(valueStack[0])})`); // used to be == 1 but aside from being unneccessary, it's wrong; we are checking if it's truthy aka != 0 according to level5 so instead of (VAL == 1) it's (VAL)
-    else if (valueStack.length === 2) {
-      const r = valueStack.pop(); const l = valueStack.pop();
-      clauses.push(`(${renderValue(l)} == ${renderValue(r)})`); // after what happened a bit ago I'mma stick my name around here in the code:  n--1--2--3-- g-- -i -- -- t/n123original (dashes incase anyone tries to ctrl+f replace :P)
-    } else {
-      const r = valueStack.pop();
-      const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: valueStack };
-      clauses.push(`(${renderValue(leftGroup)} == ${renderValue(r)})`);
-    }
-    valueStack.length = 0;
-  } // 341.
+  finalizeValueStackIntoClause();
+// 341.
 
   // render clauses: nested ifs on && (default)  // outLines.push('// Condition'); ab.
 if (clauses.length === 0) {
@@ -2573,8 +2662,6 @@ return formatted;
 // r3-3. (diff)
 }
 
-
-
     level5.cond._internals.hexToBase64 = function(hexString) {
       // Remove all spaces
       const cleanHex = hexString.replace(/\s+/g, '');
@@ -2619,6 +2706,14 @@ return formatted;
                       'AAAAAXd3MgAAAAE1uRk22gABADIAAHU6cY81npmEjAAKASgABgI0A7iP/TIAAAAJeI81npmEjAAKASgABgI03PHmiDIAAAADcY8yAAAAAY8yAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjSasd5HMgAAADV4jzWemYSMAAoBKAAGAjRF+LcyMgAAAANxjzIAAAABj5AyAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjSasd5HMgAAADZ4jzWemYSMAAoBKAAGAjRF+LcyMgAAAANxjzIAAAABj5AyAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjSasd5HMgAAADd4jzWemYSMAAoBKAAGAjRF+LcyMgAAAANxjzIAAAABj5AyAAAAATW5GTbaAAEAMgAAdTpxjzWemYSMAAoBKAAGAjSasd5HMgAAADh4jzWemYSMAAoBKAAGAjRF+LcyMgAAAANxjzIAAAABj5A=',  /* _ (Oneplace) MINIMAP_POINT 7; I dont even know what to think of this........ */
                       'AAAAADYRMgAAJ0I1uRk22gABAG81uRk22gABADIAACdMb481MhR6kAAKASgABgI05rLGNzIAAAABeY8=', /* uptown springdale (yw2) oneplace OP_ICON_POINT_1 (#2) */
                       'AAAAAEUXNb4EpZgACgEoAAYCNO0IHLMyAAAAAng1Yjk76AABADIAAAADeDViOTvoAAEAMgAAAAR4kDViOTvoAAEAMgAAAAV4kI8=', /* complicated nested && || handling test */
+                      'AAAAADALNYaphdYACgEoAAYCMgAAAAEyAAAAAHA1hqmF1gAKASgABgIyAAAAAjIAAAAAcJA=', /* yw2 btl AI cond */
+                      'AAAAABgFNUJ5JVAACgEoAAYCMgAAAAoyAAAAAHg=', /* yw2 btl ai cond which uses a func added in 2 */
+                      'AAAAAEgXMgAAAAE1JzJtRwAKASgABgI0qOd4DDIAAAABeI8yAAAAAY8yAAAAATUqPUVDAAoBKAAGAjRpzHJVMgAAAAF4jzIAAAABj5A=', /* yw2 rudy contacts/friends app cond */
+                      'AAAAAGwjMgAAAAE1vgSlmAAKASgABgI0E6sA9TIAAAD/eI8yAAAAAY8yAAAAATW+BKWYAAoBKAAGAjSNz5VWMgAAAP94jzIAAAABj5AyAAAAATW+BKWYAAoBKAAGAjTj05SBMgAAAP94jzIAAAABj5A=', /* same but for mr barton */
+                      'AAAAAA8FNZ5vnyEAAQAyAAAAAXE=', /* same but for det. holdit */
+                      'AAAAABgFNewt/OYACgEoAAYCNMIlk98yAAAAAXg=', /* lucy */
+                      'AAAAAF0jMgAAAAE1uRk22gABADIAAYagcY81Ju95yAABADIAAAACeY8yAAAAAY8yAAAAATXsLfzmAAoBKAAGAjRKy92MMgAAAAF4jzUm73nIAAEAMgAAAAJ4jzIAAAABj5A=', /* same but for nate's grandma */
+                      'AAAAAF0jMgAAAAEyAAAnVjW5GTbaAAEAb481uRk22gABADIAACdqb48yAAAAAY8yAAAAATW5GTbaAAEAMgABEaJ4jzUqPUVDAAoBKAAGAjSSINwnMgAAAAF5jzIAAAABj5A=', /* uptown springdale oneplace */
                     ];
 
 
@@ -2688,10 +2783,127 @@ return formatted;
 
     el('copyPseudoBtn').addEventListener('click', ()=>{ const txt = el('pseudo').textContent; if(!txt){ log('Nothing to copy','warn'); return;} navigator.clipboard?.writeText(txt).then(()=> log('Pseudocode copied to clipboard'), ()=> log('Copy failed','warn')); });
 
-    el('downloadBtn').addEventListener('click', ()=>{ const pseudo = el('pseudo').textContent || ''; const blob = new Blob([pseudo], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'cond.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
+  //  el('downloadBtn').addEventListener('click', ()=>{ const pseudo = el('pseudo').textContent || ''; const blob = new Blob([pseudo], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'cond.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
 
     // light mode toggle; .......disgusting........ :<
     el('lightMode').addEventListener('change', (ev)=>{ document.body.classList.toggle('light', ev.target.checked); });
+
+// ===== Merge Cond Modal =====
+let $ = el; // because I can't be consistent for too long :p
+const mergeModal = $('mergeModal');
+const mergeBtn = $('mergeBtn');
+const mergeDoBtn = $('mergeDoBtn');
+const mergeCancelBtn = $('mergeCancelBtn');
+const mergeInputB = $('mergeInputB');
+
+mergeBtn.addEventListener('click', () => mergeModal.showModal());
+mergeCancelBtn.addEventListener('click', () => mergeModal.close());
+
+// Normalizes hex/base64 → upper-case continuous hex
+function normalizeCondInput(raw) {
+    const t = raw.trim();
+    if (!t) return "";
+
+    // Try clean hex
+    const hexCandidate = t.replace(/0x/gi,"").replace(/[^A-Fa-f0-9]/g,"");
+    if (hexCandidate.length % 2 === 0 && /^[A-Fa-f0-9]+$/.test(hexCandidate)) {
+        return hexCandidate.toUpperCase();
+    }
+
+    // Try base64
+    try {
+        const b = tryDecodeBase64(t);
+        return Array.from(b, c => c.charCodeAt(0).toString(16).padStart(2,"0")).join("").toUpperCase();
+    } catch {}
+
+    // Last fallback: space separated hex
+    const cleaned = t.replace(/0x/gi,'').replace(/[^A-Fa-f0-9]/g,' ').trim();
+    return cleaned.split(/\s+/).map(v => v.padStart(2,'0')).join('').toUpperCase();
+}
+
+// Performs the actual merge logic
+function mergeConds(hexA, hexB, mode = "AND") {
+    if (hexA.length < 12 || hexB.length < 12) {
+        throw new Error("Both conds must be at least 6 bytes.");
+    }
+
+    const a = hexA.match(/.{2}/g);
+    const b = hexB.match(/.{2}/g);
+
+    // length byte
+    let byte5_A = parseInt(a[4], 16);
+    let byte5_B = parseInt(b[4], 16);
+    let merged5 = byte5_A;
+
+    if (byte5_A < 0xF0) { 
+        merged5 = byte5_A + byte5_B; // if < 0xF0 then add the lengths
+    }
+
+    // NAND: +1 BEFORE 0xF0 clamp
+    if (mode === "NAND") merged5++; // increase by 1 if NAND mode to account for the extra ! (logical negation op)
+
+    if (merged5 > 0xF0) merged5 = 0xF0; // if > 0xF0 set to 0xF0
+    a[4] = merged5.toString(16).toUpperCase().padStart(2,"0"); // eit
+
+    // --- 6th byte (weird stack byte thingy lol) ---
+    let byte6_A = parseInt(a[5], 16);
+    let byte6_B = parseInt(b[5], 16);
+
+    // +1 to account for the combination op, 0x8F for AND, 0x90 for OR etc
+    let merged6 = byte6_A + byte6_B + 1;
+
+    // if NAND, add an EXTRA 1 to account for the extra ! op (logical negation)
+    if (mode === "NAND") merged6++;
+
+    if (merged6 > 0xF0) merged6 = 0xF0; // handle 0xF0 edge case just in case (dont know if it even applies to this byte but even conds like a page long aren't long enough to have a stack byte > 0xF0)
+    a[5] = merged6.toString(16).toUpperCase().padStart(2,"0");
+
+    // --- Mode -> operator byte ---
+    let opByte = "8F"; // AND default (&&)
+
+    if (mode === "OR")   opByte = "90"; // || all line up :p
+    if (mode === "XNOR") opByte = "78"; // ==
+    // NAND uses the same operator but with a logical negation added
+
+    // --- Tail from B --- (I do love me some symmetrical comments; oh wait I just broke i-)
+    const bTail = b.slice(6);
+
+    let result = a.join("");
+
+    if (bTail.length > 0) {
+        result += bTail.join("") + opByte;
+    }
+
+    // NAND special rule: append 0x51 (!) aka  logical negation op
+    if (mode === "NAND") {
+        result += "51"; // !
+    }
+
+    return result;
+}
+
+mergeDoBtn.addEventListener('click', () => {
+    try {
+        const mode = $('mergeMode').value;
+
+        // Cond A comes from main input
+        const A = inputToHexString(el('input').value);
+
+        // Cond B from modal
+        const B = inputToHexString(mergeInputB.value);
+
+        if (!A || !B) throw new SyntaxError("You need 2 conds to merge them :/ (the 1st should be the cond) required.");
+
+        const merged = mergeConds(A, B, mode);
+
+        el('input').value = merged;
+        el('parseB64Btn').click(); el('parseB64Btn').click(); // this (and you guessed it) clicks the button twice to 1. format it properly 2. parse it
+ 
+        mergeModal.close();
+    } catch (e) {
+        alert("Merge failed:\n" + e.message);
+    }
+});
 
   </script>
 </body>
