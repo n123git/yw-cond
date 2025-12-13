@@ -27,7 +27,7 @@ Each Cond begins with a **4-byte header** and a **2-byte COND_CODE**.
 > Note: This is *PER-COND as a whole, NOT* per condition.
 
 ### 1.1 Header (3 bytes)
-Previously, the header was assumed to always be `00 00 00 00` and serve as an integrity check. Current research shows that it actually contains two uint16 values.
+Previously, the header was assumed to always be a **4** byte number: `00 00 00 00` to serve as an integrity check. But we now know it is composed of a uint16 and uint8 value:
 | Byte | Description                                                                                                                                                                                                                                                       |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1-2  | When decoded using a standard decoder; this always appears as `00 00`. Although in level5's decoder they write a uint16 to it equivalent to the amount of bytes in the cond proceeding it.                                                                        |
@@ -39,7 +39,7 @@ Previously, the header was assumed to always be `00 00 00 00` and serve as an in
 a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte) section of a cond's header now known as two seperate parts the uint16 COND_LENGTH and uint8 STACK_PRM. A table describing the layout is shown below.
 | Byte | Description                                                                                                                                                                                                           |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1-2  | This uint16 defines the total length excluding itself but including all subsequent bytes within the Cond - including the `STACK_PRM`.                                                                                 |
+| 1-2  | This uint16 known as `COND_LENGTH` defines the total length excluding itself but including all subsequent bytes within the Cond - including the `STACK_PRM`.                                                                                 |
 | 3    | This byte known as `STACK_PRM` is equal to the amount of top-level values multiplied by 2 combined with the amount of operators; it can be simplified to `(((READ_MEM_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL`s that aren't used as params in a function. |
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
