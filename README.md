@@ -8,6 +8,7 @@ Examples of how the games use conds can be shown below:
 * NPC/Treasure Chest Availability
 * Quest/Trophy Conditions
 * Shop Item/Price Conditions
+* Story Progression
 * and much, much more!
 
 
@@ -25,26 +26,22 @@ The **CExpression**, or **Cond system**, is a proprietary (usually Base64-encode
 Each Cond begins with a **4-byte header** and a **2-byte COND_CODE**.
 > Note: This is *PER-COND as a whole, NOT* per condition.
 
-### 1.1 Header (4 bytes)
+### 1.1 Header (3 bytes)
 Previously, the header was assumed to always be `00 00 00 00` and serve as an integrity check. Current research shows that it actually contains two uint16 values.
 | Byte | Description                                                                                                                                                                                                                                                       |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1-2  | When decoded using a standard decoder; this always appears as `00 00`. Although in level5's decoder they write a uint16 to it equivalent to the amount of bytes in the cond proceeding it.                                                                        |
-| 3-4  | Version Identifier; Out of thousands of cond's in a given sample nearly all will be `0x0` conds (has a header of `00 00 00 00`). Although recently a `0x1` cond has been discovered; this version identifier seems to only affect the functioning of `COND_CODE`. |
+| 3    | This byte serves an unknown purpose an appears to always be `00`.                                                                                                                                                                                                 |
 
 
 
-### 1.2 Cond Code (2 bytes)
+### 1.2 Cond Code (3 bytes)
+a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte) section of a cond's header now known as two seperate parts the uint16 COND_LENGTH and uint8 STACK_PRM. A table describing the layout is shown below.
 | Byte | Description                                                                                                                                                                                                           |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | The first byte of COND_CODE defines the total length excluding itself but including all subsequent bytes within the Cond - including the second byte; in some conds with many conditions this is set to `F0` instead. |
-| 2    | The second byte seems to encode an engine-side descriptor used during Cond evaluation. Often, it correlates with the number of evaluation 'units' the engine pushes or expects. However, it is not strictly equivalent to any single observable count, such as the number of literals or functions. Although due to it's inconsistency and my laziness the exact purpose is currently unknown. Recent developements have shown for 0x0 conds where the first byte is NOT `0xF0`; the 2nd byte can be estimated (with an accuracy of +-1) using the formula: `(CTYPEs + LITERAL_VALUEs + OPERATORs - 3) + (2 × max(clauseCombinerCnt, 1))` |
-
-> Example: `00 00 00 00 - 0F 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`,
-
-
-* The **first byte** is *NOT* included in the length calculation.
-* The **second byte** is unknown but part of the header and counts towards the first byte's length calculation.
+| 1-2  | This uint16 defines the total length excluding itself but including all subsequent bytes within the Cond - including the `STACK_PRM`.                                                                                 |
+| 3    | This byte known as `STACK_PRM` seems to encode an engine-side descriptor used during cond evaluation. Often, it correlates with the number of evaluation 'units' the engine pushes or expects. However, it is not strictly equivalent to any single observable count, such as the number of literals or functions. Although due to it's inconsistency and my laziness the exact purpose is currently unknown. Recent estimates have shown the 2nd byte can be estimated (within a tolerance of ~95%) using the formula: `(CTYPEs + LITERAL_VALUEs + OPERATORs - 3) + (2 × max(clauseCombinerCnt, 1))` |
+> Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
 ---
 
@@ -167,13 +164,13 @@ CTypes are **3-byte descriptors** representing data types used in the engine.
 
 | Byte | Purpose                |
 | ---- | ---------------------- |
-| 1-2  | Data Size              |
-| 3    | ExtData:               |
+| 1-2  | DataSize               |
+| 3    | ExtData                |
 
 Notes:
-* The Data Size represents the length (in bytes) of the value from the ExtData onwards
-* For functions, extdata represents the number of parameters.
-* For integers, the purpose of extdata is unknown although it is usually `02`.
+* The `DataSize` represents the length (in bytes) of the value from the ExtData onwards
+* For functions, ExtData represents the number of parameters.
+* For integers, the purpose of ExtData is unknown although it is usually `02`.
 
 ### 6.1 CType Examples
 
@@ -197,7 +194,7 @@ The Naming Schema of CExpression Functions can be shown as follows:
 * Always Pascal Case; unlike normal IDs where level5 uses a mix of lowercase and snakecase.
 * A mix of english and hepburn romanisation.
   * The english is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Ogre instead of Oni.
-* Quite rare typos, take for instance: `IsApeearMitibiki()`.
+* Typos, take for instance: `IsApeearMitibiki()`; these are thought to be intentional decisions to avoid collisions due to the level5 3DS engine's extreme reliance on CRC-32 (ISO-HLDC).
 * Abbreviations used such as `Util`, `Cnt` etc.
 * Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `"Target"`, `"Run"`, `""` and `"Has"`.
 * Common suffixes include `"Cnt"`, `"Num"`, `"Now"` and `"Rate"`.
@@ -206,8 +203,9 @@ Cond Examples:
 * Single Condition: RunTrigger:
   * `00 00 00 00 12 02 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 0E 6B 6F 6B`
   * This can be parsed as:
-    * `00 00 00 00` - Header
-    * `12 02` - Condcode; shows the cond's length and that 2 values will be pushed to stack.
+    * `00 00 00` - Header.
+    * `00 12` - COND_LENGTH shows that after it there will be 0x12 bytes remaining.
+    * `02` - STACK_PRM.
     * `35` - READ_MEMORY; tells the game what layout to expect and to read a value.
     * `69 84 E3 AF` - The CRC32 hash of `RunTrigger`.
     * `00 0A 01` - The CTYPE for a function that takes one parameter aka `RunTrigger` in this example.
@@ -219,8 +217,8 @@ Cond Examples:
 * Single Condition: GameClear (Has Main Story been completed):
   * `00 00 00 00 0F 05 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
   * This can be parsed as:
-    * `00 00 00 00` - Header
-    * `0F 05` - Condcode.
+    * `00 00 00` - Header
+    * `00 0F 05` - Condcode.
     * `35` - READ_MEMORY; tells the game what layout to expect and to read a value.
     * `10 B1 40 96` - The CRC32 hash of `GameClear`.
     * `00 01 00` - The CType for a Zero-Param Function; telling the engine to not parse any params, pushing the function's output as a value to stack.
