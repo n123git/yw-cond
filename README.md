@@ -40,7 +40,7 @@ a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte)
 | Byte | Description                                                                                                                                                                                                           |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1-2  | This uint16 defines the total length excluding itself but including all subsequent bytes within the Cond - including the `STACK_PRM`.                                                                                 |
-| 3    | This byte known as `STACK_PRM` seems to encode an engine-side descriptor used during cond evaluation. Often, it correlates with the number of evaluation 'units' the engine pushes or expects. However, it is not strictly equivalent to any single observable count, such as the number of literals or functions. Although due to it's inconsistency and my laziness the exact purpose is currently unknown. Recent estimates have shown the 2nd byte can be estimated (within a tolerance of ~95%) using the formula: `(CTYPEs + LITERAL_VALUEs + OPERATORs - 3) + (2 × max(clauseCombinerCnt, 1))` |
+| 3    | This byte known as `STACK_PRM` is equal to the amount of top-level values multiplied by 2 combined with the amount of operators; it can be simplified to `(((READ_MEM_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL`s that aren't used as params in a function. |
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
 ---
