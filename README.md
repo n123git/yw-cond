@@ -167,9 +167,11 @@ CTypes are **3-byte descriptors** representing data types used in the engine.
 
 | Byte | Purpose                |
 | ---- | ---------------------- |
-| 1-2  | uint16: Data Type      |
+| 1-2  | Data Size              |
 | 3    | ExtData:               |
 
+Notes:
+* The Data Size represents the length (in bytes) of the value from the ExtData onwards
 * For functions, extdata represents the number of parameters.
 * For integers, the purpose of extdata is unknown although it is usually `02`.
 
@@ -177,13 +179,11 @@ CTypes are **3-byte descriptors** representing data types used in the engine.
 
 | CType      | Meaning                                                   |
 | ---------- | --------------------------------------------------------- |
-| `00 06 02` | Numeric value aka 1bit/8bit/16bit/32bit integer.          |
+| `00 06 02` | Integer.                                                  |
 | `00 1C 03` | 3-parameter function                                      |
 | `00 13 02` | 2-parameter function                                      |
 | `00 0A 01` | 1-parameter function                                      |
 | `00 01 00` | 0-parameter function                                      |
-
-> **Note:** The first byte is always `00`. Functions use extdata to indicate the **parameter count**.
 
 ---
 
