@@ -307,6 +307,7 @@ select:focus {
       </div>
       <div id="len3" style="width:46%">
         <div class="pseudo" id="pseudo"></div>
+        <div class="funcaccent">Currently the psuedo-C implementation is bugged for certain conds; I have been ignoring this for a while but next update should fix it; for now I'm making it safer (It will show ?? in the cond when it's wrong)</div>
       </div>
     </div>
 
@@ -403,7 +404,6 @@ select:focus {
   </div>
 </dialog>
 
-
 <div>
   <noscript>
     This should be obvious but uhh you kinda need JS for this page to work :P Search up "Enable JavaScript in Web Browser" to fix this if you somehow disabled it on accident :3
@@ -415,7 +415,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.397898;
+    level5.cond.ver = 1.3978983;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -1572,7 +1572,7 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       "float", // 6 float32 (float)
       // rest are unknown rn
     ]
-    level5.cond.DEFAULT_OPERATOR = "=="; // kinda true, kinda wrong
+    level5.cond.DEFAULT_OPERATOR = "??"; // kinda true, kinda wrong
 
     // CTYPEs
     level5.cond.CTYPES = {
@@ -1600,7 +1600,7 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       const parsedCond = [];
       function err(msg, hexSuffix){ const ctx = hexSuffix ? (' (next: '+hexSuffix+')') : ''; throw new SyntaxError(msg + ctx); }
 
-      function parseHeader(){ if(hex.length < 12) err('Too short for header+condcode', hex.slice(0,12)); if(!$.startsWith(hex,'00000000') && !$.startsWith(hex,'00000001')) err('Are you sure this is a real cond? Header invalid (expected int32: 0x0 / int32: 0x1)'); let consumed; [hex, consumed] = $.consumeBytes(hex,4); const headerBlock = [['HEADER', consumed]]; [hex, consumed] = $.consumeBytes(hex,2); headerBlock.push(['COND_CODE', consumed]); parsedCond.push(['HEADER_BLOCK', headerBlock]); }
+      function parseHeader(){ if(hex.length < 12) err('Too short for header dat', hex.slice(0,9)); if(!$.startsWith(hex,'000000') && !$.startsWith(hex,'000000')) err('Are you sure this is a real cond? Header invalid (expected 000000)'); let consumed; [hex, consumed] = $.consumeBytes(hex,3); const headerBlock = [['HEADER', consumed]]; [hex, consumed] = $.consumeBytes(hex,2); headerBlock.push(['COND_LENGTH', consumed]); [hex, consumed] = $.consumeBytes(hex,1); headerBlock.push(['STACK_PRM', consumed]); parsedCond.push(['HEADER_BLOCK', headerBlock]); }
 
       function parseClause(){ 
         if(hex.length < 2) err('Unexpected EOF while expecting READ_MEMORY or READ_LITERAL');
@@ -2410,11 +2410,11 @@ level5.cond.condToC = function(parsedArray) {
     return temp ? result : code;
   }
 function renderValueStackAsClause(stack) {
-  if (stack.length === 0) return '(0 == 1)';
+  if (stack.length === 0) return '(err:null00)';
   if (stack.length === 1) return `(${renderValue(stack[0])})`;
   if (stack.length === 2) {
     const r = stack.pop(), l = stack.pop();
-    return `(${renderValue(l)} == ${renderValue(r)})`;
+    return `(${renderValue(l)} ?? ${renderValue(r)})`;
   }
   const r = stack.pop();
   const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: stack.splice(0) };
@@ -2453,12 +2453,12 @@ function renderValueStackAsClause(stack) {
     } else if (valueStack.length === 2) {
       const r = valueStack.pop();
       const l = valueStack.pop();
-      clauses.push(`(${renderValue(l)} == ${renderValue(r)})`);
+      clauses.push(`(${renderValue(l)} ?? ${renderValue(r)})`);
     } else {
       const r = valueStack.pop();
       // take the entire remaining stack as the left-side group
       const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: valueStack.splice(0) };
-      clauses.push(`(${renderValue(leftGroup)} == ${renderValue(r)})`);
+      clauses.push(`(${renderValue(leftGroup)} ?? ${renderValue(r)})`);
     }
     // clear the stack
     valueStack.length = 0;
@@ -2474,7 +2474,7 @@ function renderValueStackAsClause(stack) {
      // outLines.push('// Header');
       for (const it of (blk[1] || [])) {
         outLines.push(`// ${it[0]}: ${it[1]}`);
-        if(it[0] == 'COND_CODE') outLines.push(''); // r3-4/5. (sp2) seperate headers and stuff; im too lazy to implement this properly
+        if( it[0] == 'STACK_PRM') outLines.push(''); // r3-4/5. (sp2) seperate headers and stuff; im too lazy to implement this properly
       }
     }
   }
@@ -2578,7 +2578,7 @@ if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
 
   // render clauses: nested ifs on && (default)  // outLines.push('// Condition'); ab.
 if (clauses.length === 0) {
-  outLines.push('if (0 == 1) {', '    success();', '}');
+  outLines.push('if (null) {', '    success();', '}');
   outLines.push('fail();'); // little last minute patch :3
 
   // --- DEBUG DUMP ---
@@ -2830,20 +2830,22 @@ function mergeConds(hexA, hexB, mode = "AND") {
     const a = hexA.match(/.{2}/g);
     const b = hexB.match(/.{2}/g);
 
-    // length byte
-    let byte5_A = parseInt(a[4], 16);
-    let byte5_B = parseInt(b[4], 16);
-    let merged5 = byte5_A;
+    // length uint16 (bytes [3] & [4])
+    let lenA = (parseInt(a[3],16) << 8) | parseInt(a[4],16);
+    let lenB = (parseInt(b[3],16) << 8) | parseInt(b[4],16);
+    let mergedLen = lenA;
 
-    if (byte5_A < 0xF0) { 
-        merged5 = byte5_A + byte5_B; // if < 0xF0 then add the lengths
+    if (lenA < 0xFFFF) {
+        mergedLen = lenA + lenB; // if < 0xFFFF then add the lengths
     }
 
     // NAND: +1 BEFORE 0xF0 clamp
-    if (mode === "NAND") merged5++; // increase by 1 if NAND mode to account for the extra ! (logical negation op)
+    if (mode === "NAND") mergedLen++; // increase by 1 if NAND mode to account for the extra ! (logical negation op)
 
-    if (merged5 > 0xF0) merged5 = 0xF0; // if > 0xF0 set to 0xF0
-    a[4] = merged5.toString(16).toUpperCase().padStart(2,"0"); // eit
+    if (mergedLen > 0xFFFF) mergedLen = 0xFFFF;  // if > 0xF0 set to 0xF0
+    a[3] = ((mergedLen >> 8) & 0xFF).toString(16).toUpperCase().padStart(2,"0"); // edit byteA
+    a[4] = (mergedLen & 0xFF).toString(16).toUpperCase().padStart(2,"0"); // edit byteB
+
 
     // --- 6th byte (weird stack byte thingy lol) ---
     let byte6_A = parseInt(a[5], 16);
@@ -2855,7 +2857,7 @@ function mergeConds(hexA, hexB, mode = "AND") {
     // if NAND, add an EXTRA 1 to account for the extra ! op (logical negation)
     if (mode === "NAND") merged6++;
 
-    if (merged6 > 0xF0) merged6 = 0xF0; // handle 0xF0 edge case just in case (dont know if it even applies to this byte but even conds like a page long aren't long enough to have a stack byte > 0xF0)
+    if (merged6 > 0xFF) merged6 = 0xFF; // handle 0xFF edge case just in case (dont know what would/should even happen ina  similar case to this byte but even conds like a page long aren't long enough to have a stack byte > 0xFF)
     a[5] = merged6.toString(16).toUpperCase().padStart(2,"0");
 
     // --- Mode -> operator byte ---
@@ -2904,6 +2906,7 @@ mergeDoBtn.addEventListener('click', () => {
         alert("Merge failed:\n" + e.message);
     }
 });
+
 
   </script>
 </body>
