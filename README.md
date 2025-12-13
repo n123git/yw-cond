@@ -57,9 +57,9 @@ a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte)
 
 ### 2.2 Special Markers
 
-| Type            | Hex Code | Description                                    |
-| --------------- | -------- | ---------------------------------------------- |
-| EXTENSION_DELIM | `28`     | Structural marker; used before READ_SUBSECTION |
+| Type            | Hex Code | Description                                                                                        |
+| --------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| EXTENSION_DELIM | `28`     | Marker signaling to continue consuming params; followed by a `CTYPE` and then a `READ_SUBSECTION`. |
 
 ---
 
