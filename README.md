@@ -54,13 +54,13 @@ This byte known as `STACK_PRM` is equal to the amount of top-level values multip
 | --------------- | -------- | --------------------------------- |
 | READ_MEMORY     | `35`     | Reads a memory resource           |
 | READ_LITERAL    | `32`     | Pushes a literal value (constant) |
-| READ_SUBSECTION | `34`     | Reads a subsection of memory/data |
+| READ_HASH | `34`     | Similar to a READ_LITERAL but reads a hash instead. |
 
 ### 2.2 Special Markers
 
 | Type            | Hex Code | Description                                                                                        |
 | --------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| EXTENSION_DELIM | `28`     | Marker signaling to continue consuming params; followed by a `CTYPE` and then a `READ_SUBSECTION`. |
+| EXTENSION_DELIM | `28`     | Marker signaling to continue consuming params; followed by a `CTYPE` and then a `READ_HASH`. |
 
 ---
 
@@ -123,21 +123,21 @@ READ_MEMORY
   CTYPE (3 bytes; type of the above value)
   optional:EXTENSION_DELIM (1 byte)
      CTYPE (3 bytes; type of the below value)
-     READ_SUBSECTION (1 byte)
+     READ_HASH (1 byte)
      LITERAL_VALUE
   ... can recursively hold another CTYPE then EXTENSION_DELIM and so on
 ```
 
 * The **4-byte literal value** is the value (for integers; although usually still an ID) or CRC32 ISO-HDLC hash of the function name (for functions).
   * Literal Values are *big-endian*.
-* Optional **EXTENSION_DELIM+READ_SUBSECTION** chains  <!-- for a bit this was chins 😭 --> allow unlimited nesting of subsections for multi-param functions.
+* Optional **EXTENSION_DELIM+READ_HASH/READ_LITERAL** chains  <!-- for a bit this was chins 😭 --> allow unlimited nesting of subsections for multi-param functions.
 
 ### 4.2 READ_LITERAL
 
 * Always followed by a **32-bit integer** (but may also be used for 16-bit, 8-bit, or boolean values, in which case it will still be padded to 4 bytes).
 * Values are **big-endian**.
 
-### 4.3 READ_SUBSECTION
+### 4.3 READ_HASH
 
 * Always follows an EXTENSION_DELIM/CTYPE combination.
 * Represents a smaller section of memory or another value block.
@@ -159,9 +159,8 @@ These data types are **never directly referenced in the CExpression itself** but
 
 ---
 
-## 6. **CTypes (True Data Types)**
-
-CTypes are **3-byte descriptors** representing data types used in the engine.
+## 6. **CTypes**
+CTypes are **3-byte descriptors** representing properties of data types used in the engine.
 
 | Byte | Purpose                |
 | ---- | ---------------------- |
