@@ -19,28 +19,29 @@ Examples of how the games use conds can be shown below:
 The **CExpression**, or **Cond system**, is a proprietary (usually Base64-encoded) system used for evaluating runtime conditions using RPN (Reverse Polish Notation); it contains *zero* or more conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
-  * Operators (arithmetic, logical, bitwise, and rarely structural)
+  * Operators (arithmetic, logical (sometimes used as structural), bitwise, and some control flow)
 
 ## 1. **Cond Structure**
 
-Each Cond begins with a **4-byte header** and a **2-byte COND_CODE**.
+Each Cond begins with a header section composed of a **3-byte header** and a **3-byte COND_CODE**.
 > Note: This is *PER-COND as a whole, NOT* per condition.
 
 ### 1.1 Header (3 bytes)
-Previously, the header was assumed to always be a **4** byte number: `00 00 00 00` to serve as an integrity check. But we now know it is composed of a uint16 and uint8 value:
+Previously, the header was assumed to always be a **4** byte constant of `00 00 00 00`, with the purpose of serving as an integrity check. But recent developements have shown that the header is composed of a uint16 and uint8 value:
 | Byte | Description                                                                                                                                                                                                                                                       |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1-2  | When decoded using a standard decoder; this always appears as `00 00`. Although in level5's decoder they write a uint16 to it equivalent to the amount of bytes in the cond proceeding it.                                                                        |
 | 3    | This byte serves an unknown purpose an appears to always be `00`.                                                                                                                                                                                                 |
 
-
-
 ### 1.2 Cond Code (3 bytes)
-a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte) section of a cond's header now known as two seperate parts the uint16 COND_LENGTH and uint8 STACK_PRM. A table describing the layout is shown below.
-| Byte | Description                                                                                                                                                                                                           |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1-2  | This uint16 known as `COND_LENGTH` defines the total length excluding itself but including all subsequent bytes within the Cond - including the `STACK_PRM`.                                                                                 |
-| 3    | This byte known as `STACK_PRM` is equal to the amount of top-level values multiplied by 2 combined with the amount of operators; it can be simplified to `(((READ_MEM_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL`s that aren't used as params in a function. |
+a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte) section of a cond's header now known as two seperate parts the uint16 COND_LENGTH and uint8 STACK_PRM. Sections describing the layout of this section can be found below:
+
+#### 1.21 COND_LENGTH
+This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
+
+#### 1.22 STACK_PRM
+This byte known as `STACK_PRM` is equal to the amount of top-level values multiplied by 2 combined with the amount of operators; it can be simplified to `(((READ_MEM_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL`s that aren't used as params in a function.
+
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
 ---
@@ -65,33 +66,33 @@ a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte)
 
 ## 3. **Operators**
 
-Operators perform logical, arithmetic, or bitwise operations on one or more values.
-| Hex Code | Symbol | Num    | Operation                             | Notes                                      |
-| -------- | ------ | ------ | ------------------------------------- | ------------------------------------------ |
-| `46`     | ++     | 1      | Incrementation                        |                                            |
-| `47`     | --     | 2      | Decrementation                        |                                            |
-| `50`     | ~      | 3      | Bitwise NOT                           |                                            |
-| `51`     | !      | 4      | Logical NOT                           |                                            |
-| `5A`     | *      | 5      | Multiply                              |                                            |
-| `5B`     | /      | 6      | Divide                                |                                            |
-| `5C`     | %      | 7      | Modulus                               |                                            |
-| `5D`     | +      | 8      | Addition                              |                                            |
-| `5E`     | -      | 9      | Subtraction                           |                                            |
-| `64`     | <<     | 10     | Left shift                            |                                            |
-| `65`     | >>     | 11     | Right shift                           |                                            |
-| `6E`     | <      | 12     | Less than                             |                                            |
-| `6F`     | <=     | 13     | Less or equal                         |                                            |
-| `70`     | >      | 14     | Greater than                          |                                            |
-| `71`     | >=     | 15     | Greater or equal                      |                                            |
-| `78`     | ==     | 16     | Equal                                 |                                            |
-| `79`     | !=     | 17     | Not equal                             |                                            |
-| `82`     | &      | 18     | Bitwise AND                           |                                            |
-| `83`     | \|     | 19     | Bitwise OR                            |                                            |
-| `84`     | ^      | 20     | Bitwise XOR                           |                                            |
-| `8F`     | &&     | 21     | Logical AND                           | By far the most common                     |
-| `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`.             |
-| `96`     | ?->    | 23     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy.       |
-| `97`     | ->     | 24     | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap.|
+Operators perform logical, arithmetic, bitwise or control flow operations on one or more values.
+| Hex Code | Symbol | Num    | Operation                             | Notes                                                                                                  |
+| -------- | ------ | ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `46`     | ++     | 1      | Incrementation                        |                                                                                                        |
+| `47`     | --     | 2      | Decrementation                        |                                                                                                        |
+| `50`     | ~      | 3      | Bitwise NOT                           |                                                                                                        |
+| `51`     | !      | 4      | Logical NOT                           |                                                                                                        |
+| `5A`     | *      | 5      | Multiply                              |                                                                                                        |
+| `5B`     | /      | 6      | Divide                                |                                                                                                        |
+| `5C`     | %      | 7      | Modulus                               |                                                                                                        |
+| `5D`     | +      | 8      | Addition                              |                                                                                                        |
+| `5E`     | -      | 9      | Subtraction                           |                                                                                                        |
+| `64`     | <<     | 10     | Left shift                            |                                                                                                        |
+| `65`     | >>     | 11     | Right shift                           |                                                                                                        |
+| `6E`     | <      | 12     | Less than                             |                                                                                                        |
+| `6F`     | <=     | 13     | Less or equal                         |                                                                                                        |
+| `70`     | >      | 14     | Greater than                          |                                                                                                        |
+| `71`     | >=     | 15     | Greater or equal                      |                                                                                                        |
+| `78`     | ==     | 16     | Equal                                 |                                                                                                        |
+| `79`     | !=     | 17     | Not equal                             |                                                                                                        |
+| `82`     | &      | 18     | Bitwise AND                           |                                                                                                        |
+| `83`     | \|     | 19     | Bitwise OR                            |                                                                                                        |
+| `84`     | ^      | 20     | Bitwise XOR                           |                                                                                                        |
+| `8F`     | &&     | 21     | Logical AND                           | By far the most common.                                                                                |
+| `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`.                                                                         |
+| `96`     | ?->    | 23     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
+| `97`     | ->     | 24     | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
 
 Operators can be grouped by their *high nibble* (first hex digit), and further subdivided by whether the *low nibble* falls within 0–9 (normal position) or A–F (extended/ext position). Here is the grouping:
 
