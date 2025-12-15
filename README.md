@@ -9,6 +9,7 @@ Examples of how the games use conds can be shown below:
 * Quest/Trophy Conditions
 * Shop Item/Price Conditions
 * Story Progression
+* NPC Interaction handler
 * and much, much more!
 
 
