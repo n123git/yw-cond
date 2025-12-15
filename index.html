@@ -282,7 +282,7 @@ select:focus {
 <body>
   <div class="container" id="app">
     <h2>Yo-kai Watch Cond Parser <span class="small" id="ver2">Version Loading...</span></h2>
-    <div class="small muted">Paste Hex or Base64; V3 Parsing, V2 Templates, V2 Psuedo</div>
+    <div class="small muted">Paste Hex or Base64; V3.2 Parsing, V2 Templates, V3 Psuedo</div>
 
     <textarea id="input" placeholder="Paste hex (e.g. '00 0A 01') or base64 here"></textarea>
 
@@ -300,14 +300,14 @@ select:focus {
     </div>
 
     <div id="log" aria-live="polite">Ready.</div>
-
+    <div id="base_warn" class="false"></div>
     <div style="display:flex;gap:12px;margin-top:12px;align-items:flex-start">
       <div style="flex:1">
         <div class="tree" id="tree" role="region" aria-label="Parsed tree"></div>
       </div>
       <div id="len3" style="width:46%">
         <div class="pseudo" id="pseudo"></div>
-        <div class="funcaccent">Currently the psuedo-C implementation is bugged for certain conds; I have been ignoring this for a while but next update should fix it; for now I'm making it safer (It will show ?? in the cond when it's wrong)</div>
+       <!-- <div class="funcaccent">Currently the psuedo-C implementation is bugged for certain conds; I have been ignoring this for a while but next update should fix it; for now I'm making it safer (It will show ?? in the cond when it's wrong)</div> -->
       </div>
     </div>
 
@@ -349,8 +349,12 @@ select:focus {
     <input type="checkbox" id="debugModeChk"> 
     <strong>Debug Mode</strong> — don't enable this unless something isnt working (in which case also DM me, @n123original on discord!)
   </label>
-  </div>
-  
+
+  <label style="display:block; margin-bottom:8px;">
+    <input type="checkbox" id="simplifyCompilerArtifiactsChk"> 
+    <strong>Simplify Operator Precedence Compiler Artifacts</strong> — turns 1 && artifacts produced by the compiler to introduce operator precedence into a more human readable form
+  </label>
+
   <h4 style="margin-top:10px; margin-bottom:6px; color:var(--accent);">Appearence Tweaks</h4>
 
   <div style="margin-top:6px">
@@ -415,7 +419,7 @@ select:focus {
     if(typeof level5.cond === 'undefined') level5.cond = {};
 
     // version
-    level5.cond.ver = 1.3978983;
+    level5.cond.ver = 1.398;
     document.title = `YW-Cond: v${level5.cond.ver}`; // finally auto-updating somewhat :3
     const el = id => document.getElementById(id); // gotta move it all the way up here
     el('ver2').innerText = `v${level5.cond.ver}` // wait no FULLY auto-updating after all this time :000
@@ -748,7 +752,7 @@ level5.cond.CExpressionInternalMappingsRev = level5.cond._internals.invert(level
                     ]
                 }
             ],
-            label: "Yo-kai Watch 1/2 – Gender" // label
+            label: "Yo-kai Watch 1/2/3 – Gender" // label
             // no UI elements accept generate and cancel
         },
        /* unmainStory: {
@@ -909,7 +913,7 @@ level5.cond.CExpressionInternalMappingsRev = level5.cond._internals.invert(level
                     placeholder: "e.g. 1678239 or 0x638297A" 
                 },
             ],
-            label: "Yo-kai Watch 1/2 – Run Trigger"
+            label: "Yo-kai Watch 1/2/3 – Run Trigger"
         },
         tunnelXX: {
             type: "hex",
@@ -971,10 +975,13 @@ level5.cond.CExpressionInternalMappingsRev = level5.cond._internals.invert(level
                     label: "Flag Type",
                     type: "select",
                     options: [
-                        { label: "FLAG_INFO_0", value: "2A 3D 45 43" }, // normal
-                        { label: "FLAG_INFO_1", value: "9E 99 84 8C", altElements: [0, 1] }, // activates altElements[0] and altElements[1]
-                        { label: "FLAG_INFO_3", value: "9F 35 86 B4" }, // normal
-                        { label: "TempMapBitFlag", value: "32 14 7A 90"}
+                        { label: "FLAG_INFO_0 (GlobalBitFlag)", value: "2A 3D 45 43" }, // normal
+                        { label: "FLAG_INFO_1 (GlobalByteFlag)", value: "9E 99 84 8C", altElements: [0, 1] }, // activates altElements[0] and altElements[1]
+                        /* the func for FLAG_INFO_2 is no-opped atleast in 1s */
+                        { label: "FLAG_INFO_3 (TempBitFlag)", value: "9F 35 86 B4" }, // normal 
+                        { label: "FLAG_INFO_4 (TempByteFlag)", value: "BD F5 EB F0" }, // normal
+                        { label: "MAP.FLAG_INFO_0 (TempMapBitFlag)", value: "32 14 7A 90"}, // normal
+                        { label: "MAP.FLAG_INFO_1 (TempMapByteFlag)", value: "81 5B 2E DD"}, // normal
                     ]
                 },
                 {
@@ -1335,10 +1342,11 @@ level5.cond.settings = { // moved this to the back of the script
   /* even more new ones for config! */
   widePsuedo: false, // default off
 
-   lightMode: false, // this was actually added first, but just now got reworked more into settings for localStorage persistence
+   lightMode: false, // this was actually added first, but just now got reworked into settings for localStorage persistence, consistency and compactness
    shortenIfBlocks: true,
    shouldHighlightPsuedo: true, // why wouldn't you want this; it took a good 5 minutes to make how wasteful :P
    debugMode: false,
+   simplifyCompilerArtifiacts: true, // still cant decide if this should be true or false by default
 }
 
 // Load settings from localStorage if available
@@ -1366,10 +1374,10 @@ loadSettings();
     if(input === 1 && level5.cond.settings.showBool) return `true`
     if(input === 0 && level5.cond.settings.showBool) return 'false'
    // if(input === -1) return 'undefined'
-    if(input === 0xFF && level5.cond.settings.showLim) return `0xFF` // or -1/undefined?
-    if(input === 0xFFFF && level5.cond.settings.showLim) return `0xFFFF` // or -1/undefined?
-    if(input === 0xFFFFFF && level5.cond.settings.showLim) return `0xFFFFFF` // or -1/undefined?
-    if(input === 0xFFFFFFFF && level5.cond.settings.showLim) return `0xFFFFFF` // or -1/undefined?
+    if(input === 0xFF && level5.cond.settings.showLim) return `0xFF` // or -1?
+    if(input === 0xFFFF && level5.cond.settings.showLim) return `0xFFFF` // or -1?
+    if(input === 0xFFFFFF && level5.cond.settings.showLim) return `0xFFFFFF` // or -1?
+    if(input === 0xFFFFFFFF && level5.cond.settings.showLim) return `0xFFFFFF` // or -1?
     if (input >= 16 && (input & (input - 1)) === 0 && level5.cond.settings.showPow) return '0x' + input.toString(16).toUpperCase(); // for powers of 2 >= 16
     return String(input);
   }
@@ -1387,6 +1395,8 @@ loadSettings();
   const highlightPseudoChk = document.getElementById('highlightPseudoChk');
   let prevWidePsuedo = level5.cond.settings.widePsuedo;
   const debugModeChk = document.getElementById('debugModeChk');
+  const simplifyCompilerArtifiactsChk = document.getElementById('simplifyCompilerArtifiactsChk');
+
 // Map of appearance toggles
 const appearanceToggles = [
   {
@@ -1417,7 +1427,14 @@ const appearanceToggles = [
     settingKey: 'debugMode',
     apply: (checked) => {} // it being applied is enough; no click callback is needed (can't keep the comments consistnet for too long :P)
   },
+  {
+    checkbox: simplifyCompilerArtifiactsChk,
+    settingKey: 'simplifyCompilerArtifiacts',
+    apply: (checked) => {} // it being applied is enough; no click callback is needed (can't keep the comments consistnet for too long :P) (x2)
+  },
 ];
+
+
 
 // Open modal: sync checkboxes with current settings
 configBtn.addEventListener('click', () => {
@@ -1475,10 +1492,10 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
     // reads
     level5.cond.READ_MEMORY = "35";
     level5.cond.READ_LITERAL = "32";
-    level5.cond.READ_SUBSECTION = "34";
+    level5.cond.READ_HASH = "34";
 
     // extension markers?
-    level5.cond.EXTENSION_DELIM = "28"; // not fully a read but helps with structure and is always near a READ_SUBSECTION
+    level5.cond.EXTENSION_DELIM = "28"; // not fully a read but helps with structure and is always near a READ_HASH
     // finally retired... level5.cond.UPRM = "5D"; // just the + operator but since I havent rewritten the parser to be more stack-oriented this is neccessary for now
     // EOCIs
     level5.cond.EOCI = "8F";
@@ -1554,13 +1571,32 @@ appearanceToggles.forEach(toggle => toggle.apply(level5.cond.settings[toggle.set
       "||"
   ]
 
-    level5.cond.UNARY_OPS = [ // for a future rewrite; unused rn
-      "++",
-      "--",
-      "~",
-      "!",
-      "->"
-    ]
+    level5.cond.OP_OPERAND_COUNT = {
+      "++": 1,
+      "--": 1,
+      "~": 1,
+      "!": 1,
+      "*": 2,
+      "/": 2,
+      "%": 2,
+      "+": 2,
+      "-": 2,
+      "<<": 2,
+      ">>": 2,
+      "<": 2,
+      "<=": 2,
+      ">": 2,
+      ">=": 2,
+      "==": 2,
+      "!=": 2,
+      "&": 2,
+      "|": 2,
+      "^": 2,
+      "&&": 2,
+      "||": 2,
+      "?->": 1, // considered 1 for now due to technical reasons; this'll be changed later for now though its considered 1
+      "->": 0 // same for this but 0
+    }
 
     level5.cond.dataTypes = [
       "int8", // 0 (char)
@@ -1679,7 +1715,11 @@ while (level5.cond.OPERATORS.includes(hex.slice(0, 2))) {
           [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_LITERAL', consumed]);
           if(hex.length < 8) err('Truncated LITERAL_VALUE', hex.slice(0,8));
           [hex, consumed] = $.consumeBytes(hex,4); clause.push(['LITERAL_VALUE', consumed]);
-          if(hex.length < 2) err('Unexpected EOF after LITERAL_VALUE');
+
+          if(hex.length < 2) {
+            parsedCond.push(['CONDITION', clause]);
+            return;
+          } //  err('Unexpected EOF after LITERAL_VALUE');
         
           if ($.startsWith(hex, level5.cond.READ_LITERAL)) {
             // Do NOT consume it here; let outer logic handle it
@@ -1824,9 +1864,9 @@ err('After LITERAL_VALUE expected READ_LITERAL, OPERATOR, EOCI, READ_MEMORY, or 
             [hex, consumed] = $.consumeBytes(hex,3); clause.push(['CTYPE_B', consumed]); 
             continue;
           }
-          else if($.startsWith(hex, level5.cond.READ_SUBSECTION)){
-            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_SUBSECTION', consumed]); 
-            if(hex.length < 8) err('Expected RESOURCE_ID_B after READ_SUBSECTION', hex.slice(0,8)); 
+          else if($.startsWith(hex, level5.cond.READ_HASH)){
+            [hex, consumed] = $.consumeBytes(hex,1); clause.push(['READ_HASH', consumed]); 
+            if(hex.length < 8) err('Expected RESOURCE_ID_B after READ_HASH', hex.slice(0,8)); 
             [hex, consumed] = $.consumeBytes(hex,4); clause.push(['RESOURCE_ID_B', consumed]); 
             continue;
           }
@@ -1975,7 +2015,7 @@ console.log("parsed cond", parsedCond);
     return ctypes[spaced] || null;
   }
 
-  labelForHeader = (val) => `0x${Number("0x" + String(val).replace(/\s+/g, "")).toString(16).toUpperCase()} Cond${Number("0x" + String(val).replace(/\s+/g, "")) == '0' ? " (Normal)" : (Number("0x" + String(val).replace(/\s+/g, "")) == '1' ? " (Special)" : "; This exists??")}`; 
+  labelForHeader = (val) => `0x${Number("0x" + String(val).replace(/\s+/g, "")).toString(16).toUpperCase()} Cond${Number("0x" + String(val).replace(/\s+/g, "")) == '0' ? " (Normal)" : "This exists??"}`; 
 
 function highlightPseudo(code) {
   if (!code) return '';
@@ -1989,14 +2029,14 @@ function highlightPseudo(code) {
   code = esc(code);
 
   return code.replace(
-    /\b(0x[0-9A-Fa-f]+|\d+|true|false)\b|([A-Za-z_]\w*)(?=\s*\()|\b(if|else|for|while|switch|case|break|continue|return|success|fail)\b|\/\/[^\n]*|"(?:\\.|[^"\\])*"/g,
+    /\b(0x[0-9A-Fa-f]+|\d+|true|false|null)\b|([A-Za-z_]\w*)(?=\s*\()|\b(if|else|for|while|switch|case|break|continue|return|success|fail)\b|\/\/[^\n]*|"(?:\\.|[^"\\])*"/g,
     match => {
       // Booleans
       if (/^(true|false)$/.test(match))
         return `<span class="${match}">${match}</span>`; // cmon thats a creative way to do it!
 
       // Numbers (e.g., 0xFF, 42)
-      if (/^0x/i.test(match) || /^\d+$/.test(match))
+      if (/^0x/i.test(match) || /^\d+$/.test(match) || /^null$/.test(match))
         return `<span class="accent2">${match}</span>`;
 
       //  Keywords; must be propritised over function identifiers for situations like "if ()"
@@ -2020,11 +2060,7 @@ function highlightPseudo(code) {
   );
 }
 
-
-
-
-// Updated renderParsed: generates tree + test C-like pseudo output
-function renderParsed(parsed) {
+function renderParsed(parsed, EXPECTED_COND_LENGTH = null) {
   const tree = document.getElementById('tree');
   tree.innerHTML = '';
   const pseudo = document.getElementById('pseudo');
@@ -2035,7 +2071,6 @@ function renderParsed(parsed) {
   parsed.forEach(node => {
     const type = node[0];
 
-    // --- HEADER_BLOCK (unchanged for tree) ---
     if (type === 'HEADER_BLOCK') {
       const wrap = document.createElement('div');
       wrap.className = 'node';
@@ -2047,7 +2082,7 @@ function renderParsed(parsed) {
         console.log("aeyeyya", x)
         inner.innerHTML += '<div>' + x[0] + ': <span class="label">' + 
   (x[0] === 'HEADER' 
-    ? hexSpaced(x[1]) + '<span class="small muted"> — ' + labelForHeader(hexSpaced(x[1])) + '</span>' 
+    ? hexSpaced(x[1]) //hexSpaced(x[1]) + '<span class="small muted"> — ' + labelForHeader(hexSpaced(x[1])) + '</span>'  h.dis; header txt disabled for now due to recent properties figured out
     : hexSpaced(x[1])) + 
   '</span></div>';
 
@@ -2055,12 +2090,7 @@ function renderParsed(parsed) {
       wrap.appendChild(inner);
       tree.appendChild(wrap);
 
-      // print header/condCode only once (keep as comment in pseudo)
-      if (!seenHeader) {
-    //    pseudo.textContent += '// #header ' + hexSpaced(node[1][0][1]) + '\n';
-     //   pseudo.textContent += '// #condCode ' + hexSpaced(node[1][1][1]) + '\n\n';
-        seenHeader = true;
-      }
+      if (!seenHeader) seenHeader = true;
     }
 
     // --- CONDITION (unchanged for tree) ---
@@ -2092,15 +2122,19 @@ function renderParsed(parsed) {
       tree.appendChild(wrap);
     }
 
-    // --- EOCI / AEOCI / other types still rendered in tree ---
     else if (type === 'OPERATOR') { // 68.
+      const val = node[1];
+      const lbl = labelForOperator(val); // quick QOL/bug fix: label the top-level ops (how did I even miss this....)
+    
       const wrap = document.createElement('div');
       wrap.className = 'node';
-      wrap.innerHTML = `<strong>${type}</strong>: <span class="label">${hexSpaced(node[1])}</span>`;
-      tree.appendChild(wrap);
-    }
+      wrap.innerHTML =
+        `<strong>${type}</strong>: ` +
+        `<span class="label">${hexSpaced(val)}</span>` +
+        (lbl ? ` <span class="small muted"> — ${lbl}</span>` : '');
 
-    else {
+      tree.appendChild(wrap);
+    } else {
       // Other node types: show in tree only
       const wrap = document.createElement('div');
       wrap.className = 'node small muted';
@@ -2109,12 +2143,10 @@ function renderParsed(parsed) {
     }
   });
 
-  // --- PSEUDO GENERATION ---
-  // Use level5.cond.condToC for the entire parsed structure
+  // Psuedo-C generation for RS but also to validate header values
   try {
-    const generatedPseudo = level5.cond.condToC(parsed);
+    const generatedPseudo = level5.cond.condToC(parsed, EXPECTED_COND_LENGTH);
     pseudo.innerHTML = level5.cond.settings.shouldHighlightPsuedo ? highlightPseudo(generatedPseudo) : generatedPseudo;
-
   } catch (err) {
     console.error('condToC failed:', err);
     pseudo.textContent += '/* condToC parse error */\n';
@@ -2122,46 +2154,149 @@ function renderParsed(parsed) {
 }
 
 // restored and edited
+// basic attempt at cond -> C which is (hopefully!) correctly rewritten by the time this copy is released
+level5.cond.condToC = function(parsedArray, EXPECTED_COND_LENGTH = null) {
+   function parseAsLiteralIfPossible(flat, cursor) {
+    if (cursor >= flat.length) return null;
+    const tk = String(flat[cursor][0] || '').toUpperCase();
+    const tv = flat[cursor][1];
 
-// basic attempt at cond -> C
-level5.cond.condToC = function(parsedArray) {
-  // this was so difficult to finish........ WHY LEVEL5, WH- ok no this is actually an epic, cool system I love this; GBHJKIUHGBNMOI\GRUOWRIPHRSUIZEADSLSFKNM
+    // READ_HASH + RESOURCE -> literal hex
+    if (tk === 'READ_HASH' || tk === '34') {
+      const next = flat[cursor + 1];
+      if (next && String(next[0] || '').toUpperCase().includes('RESOURCE')) {
+        const id = norm(next[1] || '');
+        if (/^[0-9A-F]{8,}$/.test(id)) {
+          return { node: { type: 'LITERAL', val: `0x${id}` }, nextIndex: cursor + 2 };
+        }
+      }
+    }
+
+    // RESOURCE token directly -> literal hex
+    if (tk.includes('RESOURCE')) {
+      const id = norm(tv || '');
+      if (/^[0-9A-F]{8,}$/.test(id)) {
+        return { node: { type: 'LITERAL', val: `0x${id}` }, nextIndex: cursor + 1 };
+      }
+    }
+
+    // READ_LITERAL + LITERAL_VALUE -> literal true/false/number
+    if (tk === 'READ_LITERAL' || tk === '32') {
+      const next = flat[cursor + 1];
+      if (next) {
+        const nk = String(next[0] || '').toUpperCase();
+        if (nk.includes('LIT')) {
+          const hex = norm(next[1] || '0');
+          const num = parseInt(hex || '0', 16);
+          const val = level5.cond._internals.numberQOL(num)
+          return { node: { type: 'LITERAL', val }, nextIndex: cursor + 2 };
+        }
+      }
+      // fallback numeric literal from raw
+      const hex = norm(tv || '0');
+      if (/^[0-9A-F]+$/.test(hex)) {
+        const num = parseInt(hex || '0', 16);
+        return { node: { type: 'LITERAL', val: String(num) }, nextIndex: cursor + 1 };
+      }
+    }
+
+    // LITERAL_VALUE alone
+    if (tk.includes('LIT')) {
+      const hex = norm(tv || '0');
+      const num = parseInt(hex || '0', 16);
+      const val = level5.cond._internals.numberQOL(num)
+      return { node: { type: 'LITERAL', val }, nextIndex: cursor + 1 };
+    }
+
+    // couldn't produce a literal
+    return null;
+  }
+
+  $("base_warn").innerHTML = '';
+
   const norm = s => String(s || '').replace(/\s+/g, '').toUpperCase();
 
-  const opMap = Object.fromEntries(level5.cond.OPERATORS.map((op, i) => [op, level5.cond.OPERATOR_LABELS[i]])); // now that the logic is fixed; this is dynamic
+  const opMap = Object.fromEntries(
+    level5.cond.OPERATORS.map((op, i) => [op, level5.cond.OPERATOR_LABELS[i]])
+  );
 
-  // New: L_OPERATORS mapping (will prefer the one on level5.cond if present)
-  const L_OPERATORS = level5.cond.L_OPERATORS || { "8F": "&&", "90": "||" };
+  const OP_OPERAND_COUNT = level5.cond.OP_OPERAND_COUNT;
+
+  const comparisonOps = new Set(['<','<=','>','>=','==','!=']);
+
+  /* ---------------------------------------------------------------------------------------------------- *
+   * Step 0: the initial parsing of headers (very shrimple; some later parsing happens near the end tho)
+   * --------------------------------------------------------------------------------------------------- */
+
+  const outLines = [];
+  let COND_LENGTH_VAL = null;
+  let STACK_PRM_VAL = null;
+
+  outLines.push(`// parsed with yw-cond version: v${level5.cond.ver}`);
+
+
+  for (const blk of parsedArray) {
+    if (String(blk[0]).toUpperCase() !== 'HEADER_BLOCK') continue;
+    for (const it of blk[1] || []) {
+      const key = String(it[0]).toUpperCase();
+      const val = it[1];
+      if (key === 'COND_LENGTH') COND_LENGTH_VAL = Number("0x" + val);
+      if (key === 'STACK_PRM') STACK_PRM_VAL = Number("0x" + val);
+      outLines.push(`// ${it[0]}: ${it[1]}`);
+      if (it[0] === 'STACK_PRM') outLines.push('');
+    }
+  }
+
+  /* ------------------------------------------------------------
+   * STEP 1: FLATTEN EVERYTHING (FIX #1)
+   * ------------------------------------------------------------ */
+
+  const flat = [];
+  for (const blk of parsedArray) {
+    const key = String(blk[0]).toUpperCase();
+    if (key === 'HEADER_BLOCK') continue;
+    if (key === 'CONDITION') flat.push(...(blk[1] || []));
+    else flat.push(blk);
+  }
+
+  if (EXPECTED_COND_LENGTH != null && COND_LENGTH_VAL != null) {
+    const expected = EXPECTED_COND_LENGTH.toUpperCase();
+    const actual = COND_LENGTH_VAL
+      .toString(16)
+      .padStart(2, '0')
+      .toUpperCase();
+    
+    if (expected !== actual) {
+      $("base_warn").innerHTML +=
+        `<br/>Expected COND_LENGTH ${expected} does not match COND_LENGTH ${actual}.`;
+    }
+  }
+
+  /* ------------------------------------------------------------------------------------------------------------------------------
+   * Step 2: lex tokens into a value or op (I totally didnt search on google if lex was a gramatically correct noun on it's own)
+   * (just the same old parseValue logic)
+   * ---------------------------------------------------------------------------------------------------------------------------- */
+
+  let READ_MEMORY_COUNT = 0;
+  let OPERATOR_COUNT = 0;
+  let LITERAL_VALUE_NON_PARAM_COUNT = 0;
+  let _parsingFunctionParams = false;
+
+  const tokens = [];
 
   function mapOperator(hexOrSymbol) {
-    if (hexOrSymbol === undefined || hexOrSymbol === null) return '(uh oh! sounds like a bug :0 )';
+    if (!hexOrSymbol) return '??';
     const s = String(hexOrSymbol);
     if (/^[\!\=\&\|\+\-\*\/<>%\^~?:]+$/.test(s)) return s;
-    const h = norm(s);
-    return opMap[h] || s;
+    return opMap[norm(s)] || s;
   }
 
-  // render helpers
-  function renderValue(node) {
-    if (!node) return '/*null*/';
-    if (typeof node === 'string') return node;
-    if (node.type === 'LITERAL') return node.val;
-    if (node.type === 'GROUP' && node.kind === 'ADDITION') return '(' + node.items.map(renderValue).join(' ??? ') + ')';
-    if (node.type === 'FUNCTION') {
-      const args = node.params.map(p => p == null ? '/*?*/' : renderValue(p)).join(', ');
-      if(level5.cond.CExpressionInternalMappings[node.id.match(/../g).join(" ")]) return level5.cond.CExpressionInternalMappings[node.id.match(/../g).join(" ")] + `(${args})`;
-      return `FUNC_${node.id}(${args})`;
-    }
-    if (node.type === 'EXPR') return node.expr;
-    return String(node);
-  }
-
-  // parseValue consumes tokens starting at i; returns { node, nextIndex }
+   // parseValue consumes tokens starting at i; returns { node, nextIndex }
   function parseValue(flat, i) {
     const key = String(flat[i][0] || '').toUpperCase();
     const raw = flat[i][1];
 
-    // READ_LITERAL + optional LITERAL_VALUE
+    // READ_LITERAL then a LITERAL_VALUE
     if (key === 'READ_LITERAL' || key === '32') {
       const next = flat[i + 1];
       if (next) {
@@ -2170,12 +2305,14 @@ level5.cond.condToC = function(parsedArray) {
           const hex = norm(next[1] || '0');
           const num = parseInt(hex || '0', 16);
           const val = level5.cond._internals.numberQOL(num);
+          if(!_parsingFunctionParams) LITERAL_VALUE_NON_PARAM_COUNT++;
           return { node: { type: 'LITERAL', val }, nextIndex: i + 2 };
         }
       }
       const hex = norm(raw || '0');
       const num = parseInt(hex || '0', 16);
-      const val = level5.cond._internals.numberQOL(num)
+      const val = level5.cond._internals.numberQOL(num); // missed a semicolon here for a WHILE :0 good thing ASI exists lol
+      if(!_parsingFunctionParams) LITERAL_VALUE_NON_PARAM_COUNT++;
       return { node: { type: 'LITERAL', val }, nextIndex: i + 1 };
     }
 
@@ -2183,22 +2320,25 @@ level5.cond.condToC = function(parsedArray) {
     if (key.includes('LIT')) {
       const hex = norm(raw || '0');
       const num = parseInt(hex || '0', 16);
-      const val = level5.cond._internals.numberQOL(num)
+      const val = level5.cond._internals.numberQOL(num); // here too!?
+      if(!_parsingFunctionParams) LITERAL_VALUE_NON_PARAM_COUNT++;
       return { node: { type: 'LITERAL', val }, nextIndex: i + 1 };
     }
 
-    // READ_SUBSECTION: by default may be a nested FUNCTION(resource), but caller can request literal parsing
-    if (key === 'READ_SUBSECTION' || key === '34') {
+    // READ_HASH: by default may be a nested FUNCTION(resource), but caller can request literal parsing
+    if (key === 'READ_HASH' || key === '34') {
       const next = flat[i + 1];
       if (next && String(next[0] || '').toUpperCase().includes('RESOURCE')) {
         const id = norm(next[1] || '');
         if (/^[0-9A-F]{8,}$/.test(id)) return { node: { type: 'FUNCTION', id, params: [] }, nextIndex: i + 2 };
       }
+      if(!_parsingFunctionParams) LITERAL_VALUE_NON_PARAM_COUNT++;
       return { node: { type: 'LITERAL', val: 'SUBSECTION_UNKNOWN' }, nextIndex: i + 1 };
     }
 
-    // READ_MEMORY: function/resource detection; this was the BIGGEST PAIN EVER TO IMPLEMENTBDFGUIJADFILHFDS\UD\FSIH;IDSFOUOUDSFHUPSDFOUHDSFBSFUAUSDHIADFHOIHFDS
+    // READ_MEMORY: function detection/handling; this was the BIGGEST PAIN EVER TO IMPLEMENTBDFGUIJADFILHFDS\UD\FSIH;IDSFOUOUDSFHUPSDFOUHDSFBSFUAUSDHIADFHOIHFDS
     if (key === 'READ_MEMORY' || key === '35') {
+      READ_MEMORY_COUNT++;
       // locate resource and ctype nearby
       let ridIdx = -1, ctypeIdx = -1;
       for (let j = i + 1; j <= i + 6 && j < flat.length; j++) {
@@ -2215,6 +2355,7 @@ level5.cond.condToC = function(parsedArray) {
         if (ctypeRaw && !level5.cond.isFunction(ctypeRaw)) {
           const lit = { type: 'LITERAL', val: `0x${resourceId}` };
           const nextIndex = Math.max(ridIdx, ctypeIdx) + 1;
+          if(!_parsingFunctionParams) LITERAL_VALUE_NON_PARAM_COUNT++;
           return { node: lit, nextIndex };
         }
 
@@ -2227,6 +2368,7 @@ level5.cond.condToC = function(parsedArray) {
         const funcNode = { type: 'FUNCTION', id: resourceId, params: new Array(paramCount).fill(null) };
         let cursor = Math.max(ridIdx, ctypeIdx !== -1 ? ctypeIdx : ridIdx) + 1;
 
+        _parsingFunctionParams = true;
         for (let p = 0; p < paramCount; p++) {
           if (cursor >= flat.length) break;
 
@@ -2277,6 +2419,7 @@ level5.cond.condToC = function(parsedArray) {
             }
           }
         }
+        _parsingFunctionParams = false;
         return { node: funcNode, nextIndex: cursor };
       }
 
@@ -2294,71 +2437,190 @@ level5.cond.condToC = function(parsedArray) {
     }
 
     // fallback literal
+    if (!_parsingFunctionParams) LITERAL_VALUE_NON_PARAM_COUNT++;
     return { node: { type: 'LITERAL', val: String(raw) }, nextIndex: i + 1 };
   } // end parseValue
 
-  // helper: try to parse a literal form (resource/subsection/literal) starting at cursor
-  // returns { node, nextIndex } or null if it couldn't recognize a simple literal
-  function parseAsLiteralIfPossible(flat, cursor) {
-    if (cursor >= flat.length) return null;
-    const tk = String(flat[cursor][0] || '').toUpperCase();
-    const tv = flat[cursor][1];
+  for (let i = 0; i < flat.length;) {
+    const key = String(flat[i][0] || '').toUpperCase();
+    const val = flat[i][1];
 
-    // READ_SUBSECTION + RESOURCE -> literal hex
-    if (tk === 'READ_SUBSECTION' || tk === '34') {
-      const next = flat[cursor + 1];
-      if (next && String(next[0] || '').toUpperCase().includes('RESOURCE')) {
-        const id = norm(next[1] || '');
-        if (/^[0-9A-F]{8,}$/.test(id)) {
-          return { node: { type: 'LITERAL', val: `0x${id}` }, nextIndex: cursor + 2 };
-        }
-      }
+    // OPERATOR
+    if (key === 'OPERATOR' || /^[0-9A-F]{2}$/.test(key)) {
+      OPERATOR_COUNT++;
+      tokens.push({
+        type: 'OPERATOR',
+        symbol: mapOperator(val ?? key)
+      });
+      i++;
+      continue;
     }
 
-    // RESOURCE token directly -> literal hex
-    if (tk.includes('RESOURCE')) {
-      const id = norm(tv || '');
-      if (/^[0-9A-F]{8,}$/.test(id)) {
-        return { node: { type: 'LITERAL', val: `0x${id}` }, nextIndex: cursor + 1 };
-      }
-    }
-
-    // READ_LITERAL + LITERAL_VALUE -> literal true/false/number
-    if (tk === 'READ_LITERAL' || tk === '32') {
-      const next = flat[cursor + 1];
-      if (next) {
-        const nk = String(next[0] || '').toUpperCase();
-        if (nk.includes('LIT')) {
-          const hex = norm(next[1] || '0');
-          const num = parseInt(hex || '0', 16);
-          const val = level5.cond._internals.numberQOL(num)
-          return { node: { type: 'LITERAL', val }, nextIndex: cursor + 2 };
-        }
-      }
-      // fallback numeric literal from raw
-      const hex = norm(tv || '0');
-      if (/^[0-9A-F]+$/.test(hex)) {
-        const num = parseInt(hex || '0', 16);
-        return { node: { type: 'LITERAL', val: String(num) }, nextIndex: cursor + 1 };
-      }
-    }
-
-    // LITERAL_VALUE alone
-    if (tk.includes('LIT')) {
-      const hex = norm(tv || '0');
-      const num = parseInt(hex || '0', 16);
-      const val = level5.cond._internals.numberQOL(num)
-      return { node: { type: 'LITERAL', val }, nextIndex: cursor + 1 };
-    }
-
-    // couldn't produce a literal
-    return null;
+    // VALUE
+    const res = parseValue(flat, i);
+    tokens.push({ type: 'VALUE', node: res.node });
+    i = res.nextIndex;
   }
 
-  // helper: consume valueStack for operator (last=right, second-last=left, group for 3+)
-  const comparisonOps = new Set(['==','!=','<','<=','>','>=']);
+  /* --------------------------------------------------------------
+   * STEP 3: Main RPN Evaluation (Where most of the stuff happens)
+   * ------------------------------------------------------------ */
 
-  function formatIfBlocksSafe(code) {
+  const stack = [];
+
+  for (const t of tokens) {
+    if (t.type === 'VALUE') {
+      stack.push(t.node);
+      continue;
+    }
+
+    const op = t.symbol;
+    const argc = OP_OPERAND_COUNT[op];
+
+    if (argc == null) {
+      $("base_warn").innerHTML += `<br/>Unknown operator ${op}`;
+      continue;
+    }
+
+    const args = [];
+    let missing = 0;
+    
+    for (let i = 0; i < argc; i++) {
+      if (stack.length > 0) {
+        args.unshift(stack.pop());
+      } else {
+        missing++;
+      }
+    }
+
+    // pad missing operands on the left
+    for (let i = 0; i < missing; i++) {
+      args.unshift({ type: 'LITERAL', val: 'null' });
+    }
+    
+    if (missing > 0) {
+      $("base_warn").innerHTML +=
+        `<br/>Operator operand mismatch: '${op}' expected ${argc} operand(s), ` +
+        `but ${argc - missing} found. Padding with null.`;
+    }
+
+    stack.push({
+      type: 'EXPR',
+      op,
+      args
+    });
+  }
+
+  if (stack.length !== 1) {
+    $("base_warn").innerHTML += `<br/>Invalid RPN: stack ended with ${stack.length} values`;
+  }
+
+
+  function isTrueLiteral(node) { // basic helper because like master oogway didn't say... I cant think of anything to put here
+    if (!node || node.type !== 'LITERAL') return false;
+    
+    if (level5.cond.settings.showBool) {
+      return node.val === 'true';
+    }
+    return node.val === '1';
+  }
+
+  function simplify(node) {
+    if (!node || node.type !== 'EXPR') return node;
+    
+    node.args = node.args.map(simplify);
+    if (node.op === '&&') {
+      const [a, b] = node.args;
+
+      if (isTrueLiteral(a)) return b; // helper function call to account for level5.cond.settings.showBool
+      if (isTrueLiteral(b)) return a;
+    }
+
+
+    return node;
+  }
+
+  /* ---------------------------------------------------------------------
+   * step 3.5: simplify stack if enabled. (Hopefully not extremely buggy)
+   * ------------------------------------------------------------------ */
+
+  let root = stack[0] || { type: 'LITERAL', val: 'null' };
+
+  if (level5.cond.settings.simplifyCompilerArtifiacts) {
+    root = simplify(root);
+  }
+
+
+  /* ---------------------------------------------------------------
+   * step 4: render the AST into the actual C
+   * ------------------------------------------------------------ */
+
+  function render(node) {
+    if (!node) return '/*null*/';
+    if (node.type === 'LITERAL') return node.val; // if it's a literal value then just return it
+    if (node.type === 'FUNCTION') {
+      const args = node.params.map(render).join(', ');
+      const spacedId = node.id.match(/../g)?.join(' ') ?? node.id;
+      
+      const mapped =
+        level5.cond.CExpressionInternalMappings?.[spacedId];
+      
+      if (mapped) {
+        return `${mapped}(${args})`;
+      }
+      
+      return `FUNC_${node.id}(${args})`;
+    }
+
+    if (node.type === 'EXPR') {
+      if (node.args.length === 1) { // unary
+        return `(${node.op}${render(node.args[0])})`;
+      }
+      if (node.args.length === 2) { // binary
+        return `(${render(node.args[0])} ${node.op} ${render(node.args[1])})`; // brackets for implicit
+      }
+    }
+    return '/*?*/';
+  }
+
+  const expr = render(root);
+
+  /* -------------------------------------------------------------------------------------------
+   * step 5: output the finalised control flow and dump debug data if debug mode is activated
+   * ---------------------------------------------------------------------------------------- */
+
+  outLines.push(`if (${expr}) {`);
+  outLines.push(`    success();`);
+  outLines.push(`}`);
+  outLines.push(`fail();`);
+
+  if (level5.cond.settings.debugMode) {
+    outLines.unshift('// --- DEBUG DUMP ---');
+    outLines.unshift('// Tokens: ' + JSON.stringify(tokens));
+    outLines.unshift('// AST: ' + JSON.stringify(root, null, 2));
+    outLines.unshift('// ------------------');
+  }
+
+  /* --------------------------------
+   * step 6: validate header data
+   * ----------------------------- */
+
+  let EXPECTED_STACK_PRM =
+    (((READ_MEMORY_COUNT + LITERAL_VALUE_NON_PARAM_COUNT) * 2) + OPERATOR_COUNT)
+      .toString(16).padStart(2, '0').toUpperCase();
+
+  if (STACK_PRM_VAL != null) {
+    const actual = STACK_PRM_VAL.toString(16).padStart(2, '0').toUpperCase();
+    if (EXPECTED_STACK_PRM !== actual) {
+      $("base_warn").innerHTML += `<br/>Expected STACK_PRM ${EXPECTED_STACK_PRM} but got ${actual}`;
+    }
+  }
+
+  /* ------------------------------------------------------------
+   * final step (7): just the final formatting stuff
+   * --------------------------------------------------------- */
+
+     function formatIfBlocksSafe(code) {
     let result = '';
     let i = 0;
     let temp = level5.cond.settings.shortenIfBlocks; // just in the EXTREMELY off case that somehow it gets changed mid execution
@@ -2409,258 +2671,11 @@ level5.cond.condToC = function(parsedArray) {
 
     return temp ? result : code;
   }
-function renderValueStackAsClause(stack) {
-  if (stack.length === 0) return '(err:null00)';
-  if (stack.length === 1) return `(${renderValue(stack[0])})`;
-  if (stack.length === 2) {
-    const r = stack.pop(), l = stack.pop();
-    return `(${renderValue(l)} ?? ${renderValue(r)})`;
-  }
-  const r = stack.pop();
-  const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: stack.splice(0) };
-  return `(${renderValue(leftGroup)} == ${renderValue(r)})`;
-}
 
+  const normalized = outLines.map(l => l.replace(/\r?\n/g, '') + '\n').join('');
+  return formatIfBlocksSafe(normalized).replace(/[ \t]+$/gm, '') + '\n';
+};
 
-  function consumeForOperator(valueStack, opSymbol) {
-    const len = valueStack.length;
-    let leftNode, rightNode;
-
-    if (len === 0) {
-      leftNode = { type: 'LITERAL', val: '0' };
-      rightNode = { type: 'LITERAL', val: '1' };
-      valueStack.length = 0;
-    } else if (len === 1) {
-      leftNode = valueStack.pop();
-      rightNode = { type: 'LITERAL', val: '1' };
-    } else if (len === 2) {
-      rightNode = valueStack.pop();
-      leftNode = valueStack.pop();
-    } else {
-      rightNode = valueStack.pop();
-      leftNode = { type: 'GROUP', kind: 'ADDITION', items: valueStack.splice(0) };
-    }
-
-    const exprStr = `(${renderValue(leftNode)} ${opSymbol} ${renderValue(rightNode)})`;
-    return { type: 'EXPR', expr: exprStr, leftNode, rightNode };
-  }
-
-    // helper: finalize the current valueStack into a single clause (if any)
-  function finalizeValueStackIntoClause() {
-    if (valueStack.length === 0) return;
-    if (valueStack.length === 1) {
-      clauses.push(`(${renderValue(valueStack[0])})`);
-    } else if (valueStack.length === 2) {
-      const r = valueStack.pop();
-      const l = valueStack.pop();
-      clauses.push(`(${renderValue(l)} ?? ${renderValue(r)})`);
-    } else {
-      const r = valueStack.pop();
-      // take the entire remaining stack as the left-side group
-      const leftGroup = { type: 'GROUP', kind: 'ADDITION', items: valueStack.splice(0) };
-      clauses.push(`(${renderValue(leftGroup)} ?? ${renderValue(r)})`);
-    }
-    // clear the stack
-    valueStack.length = 0;
-  }
-
-
-  // Step 1: header comments
-  const outLines = [];
-  outLines.push(`// parsed with yw-cond version: v${level5.cond.ver}`); // r.
-
-  for (const blk of parsedArray) {
-    if (String(blk[0] || '').toUpperCase() === 'HEADER_BLOCK') {
-     // outLines.push('// Header');
-      for (const it of (blk[1] || [])) {
-        outLines.push(`// ${it[0]}: ${it[1]}`);
-        if( it[0] == 'STACK_PRM') outLines.push(''); // r3-4/5. (sp2) seperate headers and stuff; im too lazy to implement this properly
-      }
-    }
-  }
-
-  // Step 2: process top-level entries, building clauses and nested structure like v6
-  const clauses = [];
-  const clauseCombiners = [];
-  const valueStack = [];
-
-  for (let topIdx = 0; topIdx < parsedArray.length; topIdx++) {
-    const top = parsedArray[topIdx];
-    const topKey = String(top[0] || '').toUpperCase();
-
-    if (topKey === 'HEADER_BLOCK') continue;
-
-    if (topKey === 'EOCI' || topKey === 'AEOCI') {
-      clauseCombiners.push(mapOperator(top[1]));
-      continue;
-    }
-
-    if (topKey === 'CONDITION') {
-      const inner = top[1] || [];
-      let i = 0;
-      while (i < inner.length) {
-        const key = String(inner[i][0] || '').toUpperCase();
-        const val = inner[i][1];
-
-        if (key === 'EXTENSION_DELIM' || String(val) === '28') { i++; continue; }
-
-        // new logic: detect if this operator token actually maps to an L_OPERATOR hex -> treat as top-level combiner
-if (key === 'OPERATOR' || (/^[0-9A-F]{2}$/.test(key) && opMap[norm(key)])) {
-  // We're INSIDE a cond: always treat this as a normal operator,
-  // not a top-level clause combiner (L_OPERATORS are only for top-level tokens).
-  // Determine the textual operator to use (prefer explicit symbol in val if present).
-  let rawOp = null;
-
-  if (key === 'OPERATOR') {
-    // operator token; val may be a hex like '8F' or a symbol like '>='
-    rawOp = (val === undefined || val === null) ? key : String(val);
-  } else {
-    // key itself is a hex token like '8F' or a symbol string
-    rawOp = key;
-  }
-
-  // mapOperator handles hex or symbol forms
-  const opSymbol = mapOperator(rawOp);
-
-  // comparison ops terminate the current valueStack into a clause
-  if (comparisonOps.has(opSymbol)) {
-    const node = consumeForOperator(valueStack, opSymbol);
-    clauses.push(node.expr);
-    valueStack.length = 0;
-    i++;
-    continue;
-  } else {
-    // other operators produce an expression node pushed back onto the value stack
-    const node = consumeForOperator(valueStack, opSymbol);
-    valueStack.push(node);
-    i++;
-    continue;
-  }
-}
-
-
-        // otherwise parse a value
-        const res = parseValue(inner, i);
-        valueStack.push(res.node);
-        i = res.nextIndex;
-      }
-
-      // --- finalize this CONDITION into a single clause and clear the valueStack ---
-
-
-      continue;
-    }
-
-    // stray OPERATOR at top - finalize any pending values into a clause first,
-    // then treat the token as a clause-combiner (may come from L_OPERATORS).
-    if (topKey === 'OPERATOR') {
-      // finalize any pending expression(s) into a clause BEFORE handling this top-level operator
-      finalizeValueStackIntoClause();
-
-      // Now map the top-level operator token into a combiner (prefer explicit L_OPERATORS mapping)
-      let topHex = null;
-      if (top[1] && /^[0-9A-F]{2}$/i.test(String(top[1]))) topHex = norm(top[1]);
-      if (topHex && L_OPERATORS[topHex]) {
-        clauseCombiners.push(L_OPERATORS[topHex]);
-      } else {
-        clauseCombiners.push(mapOperator(top[1]));
-      }
-      continue;
-    }
-
-
-
-  }
-
-  // finalize leftover valueStack as a clause if present
-  finalizeValueStackIntoClause();
-// 341.
-
-  // render clauses: nested ifs on && (default)  // outLines.push('// Condition'); ab.
-if (clauses.length === 0) {
-  outLines.push('if (null) {', '    success();', '}');
-  outLines.push('fail();'); // little last minute patch :3
-
-  // --- DEBUG DUMP ---
-  if (level5.cond.settings.debugMode) {
-    outLines.unshift('// --- DEBUG DUMP ---');
-    outLines.unshift('// Clause Combiners: ' + JSON.stringify(typeof clauseCombiners == 'undefined' ? ['En inglés lo llamamos un problema de habilidad.'] : clauseCombiners)); // too lazy to check if it's defined at this point; dont mind the spanish I just wanted to troll :P
-    outLines.unshift('// Clauses: ' + JSON.stringify(typeof clauses == 'undefined' ? ['En inglés lo llamamos un problema de habilidad.'] : clauses));
-    outLines.unshift('// Parsed Array: ' + JSON.stringify(parsedArray, null, 2));
-    outLines.unshift('// ------------------');
-  }
-
-  // Normalize lines: ensure proper line endings
-  const normalized = outLines.map(line => line.replace(/\r?\n/g, '') + '\n').join('');
-
-  // Apply formatting safely and strip trailing whitespace
-  const formatted = formatIfBlocksSafe(normalized).replace(/[ \t]+$/gm, '') + '\n';
-
-  return formatted;
-}
-
-
-const allAnd = clauseCombiners.length === 0 || clauseCombiners.every(c => c === '&&');
-if (allAnd) {
-  for (let k = 0; k < clauses.length; k++) {
-    const ind = '    '.repeat(k);
-    outLines.push(`${ind}if ${clauses[k]} {`);
-  }
-  outLines.push('    '.repeat(clauses.length) + 'success();');
-  for (let k = 0; k < clauses.length; k++) {
-    const ind = '    '.repeat(clauses.length - 1 - k);
-    outLines.push(`${ind}}`);
-  }
-  outLines.push('fail();'); // little last minute patch :3
-
-  // --- DEBUG DUMP ---
-  if (level5.cond.settings.debugMode) {
-    outLines.unshift('// --- DEBUG DUMP ---');
-    outLines.unshift('// Clause Combiners: ' + JSON.stringify(clauseCombiners));
-    outLines.unshift('// Clauses: ' + JSON.stringify(clauses));
-    outLines.unshift('// Parsed Array: ' + JSON.stringify(parsedArray, null, 2));
-    outLines.unshift('// ------------------');
-  }
-
-  // Normalize lines: ensure proper line endings
-  const normalized = outLines.map(line => line.replace(/\r?\n/g, '') + '\n').join('');
-
-  // Apply formatting safely and strip trailing whitespace
-  const formatted = formatIfBlocksSafe(normalized).replace(/[ \t]+$/gm, '') + '\n';
-
-  return formatted;
-}
-
-
-  // otherwise combine into single expression
-  let expr = clauses[0];
-  for (let idx = 0; idx < clauses.length - 1; idx++) {
-    const comb = clauseCombiners[idx] || '?&?&'; // ?-1
-    expr = `(${expr} ${comb} ${clauses[idx + 1]})`;
-  }
-  outLines.push(`if ${expr} {`, '    success();', '}');
-  outLines.push('fail();'); // little last minute patch :3
-  if (level5.cond.settings.debugMode) {
-    outLines.unshift('// --- DEBUG DUMP ---');
-    outLines.unshift('// Clause Combiners: ' + JSON.stringify(clauseCombiners));
-    outLines.unshift('// Clauses: ' + JSON.stringify(clauses));
-    outLines.unshift('// Parsed Array: ' + JSON.stringify(parsedArray, null, 2));
-    outLines.unshift('// ------------------');
-  }
-  // Ensure consistent line separation even in minimal/invalid conds
-const joined = outLines.join('\n');
-
-// Guarantee at least one newline at the end for clean output
-// Ensure each line is properly terminated with a newline
-const normalized = outLines.map(line => line.replace(/\r?\n/g, '') + '\n').join('');
-
-// Apply formatting for if blocks and strip trailing whitespace
-const formatted = formatIfBlocksSafe(normalized).replace(/[ \t]+$/gm, '') + '\n';
-
-return formatted;
-
-// r3-3. (diff)
-}
 
     level5.cond._internals.hexToBase64 = function(hexString) {
       // Remove all spaces
@@ -2714,6 +2729,7 @@ return formatted;
                       'AAAAABgFNewt/OYACgEoAAYCNMIlk98yAAAAAXg=', /* lucy */
                       'AAAAAF0jMgAAAAE1uRk22gABADIAAYagcY81Ju95yAABADIAAAACeY8yAAAAAY8yAAAAATXsLfzmAAoBKAAGAjRKy92MMgAAAAF4jzUm73nIAAEAMgAAAAJ4jzIAAAABj5A=', /* same but for nate's grandma */
                       'AAAAAF0jMgAAAAEyAAAnVjW5GTbaAAEAb481uRk22gABADIAACdqb48yAAAAAY8yAAAAATW5GTbaAAEAMgABEaJ4jzUqPUVDAAoBKAAGAjSSINwnMgAAAAF5jzIAAAABj5A=', /* uptown springdale oneplace */
+                      'AAAAAEgXMgAAAAE1Kj1FQwAKASgABgI0RKDKdjIAAAABeI8yAAAAAY8yAAAAATUqPUVDAAoBKAAGAjTFwl4FMgAAAAF4jzIAAAABj5A=' /* data/res/gym > gym_config_*.cfg.bin > GYM_BOSS_SINGLE_INFO_22 */
                     ];
 
 
@@ -2721,7 +2737,7 @@ return formatted;
 
     function log(msg, kind){ const l = el('log'); const pfx = kind==='error'?'Error: ': kind==='warn'?'Warning: ': ''; l.textContent = pfx + msg; }
 
-    function doParseFromInput(text){ try{ const hex = inputToHexString(text); if(!hex) {  el('input').value=''; el('tree').innerHTML=''; el('pseudo').textContent=''; el('log').textContent='Ready.'; return; } const parsed = level5.cond.parsev3Cond(hex); renderParsed(parsed); log('Parsed OK.'); } catch(e){ log(e.message, 'error'); console.error(e); } }
+    function doParseFromInput(text){ if((text?.trim() ?? text) == '0') {doParseFromInput(); /* clear/flush the UI */ log("Warning: 0 is not a valid CExpression. If this appears in place of a cond, the check will always succeed."); return;}; try{ const hex = inputToHexString(text); if(!hex) {  el('input').value=''; el('tree').innerHTML=''; el('pseudo').textContent=''; el('log').textContent='Ready.'; el('base_warn').innerHTML = ''; return; }; let EXPECTED_COND_LENGTH = ((hex.replace(/\s+/g, "").length / 2) - 5).toString(16).toUpperCase().padStart(2, '0'); const parsed = level5.cond.parsev3Cond(hex); renderParsed(parsed, EXPECTED_COND_LENGTH); log('Parsed OK.'); } catch(e){ log(e.message, 'error'); console.error(e); } }
 
 
     el('parseBtn').addEventListener('click', ()=> doParseFromInput(el('input').value));
@@ -2799,7 +2815,7 @@ const mergeInputB = $('mergeInputB');
 mergeBtn.addEventListener('click', () => mergeModal.showModal());
 mergeCancelBtn.addEventListener('click', () => mergeModal.close());
 
-// Normalizes hex/base64 → upper-case continuous hex
+// Normalizes hex/base64 -> upper-case continuous hex
 function normalizeCondInput(raw) {
     const t = raw.trim();
     if (!t) return "";
@@ -2833,19 +2849,13 @@ function mergeConds(hexA, hexB, mode = "AND") {
     // length uint16 (bytes [3] & [4])
     let lenA = (parseInt(a[3],16) << 8) | parseInt(a[4],16);
     let lenB = (parseInt(b[3],16) << 8) | parseInt(b[4],16);
-    let mergedLen = lenA;
+    let mergedLen = lenA + lenB;
 
-    if (lenA < 0xFFFF) {
-        mergedLen = lenA + lenB; // if < 0xFFFF then add the lengths
-    }
+    if (mode === "NAND") mergedLen++; // increase by 1 if NAND mode to account for the extra ! (logical negation op) that will be added later
+    mergedLen = Math.min(mergedLen, 0xFFFF); // clamp to 2 bytes
 
-    // NAND: +1 BEFORE 0xF0 clamp
-    if (mode === "NAND") mergedLen++; // increase by 1 if NAND mode to account for the extra ! (logical negation op)
-
-    if (mergedLen > 0xFFFF) mergedLen = 0xFFFF;  // if > 0xF0 set to 0xF0
     a[3] = ((mergedLen >> 8) & 0xFF).toString(16).toUpperCase().padStart(2,"0"); // edit byteA
     a[4] = (mergedLen & 0xFF).toString(16).toUpperCase().padStart(2,"0"); // edit byteB
-
 
     // --- 6th byte (weird stack byte thingy lol) ---
     let byte6_A = parseInt(a[5], 16);
@@ -2857,7 +2867,7 @@ function mergeConds(hexA, hexB, mode = "AND") {
     // if NAND, add an EXTRA 1 to account for the extra ! op (logical negation)
     if (mode === "NAND") merged6++;
 
-    if (merged6 > 0xFF) merged6 = 0xFF; // handle 0xFF edge case just in case (dont know what would/should even happen ina  similar case to this byte but even conds like a page long aren't long enough to have a stack byte > 0xFF)
+    merged6 = Math.min(merged6, 0xFF); // handle 0xFF edge case just in case (dont know what would/should even happen ina  similar case to this byte but even conds like a page long aren't long enough to have a stack byte > 0xFF)
     a[5] = merged6.toString(16).toUpperCase().padStart(2,"0");
 
     // --- Mode -> operator byte ---
