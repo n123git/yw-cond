@@ -139,11 +139,15 @@ READ_FUNCTION
 
 * Always followed by a **32-bit integer** (but may also be used for 16-bit, 8-bit, or boolean values, in which case it will still be padded to 4 bytes).
 * Values are **big-endian**.
+* Pushes an integer of type 4 (int32)
 
-### 4.3 READ_HASH
+### 4.3 READ_FLOAT
+* Pushes an IEEE-754 (standard float32) float of type 7 (float32)
+* Very rare.
 
-* Always follows an READ_PARAM/CTYPE combination.
-* Represents a smaller section of memory or another value block.
+### 4.4 READ_HASH
+* Pushes an integer of type 4 (int32)
+  * Used for IDs hence the name `READ_HASH`
 
 ## 5. **Internal Data Types**
 
