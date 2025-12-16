@@ -17,15 +17,15 @@ Examples of how the games use conds can be shown below:
 
 # CExpression (Cond) System Documentation
 
-The **CExpression**, or **Cond system**, is a proprietary (usually Base64-encoded) system used for evaluating runtime conditions using RPN (Reverse Polish Notation); it contains *zero* or more conditions which consist of:
+The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as conds. These contains *one* or more conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
-  * Operators (arithmetic, logical (sometimes used as structural), bitwise, and some control flow)
+  * Operators (arithmetic, logical, bitwise, and control flow ops)
 
 ## 1. **Cond Structure**
 
-Each Cond begins with a header section composed of a **3-byte header** and a **3-byte COND_CODE**.
-> Note: This is *PER-COND as a whole, NOT* per condition.
+Each Cond begins with a header section composed of a **3-byte header**, a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
+> Note: This is *PER-COND as a whole*
 
 ### 1.1 Header (3 bytes)
 Previously, the header was assumed to always be a **4** byte constant of `00 00 00 00`, with the purpose of serving as an integrity check. But recent developements have shown that the header is composed of a uint16 and uint8 value:
@@ -51,12 +51,13 @@ This byte known as `STACK_PRM` is equal to the amount of top-level values multip
 
 ### 2.1 Reads
 
-| Type            | Hex Code | Description                                         |
-| --------------- | -------- | --------------------------------------------------- |
-| READ_LITERAL    | `32`     | Pushes an integer of type 4.                        |
-| READ_FLOAT      | `33`     | Pushes an IEEE 754 float of type 6.                 |
-| READ_HASH       | `34`     | Similar to a READ_LITERAL but reads a hash instead. |
-| READ_FUNCTION   | `35`     | Reads and pushes a function.                        |
+| Type            | Hex Code | Description                                                     |
+| --------------- | -------- | --------------------------------------------------------------- |
+| READ_PARAM      | `28`     | Reads a param withan a READ_FUNCTION call. Followed by a CTYPE. |
+| READ_LITERAL    | `32`     | Pushes an integer of type 4.                                    |
+| READ_FLOAT      | `33`     | Pushes an IEEE 754 float of type 6.                             |
+| READ_HASH       | `34`     | Similar to a READ_LITERAL but reads a hash instead.             |
+| READ_FUNCTION   | `35`     | Reads and pushes a function. Followed by a CTYPE.               |
 
 ### 2.2 Special Markers
 
@@ -162,7 +163,7 @@ These data types are **never directly referenced in the CExpression itself** but
 ---
 
 ## 6. **CTypes**
-CTypes are **3-byte descriptors** representing properties of data types used in the engine.
+CTypes are **3-byte descriptors** representing properties of values used in the CExpression format.
 
 | Byte | Purpose                |
 | ---- | ---------------------- |
