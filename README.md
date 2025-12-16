@@ -51,17 +51,18 @@ This byte known as `STACK_PRM` is equal to the amount of top-level values multip
 
 ### 2.1 Reads
 
-| Type            | Hex Code | Description                       |
-| --------------- | -------- | --------------------------------- |
-| READ_MEMORY     | `35`     | Reads a memory resource           |
-| READ_LITERAL    | `32`     | Pushes a literal value (constant) |
-| READ_HASH | `34`     | Similar to a READ_LITERAL but reads a hash instead. |
+| Type            | Hex Code | Description                                         |
+| --------------- | -------- | --------------------------------------------------- |
+| READ_LITERAL    | `32`     | Pushes an integer of type 4.                        |
+| READ_FLOAT      | `33`     | Pushes an IEEE 754 float of type 6.                 |
+| READ_HASH       | `34`     | Similar to a READ_LITERAL but reads a hash instead. |
+| READ_FUNCTION   | `35`     | Reads and pushes a function.                        |
 
 ### 2.2 Special Markers
 
 | Type            | Hex Code | Description                                                                                        |
 | --------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| EXTENSION_DELIM | `28`     | Marker signaling to continue consuming params; followed by a `CTYPE` and then a `READ_HASH`. |
+| READ_PARAM | `28`     | Marker signaling to continue consuming params; followed by a `CTYPE` and then a `READ_HASH`. |
 
 ---
 
@@ -73,7 +74,7 @@ Operators perform logical, arithmetic, bitwise or control flow operations on one
 | `46`     | ++     | 1      | Incrementation                        |                                                                                                        |
 | `47`     | --     | 2      | Decrementation                        |                                                                                                        |
 | `50`     | ~      | 3      | Bitwise NOT                           |                                                                                                        |
-| `51`     | !      | 4      | Logical NOT                           |                                                                                                        |
+| `51`     | !!     | 4      | To Bool                               | Returns 1 if != 0 else 0.                                                                              |
 | `5A`     | *      | 5      | Multiply                              |                                                                                                        |
 | `5B`     | /      | 6      | Divide                                |                                                                                                        |
 | `5C`     | %      | 7      | Modulus                               |                                                                                                        |
@@ -114,24 +115,24 @@ Operators can be grouped by their *high nibble* (first hex digit), and further s
 
 ## 4. **Read Operations**
 
-### 4.1 READ_MEMORY
+### 4.1 READ_FUNCTION
 
-A READ_MEMORY entry is structured as:
+A READ_FUNCTION entry is structured as:
 
 ```
-READ_MEMORY
+READ_FUNCTION
   LITERAL_VALUE (4 bytes)
   CTYPE (3 bytes; type of the above value)
-  optional:EXTENSION_DELIM (1 byte)
+  optional:READ_PARAM (1 byte)
      CTYPE (3 bytes; type of the below value)
      READ_HASH (1 byte)
      LITERAL_VALUE
-  ... can recursively hold another CTYPE then EXTENSION_DELIM and so on
+  ... can recursively hold another CTYPE then READ_PARAM and so on
 ```
 
 * The **4-byte literal value** is the value (for integers; although usually still an ID) or CRC32 ISO-HDLC hash of the function name (for functions).
   * Literal Values are *big-endian*.
-* Optional **EXTENSION_DELIM+READ_HASH/READ_LITERAL** chains  <!-- for a bit this was chins 😭 --> allow unlimited nesting of subsections for multi-param functions.
+* Optional **READ_PARAM+READ_HASH/READ_LITERAL** chains  <!-- for a bit this was chins 😭 --> allow unlimited nesting of subsections for multi-param functions.
 
 ### 4.2 READ_LITERAL
 
@@ -140,7 +141,7 @@ READ_MEMORY
 
 ### 4.3 READ_HASH
 
-* Always follows an EXTENSION_DELIM/CTYPE combination.
+* Always follows an READ_PARAM/CTYPE combination.
 * Represents a smaller section of memory or another value block.
 
 ## 5. **Internal Data Types**
@@ -207,7 +208,7 @@ Cond Examples:
     * `00 00 00` - Header.
     * `00 12` - COND_LENGTH shows that after it there will be 0x12 bytes remaining.
     * `02` - STACK_PRM.
-    * `35` - READ_MEMORY; tells the game what layout to expect and to read a value.
+    * `35` - READ_FUNCTION; tells the game what layout to expect and to read a value.
     * `69 84 E3 AF` - The CRC32 hash of `RunTrigger`.
     * `00 0A 01` - The CTYPE for a function that takes one parameter aka `RunTrigger` in this example.
     * `28` - Used to tell the engine to keep reading so it correctly parses the params.
@@ -220,7 +221,7 @@ Cond Examples:
   * This can be parsed as:
     * `00 00 00` - Header
     * `00 0F 05` - Condcode.
-    * `35` - READ_MEMORY; tells the game what layout to expect and to read a value.
+    * `35` - READ_FUNCTION; tells the game what layout to expect and to read a value.
     * `10 B1 40 96` - The CRC32 hash of `GameClear`.
     * `00 01 00` - The CType for a Zero-Param Function; telling the engine to not parse any params, pushing the function's output as a value to stack.
     * `32` - A READ_LITERAL telling the parser to expect a literal value next.
