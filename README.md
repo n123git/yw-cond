@@ -59,12 +59,6 @@ This byte known as `STACK_PRM` is equal to the amount of top-level values multip
 | READ_HASH       | `34`     | Similar to a READ_LITERAL but reads a hash instead.             |
 | READ_FUNCTION   | `35`     | Reads and pushes a function. Followed by a CTYPE.               |
 
-### 2.2 Special Markers
-
-| Type            | Hex Code | Description                                                                                        |
-| --------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| READ_PARAM | `28`     | Marker signaling to continue consuming params; followed by a `CTYPE` and then a `READ_HASH`. |
-
 ---
 
 ## 3. **Operators**
