@@ -1,7 +1,7 @@
 # yw-cond
 A web-based work-in-progress library and UI for parsing, decompiling, analyzing and generating Yo-kai Watch conds, with frequent updates.
 
-This parser is for the Yo-kai Watch franchise which has a much more complex cond set (and some slight changes) from Inazuma Eleven, for IEGO cond parsing take a look at the newly released [level5_condition](https://github.com/Tiniifan/level5_condition/) made by Tiniifan themself!
+This parser is for the Yo-kai Watch franchise which has a much more complex cond set (and some slight changes) from Inazuma Eleven: GO, for IEGO cond parsing take a look at the newly released [level5_condition](https://github.com/Tiniifan/level5_condition/) made by Tiniifan themself!
 
 Examples of how the games use conds can be shown below:
 * Battle AI
@@ -12,20 +12,20 @@ Examples of how the games use conds can be shown below:
 * NPC Interaction handler
 * and much, much more!
 
-
 [The website can be downloaded or viewed here](https://n123git.github.io/yw-cond).
 
 # CExpression (Cond) System Documentation
 
-The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as conds. These contains *one* or more conditions which consist of:
+The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as conds. These conds are evaluted by `CExpression::CalcSub` and contain *one* or more conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
-  * Operators (arithmetic, logical, bitwise, and control flow ops)
-
+  * Operators (arithmetic, logicalal and bitwise)
+  * Jumps (conditional and unconditional)
+    * These jumps can only move forward and therefore can only be used for if else and not complex control flow like loops, making the CExpression system *NOT* turing-complete.
+ 
 ## 1. **Cond Structure**
 
 Each Cond begins with a header section composed of a **3-byte header**, a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
-> Note: This is *PER-COND as a whole*
 
 ### 1.1 Header (3 bytes)
 Previously, the header was assumed to always be a **4** byte constant of `00 00 00 00`, with the purpose of serving as an integrity check. But recent developements have shown that the header is composed of a uint16 and uint8 value:
@@ -35,13 +35,13 @@ Previously, the header was assumed to always be a **4** byte constant of `00 00 
 | 3    | This byte serves an unknown purpose an appears to always be `00`.                                                                                                                                                                                                 |
 
 ### 1.2 Cond Code (3 bytes)
-a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte) section of a cond's header now known as two seperate parts the uint16 COND_LENGTH and uint8 STACK_PRM. Sections describing the layout of this section can be found below:
+a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte) section of a cond's header now known as two seperate parts the uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
 
 #### 1.21 COND_LENGTH
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
 #### 1.22 STACK_PRM
-This byte known as `STACK_PRM` is equal to the amount of top-level values multiplied by 2 combined with the amount of operators; it can be simplified to `(((READ_MEM_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL`s that aren't used as params in a function.
+This byte known as `STACK_PRM` is equal to the sum of the quantity of top-level values multiplied by 2 and the amount of operators; it can be simplified to `(((READ_MEM_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL`s that aren't used as params in a function.
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
@@ -51,25 +51,25 @@ This byte known as `STACK_PRM` is equal to the amount of top-level values multip
 
 ### 2.1 Reads
 
-| Type            | Hex Code | Description                                                     |
-| --------------- | -------- | --------------------------------------------------------------- |
-| READ_PARAM      | `28`     | Reads a param withan a READ_FUNCTION call. Followed by a CTYPE. |
-| READ_LITERAL    | `32`     | Pushes an integer of type 4.                                    |
-| READ_FLOAT      | `33`     | Pushes an IEEE 754 float of type 6.                             |
-| READ_HASH       | `34`     | Similar to a READ_LITERAL but reads a hash instead.             |
-| READ_FUNCTION   | `35`     | Reads and pushes a function. Followed by a CTYPE.               |
+| Type            | Hex Code | Numeric Code | Description                                                                                     |
+| --------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------- |
+| READ_PARAM      | `28`     | `40`         | Reads a param withan a `READ_FUNCTION` call. Followed by a CTYPE.                               |
+| READ_LITERAL    | `32`     | `50`         | Pushes an integer of type 4.                                                                    |
+| READ_FLOAT      | `33`     | `51`         | Pushes an IEEE 754 float of type 6.                                                             |
+| READ_HASH       | `34`     | `52`         | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
+| READ_FUNCTION   | `35`     | `53`         | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
 
 ---
 
 ## 3. **Operators**
 
-Operators perform logical, arithmetic, bitwise or control flow operations on one or more values.
+Operators perform logical, arithmetic or bitwise operations on one or more values.
 | Hex Code | Symbol | Num    | Operation                             | Notes                                                                                                  |
 | -------- | ------ | ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `46`     | ++     | 1      | Incrementation                        |                                                                                                        |
-| `47`     | --     | 2      | Decrementation                        |                                                                                                        |
-| `50`     | ~      | 3      | Bitwise NOT                           |                                                                                                        |
-| `51`     | !!     | 4      | To Bool                               | Returns 1 if != 0 else 0.                                                                              |
+| `46`     | ++     | 1      | Incrementation                        | Unofficial Symbol.                                                                                     |
+| `47`     | --     | 2      | Decrementation                        | Unofficial Symbol.                                                                                     |
+| `50`     | ~      | 3      | Bitwise NOT                           | Unofficial Symbol.                                                                                     |
+| `51`     | !!     | 4      | To Bool                               | Returns 1 if != 0 else 0. Unofficial Symbol.                                                           |
 | `5A`     | *      | 5      | Multiply                              |                                                                                                        |
 | `5B`     | /      | 6      | Divide                                |                                                                                                        |
 | `5C`     | %      | 7      | Modulus                               |                                                                                                        |
@@ -88,9 +88,6 @@ Operators perform logical, arithmetic, bitwise or control flow operations on one
 | `84`     | ^      | 20     | Bitwise XOR                           |                                                                                                        |
 | `8F`     | &&     | 21     | Logical AND                           | By far the most common.                                                                                |
 | `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`.                                                                         |
-| `96`     | ?->    | 23     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
-| `97`     | ->     | 24     | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
-
 Operators can be grouped by their *high nibble* (first hex digit), and further subdivided by whether the *low nibble* falls within 0–9 (normal position) or A–F (extended/ext position). Here is the grouping:
 
 | High Nibble | Group Name                   | Notes                                         | 
@@ -105,33 +102,40 @@ Operators can be grouped by their *high nibble* (first hex digit), and further s
 | `8` (ext.)  | Logical AND Ops              | Contains `&&`.                                |
 | `9`         | Logical OR / Conditional Ops | Contains `\|\|`, `?->` and `->`.              |
 
----
+## 3.1. Jumps
+
+There are 2 kinds of jumps supported by the CExpression engine:
+| Hex Code | Numeric Code | Symbol  | Operation                             | Notes                                                                                                  |
+| -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `96`     | `150`        | ?->     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
+| `97`     | `151`        | ->      | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
+Jumps are followed by a uint16 `JUMP_CNT` value which decides how many bytes to jump - if misaligned, this can cause the evaluator to throw so be careful with these; especially considering as of yet `yw-cond` dosen't support these in decompilation for testing.
+Despite being confirmed to exist as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit.
 
 
 ## 4. **Read Operations**
 
 ### 4.1 READ_FUNCTION
 
-A READ_FUNCTION entry is structured as:
+A READ_FUNCTION entry is structured as shown below where they can have anywhere from 0-255 params:
 
 ```
 READ_FUNCTION
-  LITERAL_VALUE (4 bytes)
-  CTYPE (3 bytes; type of the above value)
+  LITERAL_VALUE (4 bytes; is the CRC32 of the name of the function to execute)
+  CTYPE (3 bytes; shows size and param count of the function)
   optional:READ_PARAM (1 byte)
-     CTYPE (3 bytes; type of the below value)
-     READ_HASH (1 byte)
+     CTYPE (3 bytes; size and data of the below value)
+     READ_HASH/READ_LITERAL/READ_FLOAT (1 byte)
      LITERAL_VALUE
-  ... can recursively hold another CTYPE then READ_PARAM and so on
+  ... can recursively hold up to 255 READ_PARAMs
 ```
 
-* The **4-byte literal value** is the value (for integers; although usually still an ID) or CRC32 ISO-HDLC hash of the function name (for functions).
-  * Literal Values are *big-endian*.
-* Optional **READ_PARAM+READ_HASH/READ_LITERAL** chains  <!-- for a bit this was chins 😭 --> allow unlimited nesting of subsections for multi-param functions.
+* Optional `READ_PARAM` chains  <!-- for a bit this was chins 😭 --> allow unlimited nesting of subsections for multi-param functions.
+> Note: Like all values within conds, Literal Values are *big-endian*.
+
 
 ### 4.2 READ_LITERAL
-
-* Always followed by a **32-bit integer** (but may also be used for 16-bit, 8-bit, or boolean values, in which case it will still be padded to 4 bytes).
+* Always followed by a *signed 32-bit integer* (but can also be used for functions that expect a 16-bit, 8-bit, or boolean value, in which case it should still padded to 4 bytes).
 * Values are **big-endian**.
 * Pushes an integer of type 4 (int32)
 
@@ -142,11 +146,10 @@ READ_FUNCTION
 ### 4.4 READ_HASH
 * Pushes an integer of type 4 (int32)
   * Used for IDs hence the name `READ_HASH`
+* Functionally the same as `READ_LITERAL`; atleast in `CExpression::CallSub` for some reason.
 
-## 5. **Internal Data Types**
-
-These data types are **never directly referenced in the CExpression itself** but are used internally by the engine during execution and will therefore be mentioned here cuz why not :P
-
+## 5. CExpression Data Types
+These data types are **never directly referenced in the cond itself** but are used internally by the CExpression engine during evaluation and will therefore be mentioned here cuz why not :P
 | ID | Type   | Description             |
 | -- | ------ | ----------------------- |
 | 0  | int8   | 8-bit signed integer    |
@@ -156,13 +159,11 @@ These data types are **never directly referenced in the CExpression itself** but
 | 4  | int32  | 32-bit signed integer   |
 | 5  | uint32 | 32-bit unsigned integer |
 | 6  | float  | 32-bit floating point   |
-| 7+ | unk    | Currently unknown.      |
 
 ---
 
 ## 6. **CTypes**
-CTypes are **3-byte descriptors** representing properties of values used in the CExpression format.
-
+CTypes are **3-byte descriptors** representing properties of functions and function parameters.
 | Byte | Purpose                |
 | ---- | ---------------------- |
 | 1-2  | DataSize               |
@@ -171,10 +172,9 @@ CTypes are **3-byte descriptors** representing properties of values used in the 
 Notes:
 * The `DataSize` represents the length (in bytes) of the value from the ExtData onwards
 * For functions, ExtData represents the number of parameters.
-* For integers, the purpose of ExtData is unknown although it is usually `02`.
+* For integers, the purpose of ExtData is unknown although it is always `02`.
 
 ### 6.1 CType Examples
-
 | CType      | Meaning                                                   |
 | ---------- | --------------------------------------------------------- |
 | `00 06 02` | Integer.                                                  |
