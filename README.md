@@ -228,16 +228,14 @@ TLDR:
 * Each parameter is encoded independently using `READ_PARAM`.
 
 ### Examples and Notes
-Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It takes the param(s): `(int: index)` and returns a boolean output. Specifically, you input a Psychic Blasters Stage Index and it tells you if that boss has/hasn't been defeated yet.
+Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It takes the param(s): `(int: index)` and returns a boolean output. To be specific this function allows you to input the index of a Psychic Blasters "Stage" and it return a value representing whether the boss has/hasn't been defeated yet.
+CExpression Functions aren't always read only tools used for runtime conditionals - they can be general purpose expressions that mutate values as a side effect - take for instance `RunTrigger` (`0x6984E3AF`). In this function you can pass a hash representing a `TriggerID` and it will run the trigger, returning `1` (`true`) to make sure the conditionals pass.
 
-Due to the lack of a string or enum data type, CRC-32 ISO-HDLC hashes are often used instead with lookup table functions.
-CExpression Functions aren't always read only - take for instance `RunTrigger()` (0x6984E3AF), it takes in a big endian ID, runs the trigger and always returns `1` (`true`).
-
-The Naming Schema of CExpression Functions can be shown as follows:
-* Always Pascal Case; unlike normal IDs where level5 uses a mix of lowercase and snakecase.
+The naming schme used in CExpression Functions (just like level5 favours in general) can be shown as follows:
+* Level5 uses Pascal Case
 * A mix of english and hepburn romanisation.
-  * The english is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Ogre instead of Oni.
-* Typos, take for instance: `IsApeearMitibiki()`; these are thought to be intentional decisions to avoid collisions due to the level5 3DS engine's extreme reliance on CRC-32 (ISO-HLDC).
+  * The english is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Orge instead of Oni.
+* Typos, take for instance: `IsApeearMitibiki()`; these are thought to be intentional decisions to avoid collisions due to the level5 engine's extreme reliance on CRC-32 hashes.
 * Abbreviations used such as `Util`, `Cnt` etc.
 * Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `"Target"`, `"Run"`, `""` and `"Has"`.
 * Common suffixes include `"Cnt"`, `"Num"`, `"Now"` and `"Rate"`.
