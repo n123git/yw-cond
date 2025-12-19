@@ -111,8 +111,8 @@ There are 2 kinds of jumps supported by the CExpression engine:
 | `96`     | `150`        | ?->     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
 | `97`     | `151`        | ->      | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
 
-Jumps are followed by a uint16 `JUMP_CNT` value which decides how many bytes to jump - if misaligned, this can cause the evaluator to throw so be careful with these; especially considering as of yet `yw-cond` dosen't support these in decompilation for testing.
-Despite being confirmed to exist as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit.
+Jumps are followed by a uint16 `JUMP_CNT` value which decides how many bytes to jump *from* the end of the `JUMP_CNT` - if misaligned, this can cause the evaluator to throw so be careful with these; especially considering as of yet `yw-cond` dosen't support these in decompilation for testing.
+Despite being confirmed to exist as early as in Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit.
 
 
 ## 4. **Read Operations**
