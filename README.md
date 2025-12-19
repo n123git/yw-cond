@@ -22,7 +22,7 @@ The **CExpression system**, is a proprietary (usually Base64-encoded) system use
   * Operators (arithmetic, logicalal and bitwise)
   * Jumps (conditional and unconditional)
     * These jumps can only move forward and therefore can only be used for if else and not complex control flow like loops, making the CExpression system *NOT* turing-complete.
- 
+> Note: within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) unless otherwise specified.
 ## 1. **Cond Structure**
 
 Each Cond begins with a header section composed of a **3-byte header**, a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
@@ -51,69 +51,65 @@ This byte known as `STACK_PRM` is equal to the sum of the quantity of top-level 
 
 ### 2.1 Reads
 
-| Type            | Hex Code | Numeric Code | Description                                                                                     |
-| --------------- | -------- | ------- | ----------------------------------------------------------------------------------------------- |
-| READ_PARAM      | `28`     | `40`    | Reads a param withan a `READ_FUNCTION` call. Followed by a CTYPE.                               |
-| READ_LITERAL    | `32`     | `50`    | Pushes an integer of type 4.                                                                    |
-| READ_FLOAT      | `33`     | `51`    | Pushes an IEEE 754 float of type 6.                                                             |
-| READ_HASH       | `34`     | `52`    | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
-| READ_FUNCTION   | `35`     | `53`    | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
-
----
+| Type            | Hex Code | Decimal Code | Description                                                                                     |
+| --------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------- |
+| READ_PARAM      | `28`     | `40`         | Reads a param withan a `READ_FUNCTION` call. Followed by a CTYPE.                               |
+| READ_LITERAL    | `32`     | `50`         | Pushes an integer of type 4.                                                                    |
+| READ_FLOAT      | `33`     | `51`         | Pushes an IEEE 754 float of type 6.                                                             |
+| READ_HASH       | `34`     | `52`         | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
+| READ_FUNCTION   | `35`     | `53`         | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
 
 ## 3. **Operators**
 
-Operators perform logical, arithmetic or bitwise operations on one or more values.
-| Hex Code | Symbol | Num    | Operation                             | Notes                                                                                                  |
-| -------- | ------ | ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `46`     | ++     | 1      | Incrementation                        | Unofficial Symbol.                                                                                     |
-| `47`     | --     | 2      | Decrementation                        | Unofficial Symbol.                                                                                     |
-| `50`     | ~      | 3      | Bitwise NOT                           | Unofficial Symbol.                                                                                     |
-| `51`     | !!     | 4      | To Bool                               | Returns 1 if != 0 else 0. Unofficial Symbol.                                                           |
-| `5A`     | *      | 5      | Multiply                              |                                                                                                        |
-| `5B`     | /      | 6      | Divide                                |                                                                                                        |
-| `5C`     | %      | 7      | Modulus                               |                                                                                                        |
-| `5D`     | +      | 8      | Addition                              |                                                                                                        |
-| `5E`     | -      | 9      | Subtraction                           |                                                                                                        |
-| `64`     | <<     | 10     | Left shift                            |                                                                                                        |
-| `65`     | >>     | 11     | Right shift                           |                                                                                                        |
-| `6E`     | <      | 12     | Less than                             |                                                                                                        |
-| `6F`     | <=     | 13     | Less or equal                         |                                                                                                        |
-| `70`     | >      | 14     | Greater than                          |                                                                                                        |
-| `71`     | >=     | 15     | Greater or equal                      |                                                                                                        |
-| `78`     | ==     | 16     | Equal                                 |                                                                                                        |
-| `79`     | !=     | 17     | Not equal                             |                                                                                                        |
-| `82`     | &      | 18     | Bitwise AND                           |                                                                                                        |
-| `83`     | \|     | 19     | Bitwise OR                            |                                                                                                        |
-| `84`     | ^      | 20     | Bitwise XOR                           |                                                                                                        |
-| `8F`     | &&     | 21     | Logical AND                           | By far the most common.                                                                                |
-| `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`.                                                                         |
+Operators pop an arbitrary number of values off the stack, equivalent to it's param count, perform a logical, arithmetic or bitwise operation on those values and then push the output to the stack. Operators pop the *most recent* values off of the stack (LIFO: Last In, First Out) as is common for similar systems.
+| Hex Code | Decimal | Symbol | Op Count | Operation                             | Notes                                                                                                  |
+| -------- | ------- | ------ | -------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `46`     | `70`    | ++     | 1        | Incrementation                        | Unofficial Symbol.                                                                                     |
+| `47`     | `71`    | --     | 1        | Decrementation                        | Unofficial Symbol.                                                                                     |
+| `50`     | `80`    | ~      | 1        | Bitwise NOT                           | Unofficial Symbol.                                                                                     |
+| `51`     | `81`    | !!     | 1        | To Bool                               | Returns 1 if != 0 else 0. Unofficial Symbol.                                                           |
+| `5A`     | `90`    | *      | 2        | Multiply                              |                                                                                                        |
+| `5B`     | `91`    | /      | 2        | Divide                                |                                                                                                        |
+| `5C`     | `92`    | %      | 2        | Modulus                               |                                                                                                        |
+| `5D`     | `93`    | +      | 2        | Addition                              |                                                                                                        |
+| `5E`     | `94`    | -      | 2        | Subtraction                           |                                                                                                        |
+| `64`     | `100`   | <<     | 2        | Left shift                            |                                                                                                        |
+| `65`     | `101`   | >>     | 2        | Right shift                           |                                                                                                        |
+| `6E`     | `110`   | <      | 2        | Less than                             |                                                                                                        |
+| `6F`     | `111`   | <=     | 2        | Less or equal                         |                                                                                                        |
+| `70`     | `112`   | >      | 2        | Greater than                          |                                                                                                        |
+| `71`     | `113`   | >=     | 2        | Greater or equal                      |                                                                                                        |
+| `78`     | `120`   | ==     | 2        | Equal                                 |                                                                                                        |
+| `79`     | `121`   | !=     | 2        | Not equal                             |                                                                                                        |
+| `82`     | `130`   | &      | 2        | Bitwise AND                           |                                                                                                        |
+| `83`     | `131`   | \|\|   | 2        | Bitwise OR                            |                                                                                                        |
+| `84`     | `132`   | ^      | 2        | Bitwise XOR                           |                                                                                                        |
+| `8F`     | `143`   | &&     | 2        | Logical AND                           | By far the most common.                                                                                |
+| `90`     | `144`   | \|\|   | 2        | Logical OR                            | Frequently combined with `8F`.                                                                         |
 
-Operators can be grouped by their *high nibble* (first hex digit), and further subdivided by whether the *low nibble* falls within 0–9 (normal position) or A–F (extended/ext position). Here is the grouping:
+Operators are grouped by the multiple of ten in their decimal opcode. Each `x0–x9` range represents a distinct operator class, and operators within a range are closely related in behavior as shown by the table below:
 
-| High Nibble | Group Name                   | Notes                                         | 
-| ----------- | ---------------------------- | --------------------------------------------- | 
-| `4`         | Stepper Ops                  | Includes increment and decrement operators.   | 
-| `5`         | Unary Ops                    | `4X` is also unary but only covers ++/--.     | 
-| `5` (ext.)  | Arithmetic Ops               | Standard arithmetic operations.               |
-| `6`         | Bit Shift Ops                | Handles left/right bit shifting.              |
-| `6` (ext.)  | Lower Comparison Ops         | Contains `<` and `<=`.                        |
-| `7`         | Comparison Ops               | Holds `>` and `>=` operators.                 |
-| `8`         | Bitwise Logic Ops            | Handles bitwise AND/OR/XOR.                   |
-| `8` (ext.)  | Logical AND Ops              | Contains `&&`.                                |
-| `9`         | Logical OR / Conditional Ops | Contains `\|\|`, `?->` and `->`.              |
+| Range | Category                | Operators Included      |
+| ----- | ----------------------- | ----------------------- |
+| `7X`  | Unary Arithmetic / Cast | `++`, `--`              |
+| `8X`  | Unary Bitwise / Logical | `~`, `!!`               |
+| `9X`  | Binary Arithmetic       | `*`, `/`, `%`, `+`, `-` |
+| `1X`  | Bit Shifting            | `<<`, `>>`              |
+| `11X` | Relational Comparison   | `<`, `<=`, `>`, `>=`    |
+| `12X` | Equality Comparison     | `==`, `!=`              |
+| `13X` | Bitwise Binary Logic    | `&`, `\|\|`, `^`        |
+| `14X` | Logical Binary Logic    | `&&`, `\|`              |
 
 ## 3.1. Jumps
 
-There are 2 kinds of jumps supported by the CExpression engine:
+There are two kinds of jumps supported by the CExpression engine:
 | Hex Code | Decimal Code | Symbol  | Operation                             | Notes                                                                                                  |
 | -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `96`     | `150`        | ?->     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
 | `97`     | `151`        | ->      | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
 
-Jumps are followed by a uint16 `JUMP_CNT` value which decides how many bytes to jump *from* the end of the `JUMP_CNT` - if misaligned, this can cause the evaluator to throw so be careful with these; especially considering as of yet `yw-cond` dosen't support these in decompilation for testing.
-Despite being confirmed to exist as early as in Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit.
-
+Jumps are followed by a uint16 `JUMP_CNT` value which decides how many bytes to jump *from* the end of the `JUMP_CNT` - if misaligned, this can cause the evaluator to throw so be very careful when implementing jumps manually. Additionally, as of writing this `yw-cond` dosen't support these in decompilation, recompilation or parsing so you'll have to manually test them.
+Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit.
 
 ## 4. **Read Operations**
 
@@ -128,13 +124,12 @@ READ_FUNCTION
   optional:READ_PARAM (1 byte)
      CTYPE (3 bytes; size and data of the below value)
      READ_HASH/READ_LITERAL/READ_FLOAT (1 byte)
-     LITERAL_VALUE
+     LITERAL_VALUE (4 byte)
   ... can recursively hold up to 255 READ_PARAMs
 ```
 
-* Optional `READ_PARAM` chains  <!-- for a bit this was chins 😭 --> allow unlimited nesting of subsections for multi-param functions.
 > Note: Like all values within conds, Literal Values are *big-endian*.
-
+<!-- Optional `READ_PARAM` chains  <!-- for a bit this was chins 😭 --> allow for unlimited nesting of subsections for multi-param functions. -->
 
 ### 4.2 READ_LITERAL
 * Always followed by a *signed 32-bit integer* (but can also be used for functions that expect a 16-bit, 8-bit, or boolean value, in which case it should still padded to 4 bytes).
@@ -142,16 +137,16 @@ READ_FUNCTION
 * Pushes an integer of type 4 (int32)
 
 ### 4.3 READ_FLOAT
-* Pushes an IEEE-754 (standard float32) float of type 7 (float32)
+* Pushes an IEEE-754 (standard float32) float of type 6 (float32)
 * Very rare.
 
 ### 4.4 READ_HASH
 * Pushes an integer of type 4 (int32)
   * Used for IDs hence the name `READ_HASH`
-* Functionally the same as `READ_LITERAL`; atleast in `CExpression::CallSub` for some reason.
+* Functionally the same as `READ_LITERAL`; atleast in `CExpression::CallSub` for whatever reason.
 
 ## 5. CExpression Data Types
-These data types are **never directly referenced in the cond itself** but are used internally by the CExpression engine during evaluation and will therefore be mentioned here cuz why not :P
+These data types are *never directly referenced in the cond itself* but are used internally by the CExpression engine during evaluation and will therefore be mentioned here because they are important to understand the engine itself.
 | ID | Type   | Description             |
 | -- | ------ | ----------------------- |
 | 0  | int8   | 8-bit signed integer    |
@@ -162,10 +157,8 @@ These data types are **never directly referenced in the cond itself** but are us
 | 5  | uint32 | 32-bit unsigned integer |
 | 6  | float  | 32-bit floating point   |
 
----
-
 ## 6. **CTypes**
-CTypes are **3-byte descriptors** representing properties of functions and function parameters.
+CTypes are **3-byte descriptors** used to represent properties of functions and function parameters.
 | Byte | Purpose                |
 | ---- | ---------------------- |
 | 1-2  | DataSize               |
@@ -176,7 +169,7 @@ Notes:
 * For functions, ExtData represents the number of parameters.
 * For integers, the purpose of ExtData is unknown although it is always `02`.
 
-### 6.1 CType Examples
+### 6.1 Examples
 | CType      | Meaning                                                   |
 | ---------- | --------------------------------------------------------- |
 | `00 06 02` | Integer.                                                  |
@@ -185,9 +178,56 @@ Notes:
 | `00 0A 01` | 1-parameter function                                      |
 | `00 01 00` | 0-parameter function                                      |
 
----
+## 7. Example Structures
 
-### 7. Examples and Notes
+This example demonstrates how to encode a call to the function `SetGlobalBitFlag(hash FlagID, int Value)`. 
+The function takes **two parameters**, both numeric, and is (like all others) invoked using the `READ_FUNCTION` opcode.
+First let's start off with our `READ_FUNCTION` (`35`). Immediately following this is the *function identifier*, stored as the CRC-32 (ISO-HDLC) hash of the function name:
+```hex
+35 <- READ_FUNCTION
+18 2B 37 5A <- 0x182B375A is the CRC32 of "SetGlobalBitFlag"
+```
+After the function hash we have the *CType* (See § 13), which describes the size and other data of the function and its parameters.
+
+Numeric parameters occupy 9 bytes each - including their individual CTypes.
+
+Since this function has two numeric parameters, the total parameter size is `(9 × 2) + 1 = 19 bytes = 0x13`. In this case, the extra `+1` accounts for the CType’s ExtData byte which stores the parameter count when referencing a function.
+Each parameter begins with `READ_PARAM`, followed by its CType and value:
+```hex
+28 <- READ_PARAM
+00 06 02 <- CType for a numeric value
+34 <- READ_HASH
+12 34 56 78 <- 0x12345678 is the example FlagID we will be using
+```
+Repeating this for the second parameter yields:
+```hex
+28 <- READ_PARAM
+00 06 02 <- CType
+32 <- READ_LITERAL
+00 00 00 01 <- Value; 0x00000001 = 1
+```
+Putting everything together, the full byte sequence is:
+
+```hex
+35 <- READ_FUNCTION
+18 2B 37 5A <- 0x182B375A is the CRC32 of "SetGlobalBitFlag"
+00 13 02 <- CType for this function
+28 <- READ_PARAM
+00 06 02 <- CType for this param
+34 <- READ_HASH
+12 34 56 78 <- 0x12345678 aka the FlagID
+28 <- READ_PARAM
+00 06 02 <- Ctype for the second param
+32 <- READ_LITERAL
+00 00 00 01 <- 0x00000001/1 aka the Value
+```
+TLDR:
+* `READ_FUNCTION` invokes the call.
+* The function hash identifies the target.
+* The function CType defines parameter count and total size.
+* Each parameter is encoded independently using `READ_PARAM`.
+
+### Examples and Notes
 Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It takes the param(s): `(int: index)` and returns a boolean output. Specifically, you input a Psychic Blasters Stage Index and it tells you if that boss has/hasn't been defeated yet.
 
 Due to the lack of a string or enum data type, CRC-32 ISO-HDLC hashes are often used instead with lookup table functions.
