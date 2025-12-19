@@ -21,7 +21,7 @@ The **CExpression system**, is a proprietary (usually Base64-encoded) system use
   * Functions (Engine calls)
   * Operators (arithmetic, logicalal and bitwise)
   * Jumps (conditional and unconditional)
-    * These jumps can only move forward and therefore can only be used for if else and not complex control flow like loops, making the CExpression system *NOT* turing-complete.
+    * These jumps can only move forward and therefore can only be used for if else, NOT complex control flow such as loops. This sadly means the CExpression system is *NOT* turing-complete.
 > Note: within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) unless otherwise specified.
 ## 1. **Cond Structure**
 
