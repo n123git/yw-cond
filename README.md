@@ -51,13 +51,13 @@ This byte known as `STACK_PRM` is equal to the sum of the quantity of top-level 
 
 ### 2.1 Reads
 
-| Type            | Hex Code | Numeric Code | Description                                                                                     |
-| --------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| READ_PARAM      | `28`     | `40`         | Reads a param withan a `READ_FUNCTION` call. Followed by a CTYPE.                               |
-| READ_LITERAL    | `32`     | `50`         | Pushes an integer of type 4.                                                                    |
-| READ_FLOAT      | `33`     | `51`         | Pushes an IEEE 754 float of type 6.                                                             |
-| READ_HASH       | `34`     | `52`         | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
-| READ_FUNCTION   | `35`     | `53`         | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
+| Type            | Hex Code | Numeric | Description                                                                                     |
+| --------------- | -------- | ------- | ----------------------------------------------------------------------------------------------- |
+| READ_PARAM      | `28`     | `40`    | Reads a param withan a `READ_FUNCTION` call. Followed by a CTYPE.                               |
+| READ_LITERAL    | `32`     | `50`    | Pushes an integer of type 4.                                                                    |
+| READ_FLOAT      | `33`     | `51`    | Pushes an IEEE 754 float of type 6.                                                             |
+| READ_HASH       | `34`     | `52`    | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
+| READ_FUNCTION   | `35`     | `53`    | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
 
 ---
 
