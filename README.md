@@ -51,7 +51,7 @@ This byte known as `STACK_PRM` is equal to the sum of the quantity of top-level 
 
 ### 2.1 Reads
 
-| Type            | Hex Code | Numeric | Description                                                                                     |
+| Type            | Hex Code | Numeric Code | Description                                                                                     |
 | --------------- | -------- | ------- | ----------------------------------------------------------------------------------------------- |
 | READ_PARAM      | `28`     | `40`    | Reads a param withan a `READ_FUNCTION` call. Followed by a CTYPE.                               |
 | READ_LITERAL    | `32`     | `50`    | Pushes an integer of type 4.                                                                    |
@@ -106,7 +106,7 @@ Operators can be grouped by their *high nibble* (first hex digit), and further s
 ## 3.1. Jumps
 
 There are 2 kinds of jumps supported by the CExpression engine:
-| Hex Code | Numeric Code | Symbol  | Operation                             | Notes                                                                                                  |
+| Hex Code | Decimal Code | Symbol  | Operation                             | Notes                                                                                                  |
 | -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `96`     | `150`        | ?->     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
 | `97`     | `151`        | ->      | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
