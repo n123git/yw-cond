@@ -88,6 +88,7 @@ Operators perform logical, arithmetic or bitwise operations on one or more value
 | `84`     | ^      | 20     | Bitwise XOR                           |                                                                                                        |
 | `8F`     | &&     | 21     | Logical AND                           | By far the most common.                                                                                |
 | `90`     | \|\|   | 22     | Logical OR                            | Frequently combined with `8F`.                                                                         |
+
 Operators can be grouped by their *high nibble* (first hex digit), and further subdivided by whether the *low nibble* falls within 0–9 (normal position) or A–F (extended/ext position). Here is the grouping:
 
 | High Nibble | Group Name                   | Notes                                         | 
