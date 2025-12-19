@@ -91,7 +91,7 @@ Operators are grouped by the multiple of ten in their decimal opcode. Each `x0â€
 
 | Range | Category                | Operators Included      |
 | ----- | ----------------------- | ----------------------- |
-| `7X`  | Unary Arithmetic / Cast | `++`, `--`              |
+| `7X`  | Unary Arithmetic        | `++`, `--`              |
 | `8X`  | Unary Bitwise / Logical | `~`, `!!`               |
 | `9X`  | Binary Arithmetic       | `*`, `/`, `%`, `+`, `-` |
 | `1X`  | Bit Shifting            | `<<`, `>>`              |
