@@ -41,7 +41,7 @@ a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte)
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
 #### 1.22 STACK_PRM
-This byte known as `STACK_PRM` is equal to the sum of the quantity of top-level values multiplied by 2 and the amount of operators; it can be simplified to `(((READ_MEM_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL`s that aren't used as params in a function.
+This byte known as `STACK_PRM` is equal to the sum of the quantity of top-level values multiplied by 2 and the amount of operators; it can be simplified to `(((READ_FUNC_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL` and `READ_HASH`(s) that aren't used as function parameters.
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
