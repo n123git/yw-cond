@@ -102,10 +102,10 @@ Operators are grouped by the multiple of ten in their decimal opcode. Each `x0â€
 
 ## 3.1. Jumps
 
-There are two kinds of jumps supported by the CExpression engine:
+There are two kinds of jumps supported by the CExpression engine, these can be considered as psuedo-ops:
 | Hex Code | Decimal Code | Symbol  | Operation                             | Notes                                                                                                  |
 | -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `96`     | `150`        | ?->     | Conditional Jump Operator (pseudo-op) | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
+| `96`     | `150`        | ?->     | Conditional Jump Operator             | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
 | `97`     | `151`        | ->      | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
 
 Jumps are followed by a uint16 `JUMP_CNT` value which decides how many bytes to jump *from* the end of the `JUMP_CNT` - if misaligned, this can cause the evaluator to throw so be very careful when implementing jumps manually. Additionally, as of writing this `yw-cond` dosen't support these in decompilation, recompilation or parsing so you'll have to manually test them.
