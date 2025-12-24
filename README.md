@@ -16,15 +16,16 @@ Examples of how the games use conds can be shown below:
 
 # CExpression (Cond) System Documentation
 
-The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as conds. These conds are evaluted by `CExpression::CalcSub` and contain *one* or more conditions which consist of:
+The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as conds. These conds are evaluted by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
   * Operators (arithmetic, logicalal and bitwise)
   * Jumps (conditional and unconditional)
     * These jumps can only move forward and therefore can only be used for if else, NOT complex control flow such as loops. This sadly means the CExpression system is *NOT* turing-complete.
+> Note: conditions have been found which contain < 1 conditions but these are invalid and are the reason for the music app being broken in localised versions of Yo-kai Watch 2: Psychic Specters.
+
 > Note: within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) unless otherwise specified.
 ## 1. **Cond Structure**
-
 Each Cond begins with a header section composed of a **3-byte header**, a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
 
 ### 1.1 Header (3 bytes)
