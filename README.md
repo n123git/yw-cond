@@ -303,13 +303,7 @@ Cond Examples:
 
 ## 9. W.I.P -- General Parsing Flow
 
-1. The system begins by reading and validating the HEADER and CONDCODE.
-2. Then it reads the next byte i.e. if its a READ_LITERAL, OPERATOR etc
-3. Then it keeps going until it finds values to push to stack
-2. Operators are always binary (take 2 inputs) and return an output.
-3. Functions are the only arbitrary size data type due to the them having up to 255 parameters (although in practice more than 3 has not been witnessed) which can all be functions which contain functions and so on.
-4. Logical evaluation uses `&&` (`8F`) and `||` (`90`) markers.
-5. The engine resolves the final result based on literals, function returns, and operator results.
+<>
 
 ---
 <!-- secret easter egg: n123 is coolz (or am I?) -->
