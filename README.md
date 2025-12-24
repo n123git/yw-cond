@@ -1,15 +1,24 @@
 # yw-cond
-A web-based work-in-progress library and UI for parsing, decompiling, analyzing and generating Yo-kai Watch conds, with frequent updates.
+A web-based work-in-progress library and UI for parsing, decompiling, analyzing and generating Yo-kai Watch conds (CExpressions), with frequent updates.
 
 This parser is for the Yo-kai Watch franchise which has a much more complex cond set (and some slight changes) from Inazuma Eleven: GO, for IEGO cond parsing take a look at the newly released [level5_condition](https://github.com/Tiniifan/level5_condition/) made by Tiniifan themself!
 
 Examples of how the games use conds can be shown below:
-* Battle AI
+* Yo-kai AI
 * NPC/Treasure Chest Availability
 * Quest/Trophy Conditions
 * Shop Item/Price Conditions
 * Story Progression
 * NPC Interaction handler
+* Soundtracks
+* Minimap Image
+* Mirapo Unlocks
+* Face Icon Unlocks
+* Treasure Chest Loot Tables
+* Fishing/Searching Loot Tables
+* Weather
+* Trains
+* Springdale Scratch Off
 * and much, much more!
 
 [The website can be downloaded or viewed here](https://n123git.github.io/yw-cond).
