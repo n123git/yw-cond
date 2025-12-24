@@ -84,7 +84,7 @@ Operators pop an arbitrary number of values off the stack, equivalent to it's pa
 | `78`     | `120`   | ==     | 2        | Equal                                 |                                                                                                        |
 | `79`     | `121`   | !=     | 2        | Not equal                             |                                                                                                        |
 | `82`     | `130`   | &      | 2        | Bitwise AND                           |                                                                                                        |
-| `83`     | `131`   | \|\|   | 2        | Bitwise OR                            |                                                                                                        |
+| `83`     | `131`   | \|     | 2        | Bitwise OR                            |                                                                                                        |
 | `84`     | `132`   | ^      | 2        | Bitwise XOR                           |                                                                                                        |
 | `8F`     | `143`   | &&     | 2        | Logical AND                           | By far the most common.                                                                                |
 | `90`     | `144`   | \|\|   | 2        | Logical OR                            | Frequently combined with `8F`.                                                                         |
