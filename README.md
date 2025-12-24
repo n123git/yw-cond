@@ -120,7 +120,9 @@ There are two kinds of jumps supported by the CExpression engine, these can be c
 | `97`     | `151`        | ->      | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
 
 Jumps are followed by a uint16 `JUMP_CNT` value which decides how many bytes to jump *from* the end of the `JUMP_CNT` - if misaligned, this can cause the evaluator to throw so be very careful when implementing jumps manually. Additionally, as of writing this `yw-cond` dosen't support these in decompilation, recompilation or parsing so you'll have to manually test them.
+
 Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit.
+Additionally since the game executes the cond as it's parsed you can place invalid bytes without consequence aslong as it's jumped past i.e. using an unconditional jump.
 
 ## 4. **Read Operations**
 
