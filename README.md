@@ -221,6 +221,26 @@ Putting everything together, the full byte sequence is:
 32 <- READ_LITERAL
 00 00 00 01 <- 0x00000001/1 aka the Value
 ```
+
+Optionally, assuming this is the entire cond we can build the header for that sequence to give us:
+```hex
+00 00 00 <- HEADER data; this is empty space for the engine to fill
+00 1B <- COND_LENGTH this is 0x1B because there are 0x1B bytes proceeding this within the cond
+02 <- STACK_PRM see § 1.2.2 for the formula
+35 <- READ_FUNCTION
+18 2B 37 5A <- 0x182B375A is the CRC32 of "SetGlobalBitFlag"
+00 13 02 <- CType for this function
+28 <- READ_PARAM
+00 06 02 <- CType for this param
+34 <- READ_HASH
+12 34 56 78 <- 0x12345678 aka the FlagID
+28 <- READ_PARAM
+00 06 02 <- Ctype for the second param
+32 <- READ_LITERAL
+00 00 00 01 <- 0x00000001/1 aka the Value
+```
+Or `AAAAABsCNRgrN1oAEwIoAAYCNBI0VngoAAYCMgAAAAE=` when converted to Base64.
+
 TLDR:
 * `READ_FUNCTION` invokes the call.
 * The function hash identifies the target.
