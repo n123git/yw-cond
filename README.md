@@ -159,7 +159,7 @@ READ_FUNCTION
 ```
 
 > Note: Like all values within Conds, Literal Values are *big-endian*.
-<!-- Optional `READ_PARAM` chains  <!-- for a bit this was chins 😭 --> allow for unlimited nesting of subsections for multi-param functions. -->
+<!-- Optional `READ_PARAM` chains  <!-- for a bit this was chins 😭 --\> allow for unlimited nesting of subsections for multi-param functions. -->
 
 ### 4.2 READ_LITERAL
 * Always followed by a *signed 32-bit integer* (but can also be used for functions that expect a 16-bit, 8-bit, or Boolean value, in which case it should still padded to 4 bytes).
