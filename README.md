@@ -25,10 +25,10 @@ Examples of how the games use conds can be shown below:
 
 # CExpression (Cond) System Documentation
 
-The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as conds. These conds are evaluted by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
+The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as conds. These conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
-  * Operators (arithmetic, logicalal and bitwise)
+  * Operators (arithmetic, logical and bitwise)
   * Jumps (conditional and unconditional)
     * These jumps can only move forward and therefore can only be used for if else, NOT complex control flow such as loops. This sadly means the CExpression system is *NOT* turing-complete.
 > Note: conditions have been found which contain < 1 conditions but these are invalid and are the reason for the music app being broken in localised versions of Yo-kai Watch 2: Psychic Specters.
@@ -52,7 +52,7 @@ a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte)
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
 #### 1.22 STACK_PRM
-This byte known as `STACK_PRM` is equal to the sum of the quantity of top-level values multiplied by 2 and the amount of operators; it can be simplified to `(((READ_FUNC_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL` and `READ_HASH`(s) that aren't used as function parameters.
+This byte known as `STACK_PRM` represents the amount of (top level) values within a cond - you can simplify this to: `(((READ_FUNC_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL` and `READ_HASH`(s) that aren't used as function parameters.
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
@@ -64,7 +64,7 @@ This byte known as `STACK_PRM` is equal to the sum of the quantity of top-level 
 
 | Type            | Hex Code | Decimal Code | Description                                                                                     |
 | --------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| READ_PARAM      | `28`     | `40`         | Reads a param withan a `READ_FUNCTION` call. Followed by a CTYPE.                               |
+| READ_PARAM      | `28`     | `40`         | Reads a param within a `READ_FUNCTION` call. Followed by a CTYPE.                               |
 | READ_LITERAL    | `32`     | `50`         | Pushes an integer of type 4.                                                                    |
 | READ_FLOAT      | `33`     | `51`         | Pushes an IEEE 754 float of type 6.                                                             |
 | READ_HASH       | `34`     | `52`         | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
@@ -122,7 +122,7 @@ There are two kinds of jumps supported by the CExpression engine, these can be c
 Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-block to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed flag byte (`ExtData`) that further controls execution behavior.
 
 Note that improperly aligned jump lengths may cause the evaluator to skip valid instructions or misinterpret data as opcodes. Unknown opcodes are safely skipped, but malformed jumps can still lead to unintended behavior so yeah :/
-Additionally, as of writing this `yw-cond` dosen't support these in decompilation, recompilation or parsing so you'll have to manually test and generate them.
+Additionally, as of writing this `yw-cond` doesn't support these in decompilation, recompilation or parsing so you'll have to manually test and generate them.
 
 ### 3.1.1 Conditional Jump
 `0x96`/`150` (`?->`) acts as a conditional execution block, similar to an if/if ... else statement.
@@ -139,7 +139,7 @@ This then leaves the engine with the following branch of possibilities:
 * If the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past entirely.
 
 Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit in select situations.
-Additionally since the game executes the cond without an intermediary parsing stage you can place invalid bytes without consequence aslong as it's jumped past and not executed i.e. using a `0 ->`  (falsy value + conditional jump).
+Additionally since the game executes the cond without an intermediary parsing stage you can place invalid bytes without consequence as long as it's jumped past and not executed i.e. using a `0 ->`  (falsy value + conditional jump).
 
 ## 4. **Read Operations**
 
@@ -323,7 +323,7 @@ Cond Examples:
 * IEGO (2011, December)
   * IEGO had a very simplistic cond system, with only 4 used CExpression Functions, (3 used CTYPEs?) and 7 used Operators (including `8F`).
 * Yo-kai Watch 1 (2013, July)
-  * Level5 made alot of changes in this game - which makes sense considering how long they were working on it for; this can be proven by the files in Yo-kai Watch 2 that haven't been touched since 2011!
+  * Level5 made a lot of changes in this game - which makes sense considering how long they were working on it for; this can be proven by the files in Yo-kai Watch 2 that haven't been touched since 2011!
   * Yo-kai Watch 1 for smartphone had over 20 operators, multi-param functions and 118 CExpression functions!
   * Overall this is what truly started the modern cond system.
 * ... future game's have not changed the format much aside from adding/removing CExpression Functions
@@ -344,4 +344,4 @@ Cond Examples:
   * Improved Light Mode 
 ## v1.5
 * This update will mainly focus on making things easier to use; the lib will be easily separable from the UI, there will be more configs etc
-  * This will be done in preperation for being built into `yw-mod`, an upcoming project I'm working on!
+  * This will be done in preparation for being built into `yw-mod`, an upcoming project I'm working on!
