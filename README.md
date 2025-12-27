@@ -291,31 +291,43 @@ The naming schema used in CExpression Functions (just like level5 favours in gen
 * Common suffixes include `"Cnt"`, `"Num"`, `"Now"` and `"Rate"`.
 
 Cond Examples:
-* Single Condition: RunTrigger:
-  * `00 00 00 00 12 02 35 69 84 E3 AF 00 0A 01 28 00 06 02 34 0E 6B 6F 6B`
-  * This can be parsed as:
-    * `00 00 00` - Header.
-    * `00 12` - COND_LENGTH shows that after it there will be 0x12 bytes remaining.
-    * `02` - STACK_PRM.
-    * `35` - READ_FUNCTION; tells the game what layout to expect and to read a value.
-    * `69 84 E3 AF` - The CRC32 hash of `RunTrigger`.
-    * `00 0A 01` - The CTYPE for a function that accepts one numeric parameter aka `RunTrigger` in this example.
-    * `28` - Used to tell the engine to keep reading so it correctly parses the params.
-    * `00 06 02` - The CTYPE for an integer; referring to the input of `RunTrigger` aka the `TriggerID`
-    * `34`- Similar purpose as `28`.
-    * `0E 6B 6F 6B` - Input of the function (in this case it's the `TriggerID`); pushes the function and params to the stack. 
-    * No OPERATORs or other values; so it runs the above function and checks if the output is truthy; as this function is a `Set` not a `Get/Is/Has` function it always returns `1` (`true`); a *truthy* value.
-* Single Condition: GameClear (Has Main Story been completed):
-  * `00 00 00 00 0F 05 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
-  * This can be parsed as:
-    * `00 00 00` - Header
-    * `00 0F 05` - COND_CODE.
-    * `35` - READ_FUNCTION; tells the game what layout to expect and to read a value.
-    * `10 B1 40 96` - The CRC32 hash of `GameClear`.
-    * `00 01 00` - The CType for a Zero-Param Function; telling the engine to not parse any params, pushing the function's output as a value to stack.
-    * `32` - A READ_LITERAL telling the parser to expect a literal value next.
-    * `00 00 00 01` - A literal value equivalent to `1` (`true`) which promptly gets pushed to stack.
-    * `78` - an OPERATOR; specifically `==`; it compares both values in stack and returns a Boolean output deciding whether the Cond fails or succeeds.
+`RunTrigger`:
+```hex
+00 00 00 <-- Header
+00 12 <-- COND_LENGTH (0x12 / 18) bytes after this left within the cond
+02 <-- STACK_PRM
+
+35 <-- READ_FUNCTION
+69 84 E3 AF <-- BE CRC-32 of RunTrigger
+00 0A 01 <-- Function CType
+28 <-- READ_PARAM
+00 06 02 <-- PARAM CType
+34 <-- READ_HASH
+0E 6B 6F 6B <!-- 0x0E6B6F6B
+```
+Since `RunTrigger` always returns 1; the cond will always succeed running the trigger `0x0E6B6F6B` as a "byproduct" of the function call (Although the intended purpose of the CExpression)
+`GameClear` (Has Main Story been completed):
+```hex
+00 00 00 <-- HEADER
+00 0F <-- COND_LENGTH; this means there are 0xF (15) bytes left in the cond after the COND_LENGTH (including the STACK_PRM)
+05 <-- STACK_PRM is 0x5 because there's 1 function, 1 READ_LITERAL and an OPERATOR which is 2(1 * 1) + 1 aka 5 
+
+35 <-- READ_FUNCTION
+10 B1 40 96 <-- CRC32 of "GameClear" - aka the function to be executed
+00 01 00 <-- Function CType for a function without any parameters
+
+<-- function is ran and it's value is pushed to stack -->
+
+32 <-- READ_LITERAL
+00 00 00 01 <-- 0x00000001/1
+
+<-- the 1 is pushed to stack -->
+
+78 <-- OPERATOR: ==
+<-- the == pops the 2 values of the stack and pushes the boolean result -->
+
+<-- finally after the cond has been evaluated the value in stack is checked; if truthy the cond suceeded, else it failed -->
+```
 
 ---
 
