@@ -173,7 +173,8 @@ READ_FUNCTION
 ### 4.4 READ_HASH
 * Pushes an integer of type 4 (int32)
   * Used for IDs hence the name `READ_HASH`
-* Functionally the same as `READ_LITERAL`; atleast in `CExpression::CallSub` for whatever reason.
+
+> Note that there is no runtime distinction between `READ_LITERAL` and `READ_HASH`.
 
 ## 5. CExpression Data Types
 These data types are *never directly referenced in the cond itself* but are used internally by the CExpression engine during evaluation and will therefore be mentioned here.
