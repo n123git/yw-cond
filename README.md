@@ -176,7 +176,7 @@ READ_FUNCTION
 * Functionally the same as `READ_LITERAL`; atleast in `CExpression::CallSub` for whatever reason.
 
 ## 5. CExpression Data Types
-These data types are *never directly referenced in the cond itself* but are used internally by the CExpression engine during evaluation and will therefore be mentioned here because they are important to understand the engine itself.
+These data types are *never directly referenced in the cond itself* but are used internally by the CExpression engine during evaluation and will therefore be mentioned here.
 | ID | Type   | Description             |
 | -- | ------ | ----------------------- |
 | 0  | int8   | 8-bit signed integer    |
