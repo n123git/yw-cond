@@ -272,7 +272,6 @@ Optionally, assuming this is the entire cond we can build the header for that se
 Or `AAAAABsCNRgrN1oAEwIoAAYCNBI0VngoAAYCMgAAAAE=` when converted to Base64.
 
 TLDR:
-* `READ_FUNCTION` invokes the call.
 * The function hash identifies the target.
 * The function CType defines parameter count and total size.
 * Each parameter is encoded independently using `READ_PARAM`.
