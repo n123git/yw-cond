@@ -111,18 +111,35 @@ Operators are grouped by the multiple of ten in their decimal opcode. Each `x0�
 | `13X` | Bitwise Binary Logic    | `&`, `\|\|`, `^`        |
 | `14X` | Logical Binary Logic    | `&&`, `\|`              |
 
-## 3.1. Jumps
+## 3.1 Jumps
+There are two kinds of jumps supported by the CExpression engine, these can be considered as psuedo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or arbitrary control flow.
 
-There are two kinds of jumps supported by the CExpression engine, these can be considered as psuedo-ops:
 | Hex Code | Decimal Code | Symbol  | Operation                             | Notes                                                                                                  |
 | -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `96`     | `150`        | ?->     | Conditional Jump Operator             | Jumps forward Y bytes if X is falsy. Unofficial symbol.                                                |
-| `97`     | `151`        | ->      | Unconditional Jump Operator           | Jumps forward X bytes and optionally spawns another `CalcSub` instance for the gap. Unofficial symbol. |
+| `96`     | `150`        | ?->     | Conditional Jump Operator             | Unofficial symbol.                                                                                     |
+| `97`     | `151`        | ->      | Unconditional Jump Operator           | Unofficial symbol.                                                                                     |
 
-Jumps are followed by a uint16 `JUMP_CNT` value which decides how many bytes to jump *from* the end of the `JUMP_CNT` - if misaligned, this can cause the evaluator to throw so be very careful when implementing jumps manually. Additionally, as of writing this `yw-cond` dosen't support these in decompilation, recompilation or parsing so you'll have to manually test them.
+Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-block to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed flag byte (`ExtData`) that further controls execution behavior.
 
-Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit.
-Additionally since the game executes the cond as it's parsed you can place invalid bytes without consequence aslong as it's jumped past i.e. using an unconditional jump.
+Note that improperly aligned jump lengths may cause the evaluator to skip valid instructions or misinterpret data as opcodes. Unknown opcodes are safely skipped, but malformed jumps can still lead to unintended behavior so yeah :/
+Additionally, as of writing this `yw-cond` dosen't support these in decompilation, recompilation or parsing so you'll have to manually test and generate them.
+
+### 3.1.1 Conditional Jump
+`0x96`/`150` (`?->`) acts as a conditional execution block, similar to an if/if ... else statement.
+
+It takes one operand from the stack just like any other unary operator (we will call this the stack value for now due to how many values ?-> relies on) and reads it's own *CType*. Where `DataSize` specifies the length (in bytes) of the sub-block and `ExtData` is interpreted as a signed flag. Which leads to the following branch of possibilities:
+* If the stack value is truthy (!= 0) *and* the flag byte is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub`, then jumped over.
+* If the stack value is falsy (== 0), or the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past without any execution or otherwise processing.
+
+### 3.1.2 Unconditional Jump
+`0x97` defines an *optional sub-block* whose execution depends solely on a flag and not on any runtime values being consumed or read, therefore we will consider it a nullary operator (0 operands).
+When found the engine will read it's *CType* found right after the jump where `DataSize` gives the length (in bytes) of the sub-block and `ExtData` is treated as a signed flag.
+This then leaves the engine with the following branch of possibilities:
+* If the flag byte is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub`.
+* If the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past entirely.
+
+Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit in select situations.
+Additionally since the game executes the cond without an intermediary parsing stage you can place invalid bytes without consequence aslong as it's jumped past and not executed i.e. using a `0 ->`  (falsy value + conditional jump).
 
 ## 4. **Read Operations**
 
@@ -172,10 +189,10 @@ These data types are *never directly referenced in the cond itself* but are used
 
 ## 6. **CTypes**
 CTypes are **3-byte descriptors** used to represent properties of functions and function parameters.
-| Byte | Purpose                |
-| ---- | ---------------------- |
-| 1-2  | DataSize               |
-| 3    | ExtData                |
+| Byte | Name                   | Data Type |
+| ---- | ---------------------- | --------- |
+| 1-2  | DataSize               | uint16    |
+| 3    | ExtData                | int8      |
 
 Notes:
 * The `DataSize` represents the length (in bytes) of the value from the ExtData onwards
