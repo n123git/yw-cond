@@ -1,9 +1,9 @@
 # yw-cond
-A web-based work-in-progress library and UI for parsing, decompiling, analyzing and generating Yo-kai Watch conds (CExpressions), with frequent updates.
+A web-based work-in-progress library and UI for parsing, decompiling, analyzing and generating Yo-kai Watch Conds (CExpressions), with frequent updates.
 
-This parser is for the Yo-kai Watch franchise which has a much more complex cond set (and some slight changes) from Inazuma Eleven: GO, for IEGO cond parsing take a look at the newly released [level5_condition](https://github.com/Tiniifan/level5_condition/) made by Tiniifan themself!
+This parser is for the Yo-kai Watch franchise which has a much more complex system (and some slight changes) from Inazuma Eleven: GO, for IEGO Cond parsing take a look at the newly released [level5_condition](https://github.com/Tiniifan/level5_condition/) made by Tinifan themself!
 
-Examples of how the games use conds can be shown below:
+Examples of how the games use Conds can be shown below:
 * Yo-kai AI
 * NPC/Treasure Chest Availability
 * Quest/Trophy Conditions
@@ -25,7 +25,7 @@ Examples of how the games use conds can be shown below:
 
 # CExpression (Cond) System Documentation
 
-The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as conds. These conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
+The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
   * Operators (arithmetic, logical and bitwise)
@@ -36,23 +36,23 @@ The **CExpression system**, is a proprietary (usually Base64-encoded) system use
 > Note: within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) unless otherwise specified.
 ## 1. **Cond Structure**
 Each Cond begins with a header section composed of a 3-byte header of `00 00 00`, and a section previously referred to as the `COND_CODE`. This is composed of a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
-> This header will always be `00 00 00` in the cond itself; the engine will fill it in with the appropriate data during parsing.
+> This header will always be `00 00 00` in the Cond itself; the engine will fill it in with the appropriate data during parsing.
 
 ### 1.1 Header (3 bytes)
 Previously, the header was assumed to always be a **4** byte constant of `00 00 00 00`, with the purpose of serving as an integrity check. But recent developements have shown that the header is composed of a uint16 and uint8 value:
 | Byte | Description                                                                                                                                                                                                       |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1-2  | When decoded using a standard decoder; this always appears as `00 00`. Although in level5's decoder they write a uint16 to it equivalent to the amount of bytes in the cond proceeding it.                        |
+| 1-2  | When decoded using a standard decoder; this always appears as `00 00`. Although in level5's decoder they write a uint16 to it equivalent to the amount of bytes in the Cond proceeding it.                        |
 | 3    | This byte serves an unknown purpose an appears to always be `00`.                                                                                                                                                 |
 
 ### 1.2 Cond Code (3 bytes)
-a `COND_CODE` is the old name given to a 3-byte (previously though to be 2-byte) section of a cond's header now known as two seperate parts the uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
+a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte) section of a Cond's header now known as two separate parts the uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
 
 #### 1.21 COND_LENGTH
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
 #### 1.22 STACK_PRM
-This byte known as `STACK_PRM` represents the amount of (top level) values within a cond - you can simplify this to: `(((READ_FUNC_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL` and `READ_HASH`(s) that aren't used as function parameters.
+This byte known as `STACK_PRM` represents the amount of (top level) values within a Cond - you can simplify this to: `(((READ_FUNC_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL` and `READ_HASH`(s) that aren't used as function parameters.
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
@@ -98,7 +98,7 @@ Operators pop an arbitrary number of values off the stack, equivalent to it's pa
 | `8F`     | `143`   | &&     | 2        | Logical AND                           | By far the most common.                                                                                |
 | `90`     | `144`   | \|\|   | 2        | Logical OR                            | Frequently combined with `8F`.                                                                         |
 
-Operators are grouped by the multiple of ten in their decimal opcode. Each `x0–x9` range represents a distinct operator class, and operators within a range are closely related in behavior as shown by the table below:
+Operators are grouped by the multiple of ten in their decimal opcode. Each `x0–x9` range represents a distinct operator class, and operators within a range are closely related in behaviour as shown by the table below:
 
 | Range | Category                | Operators Included      |
 | ----- | ----------------------- | ----------------------- |
@@ -112,16 +112,16 @@ Operators are grouped by the multiple of ten in their decimal opcode. Each `x0�
 | `14X` | Logical Binary Logic    | `&&`, `\|`              |
 
 ## 3.1 Jumps
-There are two kinds of jumps supported by the CExpression engine, these can be considered as psuedo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or arbitrary control flow.
+There are two kinds of jumps supported by the CExpression engine, these can be considered as pseudo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or arbitrary control flow.
 
 | Hex Code | Decimal Code | Symbol  | Operation                             | Notes                                                                                                  |
 | -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `96`     | `150`        | ?->     | Conditional Jump Operator             | Unofficial symbol.                                                                                     |
 | `97`     | `151`        | ->      | Unconditional Jump Operator           | Unofficial symbol.                                                                                     |
 
-Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-block to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed flag byte (`ExtData`) that further controls execution behavior.
+Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-block to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed flag byte (`ExtData`) that further controls execution behaviour.
 
-Note that improperly aligned jump lengths may cause the evaluator to skip valid instructions or misinterpret data as opcodes. Unknown opcodes are safely skipped, but malformed jumps can still lead to unintended behavior so yeah :/
+Note that improperly aligned jump lengths may cause the evaluator to skip valid instructions or misinterpret data as opcodes. Unknown opcodes are safely skipped, but malformed jumps can still lead to unintended behaviour so yeah :/
 Additionally, as of writing this `yw-cond` doesn't support these in decompilation, recompilation or parsing so you'll have to manually test and generate them.
 
 ### 3.1.1 Conditional Jump
@@ -139,7 +139,7 @@ This then leaves the engine with the following branch of possibilities:
 * If the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past entirely.
 
 Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit in select situations.
-Additionally since the game executes the cond without an intermediary parsing stage you can place invalid bytes without consequence as long as it's jumped past and not executed i.e. using a `0 ->`  (falsy value + conditional jump).
+Additionally since the game executes the Cond without an intermediary parsing stage you can place invalid bytes without consequence as long as it's jumped past and not executed i.e. using a `0 ->`  (falsy value + conditional jump).
 
 ## 4. **Read Operations**
 
@@ -158,11 +158,11 @@ READ_FUNCTION
   ... can recursively hold up to 255 READ_PARAMs
 ```
 
-> Note: Like all values within conds, Literal Values are *big-endian*.
+> Note: Like all values within Conds, Literal Values are *big-endian*.
 <!-- Optional `READ_PARAM` chains  <!-- for a bit this was chins 😭 --> allow for unlimited nesting of subsections for multi-param functions. -->
 
 ### 4.2 READ_LITERAL
-* Always followed by a *signed 32-bit integer* (but can also be used for functions that expect a 16-bit, 8-bit, or boolean value, in which case it should still padded to 4 bytes).
+* Always followed by a *signed 32-bit integer* (but can also be used for functions that expect a 16-bit, 8-bit, or Boolean value, in which case it should still padded to 4 bytes).
 * Values are **big-endian**.
 * Pushes an integer of type 4 (int32)
 
@@ -177,7 +177,7 @@ READ_FUNCTION
 > Note that there is no runtime distinction between `READ_LITERAL` and `READ_HASH`.
 
 ## 5. CExpression Data Types
-These data types are *never directly referenced in the cond itself* but are used internally by the CExpression engine during evaluation and will therefore be mentioned here.
+These data types are *never directly referenced in the Cond itself* but are used internally by the CExpression engine during evaluation and will therefore be mentioned here.
 | ID | Type   | Description             |
 | -- | ------ | ----------------------- |
 | 0  | int8   | 8-bit signed integer    |
@@ -253,7 +253,7 @@ Putting everything together, the full byte sequence is:
 00 00 00 01 <- 0x00000001/1 aka the Value
 ```
 
-Optionally, assuming this is the entire cond we can build the header for that sequence to give us:
+Optionally, assuming this is the entire Cond we can build the header for that sequence to give us:
 ```hex
 00 00 00 <- HEADER data; this is empty space for the engine to fill
 00 1B <- COND_LENGTH this is 0x1B because there are 0x1B bytes proceeding this within the cond
@@ -278,13 +278,13 @@ TLDR:
 * Each parameter is encoded independently using `READ_PARAM`.
 
 ### Examples and Notes
-Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It takes the param(s): `(int: index)` and returns a boolean output. To be specific this function allows you to input the index of a Psychic Blasters "Stage" and it return a value representing whether the boss has/hasn't been defeated yet.
+Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It takes the param(s): `(int: index)` and returns a Boolean output. To be specific this function allows you to input the index of a Psychic Blasters "Stage" and it return a value representing whether the boss has/hasn't been defeated yet.
 CExpression Functions aren't always read only tools used for runtime conditionals - they can be general purpose expressions that mutate values as a side effect - take for instance `RunTrigger` (`0x6984E3AF`). In this function you can pass a hash representing a `TriggerID` and it will run the trigger, returning `1` (`true`) to make sure the conditionals pass.
 
-The naming schme used in CExpression Functions (just like level5 favours in general) can be shown as follows:
+The naming schema used in CExpression Functions (just like level5 favours in general) can be shown as follows:
 * Level5 uses Pascal Case
-* A mix of english and hepburn romanisation.
-  * The english is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Orge instead of Oni.
+* A mix of English and Hepburn romanisation.
+  * The English is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Orge (“typo” intentional) instead of Oni.
 * Typos, take for instance: `IsApeearMitibiki()`; these are thought to be intentional decisions to avoid collisions due to the level5 engine's extreme reliance on CRC-32 hashes.
 * Abbreviations used such as `Util`, `Cnt` etc.
 * Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `"Target"`, `"Run"`, `""` and `"Has"`.
@@ -309,25 +309,25 @@ Cond Examples:
   * `00 00 00 00 0F 05 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
   * This can be parsed as:
     * `00 00 00` - Header
-    * `00 0F 05` - Condcode.
+    * `00 0F 05` - COND_CODE.
     * `35` - READ_FUNCTION; tells the game what layout to expect and to read a value.
     * `10 B1 40 96` - The CRC32 hash of `GameClear`.
     * `00 01 00` - The CType for a Zero-Param Function; telling the engine to not parse any params, pushing the function's output as a value to stack.
     * `32` - A READ_LITERAL telling the parser to expect a literal value next.
     * `00 00 00 01` - A literal value equivalent to `1` (`true`) which promptly gets pushed to stack.
-    * `78` - an OPERATOR; specifically `==`; it compares both values in stack and returns a boolean output deciding whether the cond fails or succeeds.
+    * `78` - an OPERATOR; specifically `==`; it compares both values in stack and returns a Boolean output deciding whether the Cond fails or succeeds.
 
 ---
 
 ### 8. History
 
 * IEGO (2011, December)
-  * IEGO had a very simplistic cond system, with only 4 used CExpression Functions, (3 used CTYPEs?) and 7 used Operators (including `8F`).
+  * IEGO had a very simplistic Cond system, with only 4 used CExpression Functions, (3 used CTYPEs?) and 7 used Operators (including `8F`).
 * Yo-kai Watch 1 (2013, July)
   * Level5 made a lot of changes in this game - which makes sense considering how long they were working on it for; this can be proven by the files in Yo-kai Watch 2 that haven't been touched since 2011!
   * Yo-kai Watch 1 for smartphone had over 20 operators, multi-param functions and 118 CExpression functions!
-  * Overall this is what truly started the modern cond system.
-* ... future game's have not changed the format much aside from adding/removing CExpression Functions
+  * Overall this is what truly started the modern Cond system.
+* ... future games have not changed the format much aside from adding/removing CExpression Functions
 
 ## 9. W.I.P -- General Parsing Flow
 
@@ -341,7 +341,7 @@ Cond Examples:
 * Has most of the features in the current version (v1.3977 as of now), but with:
   * Improved parsing - removing legacy parsing remnants such as EOCIs and AEOCIs
   * Cond Workshop
-    * A subpage which can be used to easily edit, merge and create entirely new conds!
+    * A subpage which can be used to easily edit, merge and create entirely new Conds!
   * Improved Light Mode 
 ## v1.5
 * This update will mainly focus on making things easier to use; the lib will be easily separable from the UI, there will be more configs etc
