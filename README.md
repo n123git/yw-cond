@@ -284,7 +284,7 @@ CExpression Functions aren't always read only tools used for runtime conditional
 The naming schema used in CExpression Functions (just like level5 favours in general) can be shown as follows:
 * Level5 uses Pascal Case
 * A mix of English and Hepburn romanisation.
-  * The English is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Orge (“typo” intentional) instead of Oni.
+  * The English is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Orge ("typo" intentional) instead of Oni.
 * Typos, take for instance: `IsApeearMitibiki()`; these are thought to be intentional decisions to avoid collisions due to the level5 engine's extreme reliance on CRC-32 hashes.
 * Abbreviations used such as `Util`, `Cnt` etc.
 * Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `"Target"`, `"Run"`, `""` and `"Has"`.
