@@ -127,7 +127,7 @@ Additionally, as of writing this `yw-cond` doesn't support these in decompilatio
 ### 3.1.1 Conditional Jump
 `0x96`/`150` (`?->`) acts as a conditional execution block, similar to an if/if ... else statement.
 
-It takes one operand from the stack just like any other unary operator (we will call this the stack value for now due to how many values ?-> relies on) and reads it's own *CType*. Where `DataSize` specifies the length (in bytes) of the sub-block and `ExtData` is interpreted as a signed flag. Which leads to the following branch of possibilities:
+It pops one operand from the stack just like any other unary operator (we will call this the stack value for now due to how many values ?-> relies on) and reads it's own *CType*. Where `DataSize` specifies the length (in bytes) of the sub-block and `ExtData` is interpreted as a signed flag. Which leads to the following branch of possibilities:
 * If the stack value is truthy (!= 0) *and* the flag byte is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub`, then jumped past.
 * If the stack value is falsy (== 0), or the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past without any execution or otherwise processing.
 
@@ -212,7 +212,7 @@ Notes:
 ## 7. Example Structures
 
 This example demonstrates how to encode a call to the function `SetGlobalBitFlag(hash FlagID, int Value)`. 
-The function takes **two parameters**, both numeric, and is (like all others) invoked using the `READ_FUNCTION` opcode.
+The function accepts **two parameters**, both numeric, and is (like all others) invoked using the `READ_FUNCTION` opcode.
 First let's start off with our `READ_FUNCTION` (`35`). Immediately following this is the *function identifier*, stored as the CRC-32 (ISO-HDLC) hash of the function name:
 ```hex
 35 <- READ_FUNCTION
@@ -278,7 +278,7 @@ TLDR:
 * Each parameter is encoded independently using `READ_PARAM`.
 
 ### Examples and Notes
-Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It takes the param(s): `(int: index)` and returns a Boolean output. To be specific this function allows you to input the index of a Psychic Blasters "Stage" and it return a value representing whether the boss has/hasn't been defeated yet.
+Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It accepts the param(s): `(int: index)` and returns a Boolean output. To be specific this function allows you to input the index of a Psychic Blasters "Stage" and it return a value representing whether the boss has/hasn't been defeated yet.
 CExpression Functions aren't always read only tools used for runtime conditionals - they can be general purpose expressions that mutate values as a side effect - take for instance `RunTrigger` (`0x6984E3AF`). In this function you can pass a hash representing a `TriggerID` and it will run the trigger, returning `1` (`true`) to make sure the conditionals pass.
 
 The naming schema used in CExpression Functions (just like level5 favours in general) can be shown as follows:
@@ -299,7 +299,7 @@ Cond Examples:
     * `02` - STACK_PRM.
     * `35` - READ_FUNCTION; tells the game what layout to expect and to read a value.
     * `69 84 E3 AF` - The CRC32 hash of `RunTrigger`.
-    * `00 0A 01` - The CTYPE for a function that takes one parameter aka `RunTrigger` in this example.
+    * `00 0A 01` - The CTYPE for a function that accepts one numeric parameter aka `RunTrigger` in this example.
     * `28` - Used to tell the engine to keep reading so it correctly parses the params.
     * `00 06 02` - The CTYPE for an integer; referring to the input of `RunTrigger` aka the `TriggerID`
     * `34`- Similar purpose as `28`.
