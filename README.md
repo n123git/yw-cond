@@ -39,11 +39,7 @@ Each Cond begins with a header section composed of a 3-byte header of `00 00 00`
 > This header will always be `00 00 00` in the Cond itself; the engine will fill it in with the appropriate data during parsing.
 
 ### 1.1 Header (3 bytes)
-Previously, the header was assumed to always be a **4** byte constant of `00 00 00 00`, with the purpose of serving as an integrity check. But recent developements have shown that the header is composed of a uint16 and uint8 value:
-| Byte | Description                                                                                                                                                                                                       |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1-2  | When decoded using a standard decoder; this always appears as `00 00`. Although in level5's decoder they write a uint16 to it equivalent to the amount of bytes in the Cond proceeding it.                        |
-| 3    | This byte serves an unknown purpose an appears to always be `00`.                                                                                                                                                 |
+The header is a 3 byte reigon at the start of a Cond - this should *always* be `00 00 00` in the actual Cond itself - the engine will process it accordingly.
 
 ### 1.2 Cond Code (3 bytes)
 a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte) section of a Cond's header now known as two separate parts the uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
