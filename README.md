@@ -52,7 +52,7 @@ a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
 #### 1.2.2 STACK_PRM
-This byte known as `STACK_PRM` represents the amount of (top level) values within a Cond - you can simplify this to: `2(READ_FUNC_CNT + LIT_CNT + JUMP_CNT) + OP_CNT` where the `_CNT`s only refer to values that *aren't* used as function parameters.
+This byte known as `STACK_PRM` represents the amount of (top level) values within a Cond - you can simplify this to:<br>`2(READ_FUNC_CNT + LIT_CNT + JUMP_CNT) + OP_CNT` where the `_CNT`s only refer to values that *aren't* used as function parameters.
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
@@ -69,6 +69,7 @@ This byte known as `STACK_PRM` represents the amount of (top level) values withi
 | READ_FLOAT      | `33`     | `51`         | Pushes an IEEE 754 float of type 6.                                                             |
 | READ_HASH       | `34`     | `52`         | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
 | READ_FUNCTION   | `35`     | `53`         | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
+Note that the reads aside from `READ_PARAM` as it works differently, follow a limit of a maximum of 64 stack values at a time.
 
 ## 3. **Operators**
 
@@ -108,8 +109,8 @@ Operators are grouped by the multiple of ten in their decimal opcode. Each `x0�
 | `1X`  | Bit Shifting            | `<<`, `>>`              |
 | `11X` | Relational Comparison   | `<`, `<=`, `>`, `>=`    |
 | `12X` | Equality Comparison     | `==`, `!=`              |
-| `13X` | Bitwise Binary Logic    | `&`, `\|\|`, `^`        |
-| `14X` | Logical Binary Logic    | `&&`, `\|`              |
+| `13X` | Bitwise Binary Logic    | `&`, `\|`, `^`          |
+| `14X` | Logical Binary Logic    | `&&`, `\|\|`            |
 
 ## 3.1 Jumps
 There are two kinds of jumps supported by the CExpression engine, these can be considered as pseudo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or arbitrary control flow.
@@ -130,6 +131,17 @@ Additionally, as of writing this `yw-cond` doesn't support these in decompilatio
 It pops one operand from the stack just like any other unary operator (we will call this the stack value for now due to how many values ?-> relies on) and reads it's own *CType*. Where `DataSize` specifies the length (in bytes) of the sub-block and `ExtData` is interpreted as a signed flag. Which leads to the following branch of possibilities:
 * If the stack value is truthy (!= 0) *and* the flag byte is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub`, then jumped past.
 * If the stack value is falsy (== 0), or the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past without any execution or otherwise processing.
+
+You can simplify this to the following psuedo:
+```cpp
+value = pop(); // pop a value off the stack, and grab it
+ctype = readCType(); // simplified CType read because I'm lazy :p
+
+if (value != 0 && ctype.ExtData > 0) { // != 0 is how level5 determines truthiness within all their systems
+    CalcSub(ctype.DataSize);
+}
+skip(ctype.DataSize);
+```
 
 ### 3.1.2 Unconditional Jump
 `0x97` defines an *optional sub-block* whose execution depends solely on a flag and not on any runtime values being consumed or read, therefore we will consider it a nullary operator (0 operands).
