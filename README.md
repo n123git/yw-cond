@@ -200,17 +200,14 @@ These data types are *never directly referenced in the Cond itself* but are used
 | 5  | uint32 | 32-bit unsigned integer |
 | 6  | float  | 32-bit floating point   |
 
-## 6. **CTypes**
-CTypes are **3-byte descriptors** used to represent properties of functions and function parameters.
-| Byte | Name                   | Data Type |
-| ---- | ---------------------- | --------- |
-| 1-2  | DataSize               | uint16    |
-| 3    | ExtData                | int8      |
+## 6. CTypes
+CTypes are **3-byte descriptors** which act as the `COND_LENGTH` and `STACK_PRM` used for subsections of a Cond where `CalcSub` is called recursively aka within functions, function parameters an jumps.
+| Byte | Name                     | Data Type |
+| ---- | ------------------------ | --------- |
+| 1-2  | DataSize (`COND_LENGTH`) | uint16    |
+| 3    | ExtData (`STACK_PRM`)    | int8      |
 
-Notes:
-* The `DataSize` represents the length (in bytes) of the value from the ExtData onwards
-* For functions, ExtData represents the number of parameters.
-* For integers, the purpose of ExtData is unknown although it is always `02`.
+> Notes: ExtData can be simplified for functions to be the function count, and `02` for integer/float function parameters.
 
 ### 6.1 Examples
 | CType      | Meaning                                                   |
@@ -351,9 +348,74 @@ Since `RunTrigger` always returns 1; the cond will always succeed running the tr
   * Overall this is what truly started the modern Cond system.
 * ... future games have not changed the format much aside from adding/removing CExpression Functions
 
-## 9. W.I.P -- General Parsing Flow
+## 9. WIP -- Parsing Flow
+This section documents the runtime evaluation flow of a Cond as implemented by:
+```cpp
+bool yw::util::CExpression::CalcSub(char const* cond, short len)
+```
+Before the Cond even reaches CalcSub it gets decoded and the `HEADER` (first 3 bytes) are stripped, since there isn't much going on we will only document `CalcSub` as mentioned above:
+Unlike what you'd expect, the engine does not perform a full pre-parse of the Cond. Instead, CalcSub validates a minimal header and then executes instructions sequentially while mutating an internal value stack.
 
-<>
+### 9.1 Initial Validation
+Upon entry, CalcSub receives:
+* `cond`: a pointer to the start of a Cond sub-block
+* `len`: the number of bytes remaining in the parent context
+
+The function immediately performs a series of important structural checks for safety. If *any* of these checks fail, the Con will stop being processed any further, returning `false`.
+First it performs a minimum length check:
+```cpp
+if (len < 3)
+    return false;
+```
+A valid Cond by the time it's sent to CalcSub must start with the following 3 bytes at the minimum:
+* `COND_LENGTH` (2 bytes)
+* `STACK_PRM` (1 byte)
+Any shorter buffer will immediately return `false`.
+The first two bytes of `cond` are interpreted as a BE uint16:
+```cpp
+blockLength = (cond[0] << 8) | cond[1];
+```
+This value represents the number of bytes remaining after the length field itself, including:
+* `STACK_PRM`
+* all instructions in this Cond
+The following conditions immediately invalidate the Cond:
+* `COND_LENGTH == 0`
+  * At the *absolute minimum* `COND_LENGTH` must be `1` to fit `STACK_PRM`. 
+* `len - 2 < COND_LENGTH` (`COND_LENGTH` is shorter than the Cond without itself)
+
+The third byte (`cond[2]`) is read as `STACK_PRM`:
+```c
+STACK_PRM = cond[2];
+if (STACK_PRM == 0)
+    return false;
+```
+A `STACK_PRM` of `0` is considered invalid and causes immediate failure.
+
+### 9.2 Initial well.. Initialisation
+Once the header is validated:
+* `blockLength` is decremented by 1.
+* An instruction pointer is initialized to `cond + 3`.
+  * This is right after the `STACK_PRM` aka where the main Cond actually starts.
+* A loop counter is derived from `STACK_PRM`.
+```cpp
+blockLength -= 1;
+ptr = cond + 3;
+```
+Before executing an opcode, the engine performs a range check on the current byte:
+```cpp
+if (*ptr < 0x28 || *ptr > 0x97)
+    return false;
+```
+### 9.3 OPCODEs
+Since opcodes are checked in ascending order, the first opcode is `READ_PARAM (0x28)`:
+
+Once encountered a nested block length is extracted from the two bytes following the `READ_PARAM` (The `DataSize` section of the CTYPE). Then `CalcSub` is called recursively on the parameter sub-block and execution resumes after the sub-block unless either:
+  * The parameter count is invalid
+  * The declared size is zero
+
+If either condition is met, the engine skips execution of the sub-block and advances the instruction pointer. Since the params are sub-blocks processed by a different `CalcSub` instance that contains the same stack function parameters are evaluated as mostly isolated sub-Cond blocks
+
+<note: finish the rest>
 
 ---
 <!-- secret easter egg: n123 is coolz (or am I?) -->
