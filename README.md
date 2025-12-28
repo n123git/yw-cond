@@ -48,11 +48,11 @@ Previously, the header was assumed to always be a **4** byte constant of `00 00 
 ### 1.2 Cond Code (3 bytes)
 a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte) section of a Cond's header now known as two separate parts the uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
 
-#### 1.21 COND_LENGTH
+#### 1.2.1 COND_LENGTH
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
-#### 1.22 STACK_PRM
-This byte known as `STACK_PRM` represents the amount of (top level) values within a Cond - you can simplify this to: `(((READ_FUNC_CNT + LIT_NONPARAM_CNT) * 2) + OP_CNT)` where `LIT_NONPARAM_CNT` is the amount of `READ_LITERAL` and `READ_HASH`(s) that aren't used as function parameters.
+#### 1.2.2 STACK_PRM
+This byte known as `STACK_PRM` represents the amount of (top level) values within a Cond - you can simplify this to: `2(READ_FUNC_CNT + LIT_CNT + JUMP_CNT) + OP_CNT` where the `_CNT`s only refer to values that *aren't* used as function parameters.
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
@@ -218,7 +218,7 @@ First let's start off with our `READ_FUNCTION` (`35`). Immediately following thi
 35 <- READ_FUNCTION
 18 2B 37 5A <- 0x182B375A is the CRC32 of "SetGlobalBitFlag"
 ```
-After the function hash we have the *CType* (See § 13), which describes the size and other data of the function and its parameters.
+After the function hash we have the *CType* (See § 6), which describes the size and other data of the function and its parameters.
 
 Numeric parameters occupy 9 bytes each - including their individual CTypes.
 
@@ -329,14 +329,12 @@ Since `RunTrigger` always returns 1; the cond will always succeed running the tr
 <-- finally after the cond has been evaluated the value in stack is checked; if truthy the cond suceeded, else it failed -->
 ```
 
----
-
 ### 8. History
 
 * IEGO (2011, December)
-  * IEGO had a very simplistic Cond system, with only 4 used CExpression Functions, (3 used CTYPEs?) and 7 used Operators (including `8F`).
+  * IEGO had a very simplistic Cond system, with only 4 used CExpression Functions, and 7 used Operators (including `8F`).
 * Yo-kai Watch 1 (2013, July)
-  * Level5 made a lot of changes in this game - which makes sense considering how long they were working on it for; this can be proven by the files in Yo-kai Watch 2 that haven't been touched since 2011!
+  * Level5 made a lot of changes in this game - which makes sense considering how long they were working on it for - proven by the fact that there are files in Yo-kai Watch 2 that haven't been touched since 2011!
   * Yo-kai Watch 1 for smartphone had over 20 operators, multi-param functions and 118 CExpression functions!
   * Overall this is what truly started the modern Cond system.
 * ... future games have not changed the format much aside from adding/removing CExpression Functions
