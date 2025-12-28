@@ -65,7 +65,8 @@ This byte known as `STACK_PRM` represents the amount of (top level) values withi
 | READ_FLOAT      | `33`     | `51`         | Pushes an IEEE 754 float of type 6.                                                             |
 | READ_HASH       | `34`     | `52`         | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
 | READ_FUNCTION   | `35`     | `53`         | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
-Note that the reads aside from `READ_PARAM` as it works differently, follow a limit of a maximum of 64 stack values at a time.
+
+> Note that the reads aside from `READ_PARAM` as it works differently, follow a limit of a maximum of 64 stack values at a time.
 
 ## 3. **Operators**
 
