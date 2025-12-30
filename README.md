@@ -25,7 +25,7 @@ Examples of how the games use Conds can be shown below:
 
 # CExpression (Cond) System Documentation
 
-The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating RPN (Reverse Polish Notation) runtime conditions known as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
+The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating recursive RPN (Reverse Polish Notation) runtime conditions known as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
   * Operators (arithmetic, logical and bitwise)
@@ -48,7 +48,34 @@ a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
 #### 1.2.2 STACK_PRM
-This byte known as `STACK_PRM` represents the amount of (top level) values within a Cond - you can simplify this to:<br>`2(READ_FUNC_CNT + LIT_CNT + JUMP_CNT) + OP_CNT` where the `_CNT`s only refer to values that *aren't* used as function parameters.
+This byte known as `STACK_PRM` represents the Top-Level expression count - meaning the amount of elements in a Cond excluding subsections and their markers (CTYPEs) - where elements in a subsection contribute to the CTYPE (See § 6) of the subsection. `STACK_PRM` is incremented by every element after itself and outsie of a subsection - with the exception of CTYPEs which don't contribute to `STACK_PRM` as they are, in of themselves a subsection marker which host their own `STACK_PRM` and `COND_LENGTH` (See § 6). This includes everything from operators to literal values to `READ_LITERAL`s and more!
+```hex
+00 00 00
+00 36
+05
+35 <- READ_FUNCTION; contributes 1 to STACK_PRM
+74 03 A9 CE <- LITERAL_VALUE; contributes 1 to STACK_PRM
+00 1C 03 <- CTYPE; subsections do not contribute to the STACK_PRM of the main cond
+ 28 
+  00 06 02 <- CTYPE in a subsection subsection; does not contribute
+  34 <- READ_HASH contributes 1 to the subsection subsection's CTYPE
+  C1 B2 DA B7 <- LITERAL_VALUE contributes 1 to the subsections subsection's CTYPE
+ 28 <- READ_PARAM in a subsection; contributes 1 to the subsection's CTYPE
+  00 06 02 <- CTYPE in a subsection subsection; does not contribute
+  34 <- READ_HASH contributes 1 to the subsection subsection's CTYPE
+  8E 31 15 F3 <- LITERAL_VALUE contributes 1 to the subsections subsection's CTYPE
+ 28 <- READ_PARAM in a subsection; contributes 1 to the subsection's CTYPE
+  00 06 02 <- CTYPE in a subsection subsection; does not contribute
+  32 <- READ_LITERAL contributes 1 to the subsection subsection's CTYPE
+  00 00 0E F6 <- LITERAL_VALUE contributes 1 to the subsections subsection's CTYPE
+35 <- READ_FUNCTION; contributes 1 to STACK_PRM
+69 84 E3 AF <- LITERAL_VALUE; contributes 1 to STACK_PRM
+00 0A 01 <- CTYPE; subsections do not contribute to the STACK_PRM of the main cond
+ 28 <- READ_PARAM in a subsection; contributes 1 to the subsection's CTYPE
+ 00 06 02 <- CTYPE in a subsection subsection; does not contribute
+ 34 <- READ_HASH contributes 1 to the subsection subsection's CTYPE
+ 42 6F A0 C3 8F <- LITERAL_VALUE contributes 1 to the subsections subsection's CTYPE
+```
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
@@ -110,7 +137,7 @@ Operators are grouped by the multiple of ten in their decimal opcode. Each `x0�
 | `14X` | Logical Binary Logic    | `&&`, `\|\|`            |
 
 ## 3.1 Jumps
-There are two kinds of jumps supported by the CExpression engine, these can be considered as pseudo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or arbitrary control flow.
+There are two kinds of jumps supported by the CExpression engine, these can be considered as pseudo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or any other arbitrary control flow.
 
 | Hex Code | Decimal Code | Symbol  | Operation                             | Notes                                                                                                  |
 | -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -204,7 +231,7 @@ CTypes are **3-byte descriptors** which act as the `COND_LENGTH` and `STACK_PRM`
 | 1-2  | DataSize (`COND_LENGTH`) | uint16    |
 | 3    | ExtData (`STACK_PRM`)    | int8      |
 
-> Notes: ExtData can be simplified for functions to be the function count, and `02` for integer/float function parameters.
+> Notes: ExtData can be simplified for functions to be the function count as `READ_PARAM` is worth 1 within `STACK_PRM` calculation (although functions are their own subsection, as denoted by the CTYPE and therefore do not affect the `STACK_PRM` calculation for the main Cond) and `02` for integer/float function parameters.
 
 ### 6.1 Examples
 | CType      | Meaning                                                   |
