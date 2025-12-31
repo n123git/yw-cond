@@ -39,7 +39,7 @@ Each Cond begins with a header section composed of a 3-byte header of `00 00 00`
 > This header will always be `00 00 00` in the Cond itself; the engine will fill it in with the appropriate data during parsing.
 
 ### 1.1 Header (3 bytes)
-The header is a 3 byte reigon at the start of a Cond - this should *always* be `00 00 00` in the actual Cond itself - the engine will process it accordingly.
+The header is a 3 byte region at the start of a Cond - this should *always* be `00 00 00` in the actual Cond itself - the engine will process it accordingly.
 
 ### 1.2 Cond Code (3 bytes)
 a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte) section of a Cond's header now known as two separate parts the uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
@@ -48,7 +48,7 @@ a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
 #### 1.2.2 STACK_PRM
-This byte known as `STACK_PRM` represents the Top-Level expression count - meaning the amount of elements in a Cond excluding subsections and their markers (CTYPEs) - where elements in a subsection contribute to the CTYPE (See § 6) of the subsection. `STACK_PRM` is incremented by every element after itself and outsie of a subsection - with the exception of CTYPEs which don't contribute to `STACK_PRM` as they are, in of themselves a subsection marker which host their own `STACK_PRM` and `COND_LENGTH` (See § 6). This includes everything from operators to literal values to `READ_LITERAL`s and more!
+This byte known as `STACK_PRM` represents the Top-Level expression count - meaning the amount of elements in a Cond excluding subsections and their markers (CTYPEs) - where elements in a subsection contribute to the CTYPE (See § 6) of the subsection. `STACK_PRM` is incremented by every element after itself and outside of a subsection - with the exception of CTYPEs which don't contribute to `STACK_PRM` as they are, in of themselves a subsection marker which host their own `STACK_PRM` and `COND_LENGTH` (See § 6). This includes everything from operators to literal values to `READ_LITERAL`s and more!
 ```hex
 00 00 00
 00 36
@@ -385,7 +385,7 @@ Upon entry, CalcSub receives:
 * `cond`: a pointer to the start of a Cond sub-block
 * `len`: the number of bytes remaining in the parent context
 
-The function immediately performs a series of important structural checks for safety. If *any* of these checks fail, the Con will stop being processed any further, returning `false`.
+The function immediately performs a series of important structural checks for safety. If *any* of these checks fail, the Cond will stop being processed any further, returning `false`.
 First it performs a minimum length check:
 ```cpp
 if (len < 3)
