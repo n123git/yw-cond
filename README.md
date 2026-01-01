@@ -28,9 +28,9 @@ v1.4b release progress and changelog:
 * Jump support - 30%
 * Rewritten cond parser to fix remaining bugs - 90%
   * Sub-block parsing isn't fully correct yet, runs under old assumptions caused by level5's severe underuse of their own system's capabilities.
-* Readability and maintainability improvements - 90%
-* A cond compiler to create entirely new conds with support for floats, brackets, implicit ordering, scientific notation and more - 90%
-  * Jumps aren't supported yet
+* Readability and maintainability improvements - 91%
+* A cond compiler to create entirely new conds with support for floats, brackets, implicit ordering, scientific notation, advanced recursive subsections and more - 90%
+  * Jumps aren't supported yet - might implement shorthands like range(x, y) for >= x && =< y
 * ~~Improved light mode - 0%~~
   * Does any sane person legitametly use this? /j
   * Delayed to v1.41b as the scope of the update is getting too large and this will take a lot of time and CSS changes for no benefit to 100% of people using this tool
