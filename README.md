@@ -418,7 +418,8 @@ blockLength = (cond[0] << 8) | cond[1];
 ```
 This value represents the number of bytes remaining after the length field itself, including:
 * `STACK_PRM`
-* all instructions in this Cond
+* all opcodes/instructions within the entire Cond
+
 The following conditions immediately invalidate the Cond:
 * `COND_LENGTH == 0`
   * At the *absolute minimum* `COND_LENGTH` must be `1` to fit `STACK_PRM`. 
