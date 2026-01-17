@@ -51,7 +51,7 @@ The **CExpression system**, is a proprietary (usually Base64-encoded) system use
 > Note: conditions have been found which contain < 1 conditions but these are invalid and are the reason for the music app being broken in localised versions of Yo-kai Watch 2: Psychic Specters.
 
 > Note: within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) unless otherwise specified.
-## 1. **Cond Structure**
+## 1. Cond Structure
 Each Cond begins with a header section composed of a 3-byte header of `00 00 00`, and a section previously referred to as the `COND_CODE`. This is composed of a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
 > This header will always be `00 00 00` in the Cond itself; the engine will fill it in with the appropriate data during parsing.
 
@@ -65,34 +65,60 @@ a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
 
 #### 1.2.2 STACK_PRM
-This byte known as `STACK_PRM` represents the Top-Level expression count - meaning the amount of elements in a Cond excluding subsections and their markers (CTYPEs) - where elements in a subsection contribute to the CTYPE (See § 6) of the subsection. `STACK_PRM` is incremented by every element after itself and outside of a subsection - with the exception of CTYPEs which don't contribute to `STACK_PRM` as they are, in of themselves a subsection marker which host their own `STACK_PRM` and `COND_LENGTH` (See § 6). This includes everything from operators to literal values to `READ_LITERAL`s and more!
+A `STACK_PRM` is a singular byte that specifies the quantity of elements proceeding it in the current Cond subsection.
+An *element* is any non-CTYPE instruction or value. Take for instance:
+* Read instructions (`READ_LITERAL`, `READ_FLOAT`, `READ_HASH`, `READ_FUNCTION`)
+* Operators (arithmetic, logical, bitwise, etc) & Jumps
+* `READ_PARAM`, `LITERAL_VALUE` etc
+However one value does not contribute to the `STACK_PRM` - this is:
+* CTypes
+  * CTypes act purely as subsection descriptors, declaring the `STACK_PRM` and `COND_LENGTH` of subsections but have no other meaning and therefore are the only element to contribute to *no* `STACK_PRM` - neither the parent's nor their own.
+
+> Note: subsections do not contribute to the `STACK_PRM` of higher or lower subsections, but they do contribute to the `COND_LENGTH` of parent (higher) subsections.
+
+---
+
+### Example
+
 ```hex
 00 00 00
 00 36
-05
-35 <- READ_FUNCTION; contributes 1 to STACK_PRM
-74 03 A9 CE <- LITERAL_VALUE; contributes 1 to STACK_PRM
-00 1C 03 <- CTYPE; subsections do not contribute to the STACK_PRM of the main cond
- 28 
-  00 06 02 <- CTYPE in a subsection subsection; does not contribute
-  34 <- READ_HASH contributes 1 to the subsection subsection's CTYPE
-  C1 B2 DA B7 <- LITERAL_VALUE contributes 1 to the subsections subsection's CTYPE
- 28 <- READ_PARAM in a subsection; contributes 1 to the subsection's CTYPE
-  00 06 02 <- CTYPE in a subsection subsection; does not contribute
-  34 <- READ_HASH contributes 1 to the subsection subsection's CTYPE
-  8E 31 15 F3 <- LITERAL_VALUE contributes 1 to the subsections subsection's CTYPE
- 28 <- READ_PARAM in a subsection; contributes 1 to the subsection's CTYPE
-  00 06 02 <- CTYPE in a subsection subsection; does not contribute
-  32 <- READ_LITERAL contributes 1 to the subsection subsection's CTYPE
-  00 00 0E F6 <- LITERAL_VALUE contributes 1 to the subsections subsection's CTYPE
-35 <- READ_FUNCTION; contributes 1 to STACK_PRM
-69 84 E3 AF <- LITERAL_VALUE; contributes 1 to STACK_PRM
-00 0A 01 <- CTYPE; subsections do not contribute to the STACK_PRM of the main cond
- 28 <- READ_PARAM in a subsection; contributes 1 to the subsection's CTYPE
- 00 06 02 <- CTYPE in a subsection subsection; does not contribute
- 34 <- READ_HASH contributes 1 to the subsection subsection's CTYPE
- 42 6F A0 C3 8F <- LITERAL_VALUE contributes 1 to the subsections subsection's CTYPE
+05                <- STACK_PRM (top-level subsection has 5 elements)
+
+35                <- READ_FUNCTION (element +1)
+74 03 A9 CE       <- LITERAL_VALUE (element +1)
+
+00 1C 03          <- CTYPE (declares a subsection; contributes nothing)
+ 28               <- READ_PARAM (element of the subsection, not top-level)
+  00 06 02        <- CTYPE (nested subsection descriptor)
+  34              <- READ_HASH (element of nested subsection)
+  C1 B2 DA B7      <- LITERAL_VALUE (element of nested subsection)
+
+ 28               <- READ_PARAM (element of the subsection)
+  00 06 02        <- CTYPE
+  34              <- READ_HASH (nested)
+  8E 31 15 F3      <- LITERAL_VALUE (nested)
+
+ 28               <- READ_PARAM (element of the subsection)
+  00 06 02        <- CTYPE
+  32              <- READ_LITERAL (nested)
+  00 00 0E F6      <- LITERAL_VALUE (nested)
+
+35                <- READ_FUNCTION (element +1)
+69 84 E3 AF       <- LITERAL_VALUE (element +1)
+
+00 0A 01          <- CTYPE (declares a subsection)
+ 28               <- READ_PARAM (subsection element)
+ 00 06 02         <- CTYPE
+ 34               <- READ_HASH
+ 42 6F A0 C3 8F    <- LITERAL_VALUE
 ```
+
+In this example:
+
+* Only **five** instructions occur at the top level that produce stack values.
+* All nested reads and literals are accounted for by their enclosing CTypes.
+* The declared `STACK_PRM = 05` therefore correctly describes the top-level subsection.
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
