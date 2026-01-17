@@ -76,50 +76,6 @@ However one value does not contribute to the `STACK_PRM` - this is:
 
 > Note: subsections do not contribute to the `STACK_PRM` of higher or lower subsections, but they do contribute to the `COND_LENGTH` of parent (higher) subsections.
 
----
-
-### Example
-
-```hex
-00 00 00
-00 36
-05                <- STACK_PRM (top-level subsection has 5 elements)
-
-35                <- READ_FUNCTION (element +1)
-74 03 A9 CE       <- LITERAL_VALUE (element +1)
-
-00 1C 03          <- CTYPE (declares a subsection; contributes nothing)
- 28               <- READ_PARAM (element of the subsection, not top-level)
-  00 06 02        <- CTYPE (nested subsection descriptor)
-  34              <- READ_HASH (element of nested subsection)
-  C1 B2 DA B7      <- LITERAL_VALUE (element of nested subsection)
-
- 28               <- READ_PARAM (element of the subsection)
-  00 06 02        <- CTYPE
-  34              <- READ_HASH (nested)
-  8E 31 15 F3      <- LITERAL_VALUE (nested)
-
- 28               <- READ_PARAM (element of the subsection)
-  00 06 02        <- CTYPE
-  32              <- READ_LITERAL (nested)
-  00 00 0E F6      <- LITERAL_VALUE (nested)
-
-35                <- READ_FUNCTION (element +1)
-69 84 E3 AF       <- LITERAL_VALUE (element +1)
-
-00 0A 01          <- CTYPE (declares a subsection)
- 28               <- READ_PARAM (subsection element)
- 00 06 02         <- CTYPE
- 34               <- READ_HASH
- 42 6F A0 C3 8F    <- LITERAL_VALUE
-```
-
-In this example:
-
-* Only **five** instructions occur at the top level that produce stack values.
-* All nested reads and literals are accounted for by their enclosing CTypes.
-* The declared `STACK_PRM = 05` therefore correctly describes the top-level subsection.
-
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
 ---
