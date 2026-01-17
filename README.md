@@ -463,12 +463,6 @@ If either condition is met, the engine skips execution of the sub-block and adva
 <!-- secret easter egg: n123 is coolz (or am I?) -->
 
 # Roadmap
-## v1.4
-* Has most of the features in the current version (v1.3977 as of now), but with:
-  * Improved parsing - removing legacy parsing remnants such as EOCIs and AEOCIs
-  * Cond Workshop
-    * A subpage which can be used to easily edit, merge and create entirely new Conds!
-  * Improved Light Mode 
 ## v1.5
 * This update will mainly focus on making things easier to use; the lib will be easily separable from the UI, there will be more configs etc
   * This will be done in preparation for being built into `yw-mod`, an upcoming project I'm working on!
