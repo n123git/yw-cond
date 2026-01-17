@@ -110,11 +110,10 @@ This byte known as `STACK_PRM` represents the Top-Level expression count - meani
 | READ_HASH       | `34`     | `52`         | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
 | READ_FUNCTION   | `35`     | `53`         | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
 
-> Note that the reads aside from `READ_PARAM` as it works differently, follow a limit of a maximum of 64 stack values at a time.
-
+> Note that the reads aside from `READ_PARAM` follow a limit of a maximum of 64 stack values at a time. Additionally note that all of these contribute 1 to the `STACK_PRM` of the current subsection, not including the following `LITERAL_VALUE` which also contributes 1 as they are both seperate elements.
 ## 3. **Operators**
 
-Operators pop an arbitrary number of values off the stack, equivalent to it's param count, perform a logical, arithmetic or bitwise operation on those values and then push the output to the stack. Operators pop the *most recent* values off of the stack (LIFO: Last In, First Out) as is common for similar systems.
+Operators pop an arbitrary number of values off the stack, equivalent to it's param count, perform a logical, arithmetic or bitwise operation on those values and then push the output to the stack. Operators pop the *most recent* values off of the stack (LIFO: Last In, First Out) as is common for similar systems. Additionally, like all non-CTYPE elements they contribute 1 to the `STACK_PRM` of the current subsection.
 | Hex Code | Decimal | Symbol | Op Count | Operation                             | Notes                                                                                                  |
 | -------- | ------- | ------ | -------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `46`     | `70`    | ++     | 1        | Incrementation                        | Unofficial Symbol.                                                                                     |
@@ -154,14 +153,14 @@ Operators are grouped by the multiple of ten in their decimal opcode. Each `x0�
 | `14X` | Logical Binary Logic    | `&&`, `\|\|`            |
 
 ## 3.1 Jumps
-There are two kinds of jumps supported by the CExpression engine, these can be considered as pseudo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or any other arbitrary control flow.
+There are two kinds of jumps supported by the CExpression engine, these can be considered as pseudo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or any other arbitrary control flow. Additionally note that the jumps themselves contribute 1 to the `STACK_PRM` of the current subsection although the rest of the jump body does not as they are enclosed in a subsection defined by the CType.
 
 | Hex Code | Decimal Code | Symbol  | Operation                             | Notes                                                                                                  |
 | -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `96`     | `150`        | ?->     | Conditional Jump Operator             | Unofficial symbol.                                                                                     |
 | `97`     | `151`        | ->      | Unconditional Jump Operator           | Unofficial symbol.                                                                                     |
 
-Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-block to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed flag byte (`ExtData`) that further controls execution behaviour.
+Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-section to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed flag byte (`ExtData`) that further controls execution behaviour.
 
 Note that improperly aligned jump lengths may cause the evaluator to skip valid instructions or misinterpret data as opcodes. Unknown opcodes are safely skipped, but malformed jumps can still lead to unintended behaviour so yeah :/
 Additionally, as of writing this `yw-cond` doesn't support these in decompilation, recompilation or parsing so you'll have to manually test and generate them.
@@ -242,7 +241,7 @@ These data types are *never directly referenced in the Cond itself* but are used
 | 6  | float  | 32-bit floating point   |
 
 ## 6. CTypes
-CTypes are **3-byte descriptors** which act as the `COND_LENGTH` and `STACK_PRM` used for subsections of a Cond where `CalcSub` is called recursively aka within functions, function parameters an jumps.
+CTypes are **3-byte descriptors** which act as the defined `COND_LENGTH` and `STACK_PRM` used for subsections of a Cond - this is because `CalcSub` works recursively allowing you to do things like pass complete nested expressions into function parameters. As these declare a subsection they contribute to the `COND_LENGTH` but NOT the `STACK_PRM` of the current subsection. No other element follows this behaviour.
 | Byte | Name                     | Data Type |
 | ---- | ------------------------ | --------- |
 | 1-2  | DataSize (`COND_LENGTH`) | uint16    |
