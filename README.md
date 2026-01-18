@@ -41,8 +41,9 @@ v1.4b release progress and changelog:
 * More decompiler improvements (aggressive simplification) - 0%
 
 ## Usage Guide
-This section will explain how to use the web UI of `yw-cond`. First, let's open the website. You can do this by clicking [this](https://n123git.github.io/yw-cond).
-![Blank yw-cond site](tutorial_blankslate.png)
+This section will explain how to use the web UI of `yw-cond`. First, let's open the website. You can do this by clicking [this](https://n123git.github.io/yw-cond). You should see something like this:
+![Blank yw-cond site](tutorial/tutorial_blankslate.png)
+First, we'll load a random sample cond to demonstrate, we can do this by clicking *Load Sample* (*Charger un échantillon* in French). This loads a sample from a pre-defined sample list, shuffling in order (mostly used for testing).
 
 # CExpression (Cond) System Documentation
 
