@@ -41,10 +41,10 @@ v1.4b release progress and changelog:
 * More decompiler improvements (aggressive simplification) - 0%
 
 ## Usage Guide
-This section will explain how to use the web UI of `yw-cond`. First, let's open the website. You can do this by clicking [this](https://n123git.github.io/yw-cond). You should see something like this:
+This section will explain how to use the web UI of `yw-cond`. First, let's open the website - you can open the website [by clicking this link](https://n123git.github.io/yw-cond). You should see something like this:
 ![Blank yw-cond site](tutorial/tutorial_blankslate.png)
-First, we'll load a random sample cond to demonstrate, we can do this by clicking *Load Sample* (*Charger un échantillon* in French). This loads a sample from a pre-defined sample list, shuffling in order (mostly used for testing).
-
+Next, we'll load a random sample CExpression (or 'Cond') to demonstrate, we can do this by clicking *Load Sample* (*Charger un échantillon* in French). This loads a sample from a pre-defined sample list, shuffling in order (mostly used for testing):
+![Blank yw-cond site](tutorial/tutorial_sampleloaded.png)
 # CExpression (Cond) System Documentation
 
 The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating recursive RPN (Reverse Polish Notation) runtime conditions known as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
