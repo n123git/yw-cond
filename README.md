@@ -40,6 +40,10 @@ v1.4b release progress and changelog:
 * Add more templates - 100%
 * More decompiler improvements (aggressive simplification) - 0%
 
+## Usage Guide
+This section will explain how to use the web UI of `yw-cond`. First, let's open the website. You can do this by clicking [this](https://n123git.github.io/yw-cond).
+![Blank yw-cond site](tutorial_blankslate.png)
+
 # CExpression (Cond) System Documentation
 
 The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating recursive RPN (Reverse Polish Notation) runtime conditions known as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
