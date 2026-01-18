@@ -49,7 +49,10 @@ The $\color{#E81B1B}{■}$ (red) section is where you paste in your CExpression,
 The $\color{#3D00BA}{■}$ (purple) section will display errors if they appear. These should never occur in practice however.
 The $\color{#FFAB00}{■}$ (orange) section displays a C/C++ decompilation of the CExpression to show the behaviour of the CExpression.
 The $\color{#27F200}{■}$ (green) section displays a 1:1 breakdown of all the bytes within the CExpression and their purpose - this is for people who understand the format - it can also be used for debugging.
-Next, let's go over the buttons on the sidebar
+Next, let's go over the buttons on the sidebar:
+* *Parse* (*Analyser* in French) parses and analyses the cond in the textarea ($\color{#E81B1B}{■}$ (red) section)
+ * *Load Sample* (*Charger un échantillon* in French) automatically runs this, same for *Toggle Format* (*Changer de format*)
+ * Clicking *Parse* when the textarea is empty will clear the $\color{#FFAB00}{■}$ (orange), $\color{#27F200}{■}$ (green) and $\color{#3D00BA}{■}$ (purple) sections.
 
 # CExpression (Cond) System Documentation
 
