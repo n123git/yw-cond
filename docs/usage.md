@@ -1,8 +1,8 @@
 ## Usage Guide
 This section will explain how to use the web UI of `yw-cond`. First, let's open the website - you can open the website [by clicking this link](https://n123git.github.io/yw-cond). You should see something like this:
-![Blank yw-cond site](tutorial/tutorial_blankslate.png)
+![Blank yw-cond site](../tutorial/tutorial_blankslate.png)
 Next, we'll load a random sample CExpression (or 'Cond') to demonstrate, we can do this by clicking *Load Sample* (*Charger un échantillon* in French). This loads a sample from a pre-defined sample list, shuffling in order (mostly used for testing):
-![Blank yw-cond site](tutorial/tutorial_sampleloaded.png)
+![Blank yw-cond site](../tutorial/tutorial_sampleloaded.png)
 The $\color{#E81B1B}{■}$ (red) section is where you paste in your CExpression, it can be in base64 i.e. `AAAAABgFNSo9RUMACgEoAAYCNAASNFYyAAAAAXg=` or in hex as shown by the image.
 The $\color{#3D00BA}{■}$ (purple) section will display errors if they appear. These should never occur in practice however.
 The $\color{#FFAB00}{■}$ (orange) section displays a C/C++ decompilation of the CExpression to show the behaviour of the CExpression.
