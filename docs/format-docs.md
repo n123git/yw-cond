@@ -1,6 +1,6 @@
 # CExpression (Cond) System Documentation
 
-The **CExpression system**, is a proprietary (usually Base64-encoded) system used for evaluating recursive RPN (Reverse Polish Notation) runtime conditions known as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
+The **CExpression system**, is a proprietary Base64-encoded, stack-based, recursive RPN (Reverse Polish Notation) binary format with support for forward-only jumps and engine syscalls used for evaluating and executing runtime conditions used in 3DS & Switch level5 games - colloquially referred to as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
   * Operators (arithmetic, logical and bitwise)
@@ -17,7 +17,7 @@ Each Cond begins with a header section composed of a 3-byte header of `00 00 00`
 The header is a 3 byte region at the start of a Cond - this should *always* be `00 00 00` in the actual Cond itself - the engine will process it accordingly.
 
 ### 1.2 Cond Code (3 bytes)
-a `COND_CODE` is the old name given to a 3-byte (previously thought to be 2-byte) section of a Cond's header now known as two separate parts the uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
+a `COND_CODE` is the name given to a 3-byte (previously thought to be 2-byte) section of a Cond's header composed of a uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
 
 #### 1.2.1 COND_LENGTH
 This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
@@ -36,9 +36,7 @@ However one value does not contribute to the `STACK_PRM` - this is:
 
 > Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
 
----
-
-## 2. **Data Identifiers**
+## 2. Data Identifiers
 
 ### 2.1 Reads
 
