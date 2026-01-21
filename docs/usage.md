@@ -27,3 +27,5 @@ There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alo
 * `GetPhase()` - no params; returns the current Phase
   * This is calculated as `(chapter_no * 10,000) + sub_phase_no` (official names extracted from yw4 save files).
   * Take for instance `40010` this means the player is in Chapter 4, with a subphase of 10 which is near the start of the Chapter.
+* `GameClear()` - no params; returns a Boolean value.
+  * Returns 1 if the player has completed the main story (post-game isn't needed) else 0.
