@@ -22,9 +22,10 @@ Examples of how the games use Conds can be shown below:
 * and much, much more!
 
 [The website can be downloaded or viewed here](https://n123git.github.io/yw-cond).
-Usage guides can be found [here](/abc.md).
+Usage guides can be found [here](/docs/usage.md).
 
-Format documentation can be found [here](/abcd.md)
+Format documentation can be found [here](/docs/format-docs.md).
+
 v1.4b release progress and changelog:
 * Float support - 100%
 * Jump support - 30%
