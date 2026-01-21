@@ -22,4 +22,8 @@ Next, let's go over the buttons on the sidebar:
   * *NAND* - succeeds unless both Conds do.
 * *Compile Conds* (Compiler Conds in French) from v1.4b onwards allows you to compile completely custom CExpressions see the Compiler Syntax section for a guide on this. ![BETA](https://img.shields.io/badge/BETA-FF1212)
 ## Common CExpression Functions
-There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alone! This section will explain the most common ones you'll frequently see.
+There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alone! This section will explain the most common ones you'll frequently see:
+
+* `GetPhase()` - no params; returns the current Phase
+  * This is calculated as `(chapter_no * 10,000) + sub_phase_no` (official names extracted from yw4 save files).
+  * Take for instance `40010` this means the player is in Chapter 4, with a subphase of 10 which is near the start of the Chapter.
