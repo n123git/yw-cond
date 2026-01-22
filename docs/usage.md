@@ -1,4 +1,4 @@
-## Usage Guide
+# Usage Guide
 This section will explain how to use the web UI of `yw-cond`. First, let's open the website - you can open the website [by clicking this link](https://n123git.github.io/yw-cond). You should see something like this:
 ![Blank yw-cond site](../tutorial/tutorial_blankslate.png)
 Next, we'll load a random sample CExpression (or 'Cond') to demonstrate, we can do this by clicking *Load Sample* (*Charger un échantillon* in French). This loads a sample from a pre-defined sample list, shuffling in order (mostly used for testing):
@@ -43,3 +43,11 @@ There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alo
   * `GlobalBitFlag`s are defined in `FLAG_INFO_0` in `data/res/sys/flag_config_*.cfg.bin` and are Boolean meaning that they can be either `0` or `1`.
 * `GetGlobalBitFlag(hash: GlobalBitFlagID)` - gets the value of the `GlobalBitFlag` with the specified ID.
   * `GlobalBitFlag`s are defined in `FLAG_INFO_0` in `data/res/sys/flag_config_*.cfg.bin` and are Boolean meaning that they can be either `0` or `1`.
+
+## Compiler Syntax
+The compiler accepts an expression formatted as `(3 + 1) > 5` - note that there is implicit operator precedence so `3 + 3 * 5` compiles to `3 + (3 * 5)` and not `(3 + 3) * 5`. The compiler accepts the following elements:
+* Brackets `()` - these can be used to define explicit operator precedence
+* Integer Literals `3` - (32-bit signed) these can be defined as normal.
+* Float Literals `3f`, `3.0`, `Infinity`, `inf`, `NaN`, `-Infinity`, `-inf`, `NaNf`, `nanf`, `3e5` - these can be defined by using a decimal point, using the `f` keyword, or for special float values like `Infinity`, `NaN` and `-Infinity` they can be typed as is with the `f` keyword still being supported. Additionally the checks are *case-insensitive* so `InFINity` is just as valid as `Infinity` and its alias `inf`. Finally, [scientific notation](https://en.wikipedia.org/wiki/Scientific_notation) (also called exponential notation) is supported with lowercase and uppercase `e` i.e. `3e5` becomes `300000.0f` (3 * 10^5)
+* Operators - check the [[format specification]] for a list of them.
+* Function calls `GetMoney()`, `FUNC_BF7BF3F5()` - these are identifiers followed by brackets without whitespace where parameters are expressions delimited by commas (`,`) - you can type their name i.e. `GetMoney()` and it'll automatically compute their CRC-32 hash - for functions where you do not know the original string - just like the decompiler output, `FUNC_` followed by the hash in the form of hexadecimal characters is a supported method i.e. `FUNC_BF7BF3F5()` uses the func with the CRC-32 hash `0xBF7BF3F5` aka `GetMoney()`.
