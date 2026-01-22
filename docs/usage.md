@@ -73,8 +73,8 @@ The compiler accepts an expression formatted as `(3 + 1) > 5` - note that there 
 | !=     | 2        | 9          | Equality       | Not equal          |                                                     |
 | &      | 2        | 8          | Bitwise        | Bitwise AND        |                                                     |
 | ^      | 2        | 7          | Bitwise        | Bitwise XOR        |                                                     |
-| |      | 2        | 6          | Bitwise        | Bitwise OR         |                                                     |
+| \|     | 2        | 6          | Bitwise        | Bitwise OR         |                                                     |
 | &&     | 2        | 5          | Logical        | Logical AND        | By far the most common.                             |
-| ||     | 2        | 4          | Logical        | Logical OR         | Frequently combined with `8F`.                      |
+| \|\|   | 2        | 4          | Logical        | Logical OR         | Frequently combined with `8F`.                      |
 > Operator precedence mostly matches C for consistency. Unary operators bind the tightest, while control-flow and logical operators have the lowest precedence and are evaluated last.
 
