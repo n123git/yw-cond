@@ -33,3 +33,5 @@ There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alo
   * Scope-dependant as inside maps `RunTrigger` calls will prioritise the map triggers over common triggers.
 * `IsHaveItem(hash: ItemID)` - returns a Boolean value.
   * Returns 1 if the player has the specified Item, else 0.
+* `GetQuestPhase(hash: QuestID)` - returns the `QuestPhase` for the specified Quest.
+  * 
