@@ -31,3 +31,5 @@ There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alo
   * Returns 1 if the player has completed the main story (post-game isn't needed) else 0.
 * `RunTrigger(hash: TriggerID)` - executes a Trigger by it's ID; always returns 1.
   * Scope-dependant as inside maps `RunTrigger` calls will prioritise the map triggers over common triggers.
+* `IsHaveItem(hash: ItemID)` - returns a Boolean value.
+  * Returns 1 if the player has the specified Item, else 0.
