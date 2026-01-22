@@ -52,29 +52,29 @@ The compiler accepts an expression formatted as `(3 + 1) > 5` - note that there 
 * Function calls `GetMoney()`, `FUNC_BF7BF3F5()` - these are identifiers followed by brackets without whitespace where parameters are expressions delimited by commas (`,`) - you can type their name i.e. `GetMoney()` and it'll automatically compute their CRC-32 hash - for functions where you do not know the original string - just like the decompiler output, `FUNC_` followed by the hash in the form of hexadecimal characters is a supported method i.e. `FUNC_BF7BF3F5()` uses the func with the CRC-32 hash `0xBF7BF3F5` aka `GetMoney()`.
 * Operators - expects an [infix expression](http://en.wikipedia.org/wiki/Infix_notation) i.e. `3 + 2` not `3 2 + `. Additionally note that unary operators must be placed before the operand i.e. `++3`. As mentioned earlier, the compiler uses implicit operator precedence (e.g. multiplication has a higher precedence than addition so multiplication goes first; operators with the same precedence level execute from left-to-right unless otherwise noted). A list of operators with their precedence can be found below: 
 
-| Symbol | Op Count | Precedence | Category       | Operation          | Notes                                               |
-| ------ | -------- | ---------- | -------------- | ------------------ | --------------------------------------------------- |
-| ++     | 1        | 14         | Unary          | Incrementation     | Unofficial symbol. Unary only.                      |
-| --     | 1        | 14         | Unary          | Decrementation     | Unofficial symbol. Unary only.                      |
-| ~      | 1        | 14         | Unary          | Bitwise NOT        | Unofficial symbol.                                  |
-| !!     | 1        | 14         | Unary          | To Bool            | Returns 1 if operand ≠ 0 else 0. Unofficial symbol. |
-| *      | 2        | 13         | Multiplicative | Multiply           |                                                     |
-| /      | 2        | 13         | Multiplicative | Divide             |                                                     |
-| %      | 2        | 13         | Multiplicative | Modulus            |                                                     |
-| +      | 2        | 12         | Additive       | Addition           |                                                     |
-| -      | 2        | 12         | Additive       | Subtraction        |                                                     |
-| <<     | 2        | 11         | Bit Shift      | Left shift         |                                                     |
-| >>     | 2        | 11         | Bit Shift      | Right shift        |                                                     |
-| <      | 2        | 10         | Relational     | Less than          |                                                     |
-| <=     | 2        | 10         | Relational     | Less or equal      |                                                     |
-| >      | 2        | 10         | Relational     | Greater than       |                                                     |
-| >=     | 2        | 10         | Relational     | Greater or equal   |                                                     |
-| ==     | 2        | 9          | Equality       | Equal              |                                                     |
-| !=     | 2        | 9          | Equality       | Not equal          |                                                     |
-| &      | 2        | 8          | Bitwise        | Bitwise AND        |                                                     |
-| ^      | 2        | 7          | Bitwise        | Bitwise XOR        |                                                     |
-| \|     | 2        | 6          | Bitwise        | Bitwise OR         |                                                     |
-| &&     | 2        | 5          | Logical        | Logical AND        | By far the most common.                             |
-| \|\|   | 2        | 4          | Logical        | Logical OR         | Frequently combined with `8F`.                      |
-> Operator precedence mostly matches C for consistency. Unary operators bind the tightest, while control-flow and logical operators have the lowest precedence and are evaluated last.
+| Symbol | Op Count | Precedence | Category              | Operation          | Notes                                               |
+| ------ | -------- | ---------- | --------------------- | ------------------ | --------------------------------------------------- |
+| ++     | 1        | 14         | Unary Arithmetic      | Incrementation     | Unofficial symbol. Unary only.                      |
+| --     | 1        | 14         | Unary Arithmetic      | Decrementation     | Unofficial symbol. Unary only.                      |
+| ~      | 1        | 14         | Misc. Unary           | Bitwise NOT        | Unofficial symbol.                                  |
+| !!     | 1        | 14         | Misc. Unary           | To Bool            | Returns 1 if operand ≠ 0 else 0. Unofficial symbol. |
+| *      | 2        | 13         | Binary Arithmetic     | Multiply           |                                                     |
+| /      | 2        | 13         | Binary Arithmetic     | Divide             |                                                     |
+| %      | 2        | 13         | Binary Arithmetic     | Modulus            |                                                     |
+| +      | 2        | 12         | Binary Arithmetic     | Addition           |                                                     |
+| -      | 2        | 12         | Binary Arithmetic     | Subtraction        |                                                     |
+| <<     | 2        | 11         | Bit Shifting          | Left shift         |                                                     |
+| >>     | 2        | 11         | Bit Shifting          | Right shift        |                                                     |
+| <      | 2        | 10         | Relational Comparison | Less than          |                                                     |
+| <=     | 2        | 10         | Relational Comparison | Less or equal      |                                                     |
+| >      | 2        | 10         | Relational Comparison | Greater than       |                                                     |
+| >=     | 2        | 10         | Relational Comparison | Greater or equal   |                                                     |
+| ==     | 2        | 9          | Equality Comparison   | Equal              |                                                     |
+| !=     | 2        | 9          | Equality Comparison   | Not equal          |                                                     |
+| &      | 2        | 8          | Bitwise               | Bitwise AND        |                                                     |
+| ^      | 2        | 7          | Bitwise               | Bitwise XOR        |                                                     |
+| \|     | 2        | 6          | Bitwise               | Bitwise OR         |                                                     |
+| &&     | 2        | 5          | Logical               | Logical AND        | By far the most common.                             |
+| \|\|   | 2        | 4          | Logical               | Logical OR         | Frequently combined with `8F`.                      |
+> Operator precedence matches C++ for consistency. Unary operators bind the tightest, while control-flow and logical operators have the lowest precedence and are evaluated last.
 
