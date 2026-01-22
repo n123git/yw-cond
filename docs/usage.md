@@ -34,4 +34,4 @@ There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alo
 * `IsHaveItem(hash: ItemID)` - returns a Boolean value.
   * Returns 1 if the player has the specified Item, else 0.
 * `GetQuestPhase(hash: QuestID)` - returns the `QuestPhase` for the specified Quest.
-  * 
+  * `QuestPhase` is a measure of the player's progress within the Quest - it's mostly quest-specific but some exist for all Quests e.g. `00` means Quest not initiated and `FF`/`255` means the Quest in question has been completed.
