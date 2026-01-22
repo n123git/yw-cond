@@ -29,3 +29,5 @@ There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alo
   * Take for instance `40010` this means the player is in Chapter 4, with a subphase of 10 which is near the start of the Chapter.
 * `GameClear()` - no params; returns a Boolean value.
   * Returns 1 if the player has completed the main story (post-game isn't needed) else 0.
+* `RunTrigger(hash: TriggerID)` - executes a Trigger by it's ID; always returns 1.
+  * Scope-dependant as inside maps `RunTrigger` calls will prioritise the map triggers over common triggers.
