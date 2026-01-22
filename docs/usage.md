@@ -35,3 +35,11 @@ There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alo
   * Returns 1 if the player has the specified Item, else 0.
 * `GetQuestPhase(hash: QuestID)` - returns the `QuestPhase` for the specified Quest.
   * `QuestPhase` is a measure of the player's progress within the Quest - it's mostly quest-specific but some exist for all Quests e.g. `00` means Quest not initiated and `FF`/`255` means the Quest in question has been completed.
+* `GetGlobalByteFlag(hash: GlobalByteFlagID)` - gets the value of the `GlobalByteFlag` with the specified ID.
+  * `GlobalByteFlag`s are defined in `FLAG_INFO_1` in `data/res/sys/flag_config_*.cfg.bin` and are a uint8 (unsigned 8-bit integer) meaning that they can be any integer from 0-255.
+* `SetGlobalByteFlag(hash: GlobalByteFlagID, Value)` - sets the value of the `GlobalByteFlag` with the specified ID.
+  * `GlobalByteFlag`s are defined in `FLAG_INFO_1` in `data/res/sys/flag_config_*.cfg.bin` and are a uint8 (unsigned 8-bit integer) meaning that they can be any integer from 0-255.
+* `SetGlobalBitFlag(hash: GlobalBitFlagID, Value)` - sets the value of the `GlobalBitFlag` with the specified ID.
+  * `GlobalBitFlag`s are defined in `FLAG_INFO_0` in `data/res/sys/flag_config_*.cfg.bin` and are Boolean meaning that they can be either `0` or `1`.
+* `GetGlobalBitFlag(hash: GlobalBitFlagID)` - gets the value of the `GlobalBitFlag` with the specified ID.
+  * `GlobalBitFlag`s are defined in `FLAG_INFO_0` in `data/res/sys/flag_config_*.cfg.bin` and are Boolean meaning that they can be either `0` or `1`.
