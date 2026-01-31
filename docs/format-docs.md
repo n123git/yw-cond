@@ -57,7 +57,7 @@ Operators pop an arbitrary number of values off the stack, equivalent to it's pa
 | `46`     | `70`    | ++     | 1        | Incrementation                        | Unofficial Symbol.                                                                                     |
 | `47`     | `71`    | --     | 1        | Decrementation                        | Unofficial Symbol.                                                                                     |
 | `50`     | `80`    | ~      | 1        | Bitwise NOT                           | Unofficial Symbol.                                                                                     |
-| `51`     | `81`    | !!     | 1        | To Bool                               | Returns 1 if != 0 else 0. Unofficial Symbol.                                                           |
+| `51`     | `81`    | (bool) | 1        | To Bool                               | Returns 1 if != 0 else 0. Unofficial Symbol.                                                           |
 | `5A`     | `90`    | *      | 2        | Multiply                              |                                                                                                        |
 | `5B`     | `91`    | /      | 2        | Divide                                |                                                                                                        |
 | `5C`     | `92`    | %      | 2        | Modulus                               |                                                                                                        |
@@ -82,7 +82,7 @@ Operators are grouped by the multiple of ten in their decimal opcode. Each `x0â€
 | Range | Category                | Operators Included      |
 | ----- | ----------------------- | ----------------------- |
 | `7X`  | Unary Arithmetic        | `++`, `--`              |
-| `8X`  | Unary Bitwise / Logical | `~`, `!!`               |
+| `8X`  | Unary Bitwise / Logical | `~`, `(bool)`           |
 | `9X`  | Binary Arithmetic       | `*`, `/`, `%`, `+`, `-` |
 | `1X`  | Bit Shifting            | `<<`, `>>`              |
 | `11X` | Relational Comparison   | `<`, `<=`, `>`, `>=`    |
