@@ -1,14 +1,14 @@
 # CExpression (Cond) System Documentation
 
-The **CExpression system**, is a proprietary Base64-encoded, stack-based, recursive RPN (Reverse Polish Notation) binary format with support for forward-only jumps and engine syscalls used for evaluating and executing runtime conditions used in 3DS & Switch level5 games - colloquially referred to as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain *one* or more conditions which consist of:
+The CExpression system, is a proprietary Base64-encoded, stack-based, recursive RPN (Reverse Polish Notation) binary format with support for forward-only jumps and engine syscalls used for evaluating runtime conditions to a boolean result used in 3DS & Switch level5 games - colloquially referred to as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
   * Operators (arithmetic, logical and bitwise)
   * Jumps (conditional and unconditional)
     * These jumps can only move forward and therefore can only be used for if else, NOT complex control flow such as loops. This sadly means the CExpression system is *NOT* turing-complete.
-> Note: conditions have been found which contain < 1 conditions but these are invalid and are the reason for the music app being broken in localised versions of Yo-kai Watch 2: Psychic Specters.
-
+> Note: invalid CExpressions evaluate to `false` are the reason for the music app being broken in localised versions of Yo-kai Watch 2: Psychic Specters.
 > Note: within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) unless otherwise specified.
+
 ## 1. Cond Structure
 Each Cond begins with a header section composed of a 3-byte header of `00 00 00`, and a section previously referred to as the `COND_CODE`. This is composed of a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
 > This header will always be `00 00 00` in the Cond itself; the engine will fill it in with the appropriate data during parsing.
