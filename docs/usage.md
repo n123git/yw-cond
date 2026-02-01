@@ -31,6 +31,7 @@ There are **ALOT** of functions that CExpressions can call - over 118 in yw1 alo
   * Returns 1 if the player has completed the main story (post-game isn't needed) else 0.
 * `RunTrigger(hash: TriggerID)` - executes a Trigger by it's ID; always returns 1.
   * Scope-dependant as inside maps `RunTrigger` calls will prioritise the map triggers over common triggers.
+  * This can be used to implement loops which aren't possible with just CExpressions due to level5 deciding to add an extra `u` in one line of code (`ushort` vs `short`)
 * `IsHaveItem(hash: ItemID)` - returns a Boolean value.
   * Returns 1 if the player has the specified Item, else 0.
 * `GetQuestPhase(hash: QuestID)` - returns the `QuestPhase` for the specified Quest.
