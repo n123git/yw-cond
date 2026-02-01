@@ -39,6 +39,7 @@ v1.4b release progress and changelog:
   * Does any sane person legitametly use this? /j
   * Delayed to v1.41b as the scope of the update is getting too large and this will take a lot of time and CSS changes for no benefit to 100% of people using this tool
 * More config options for safety - 100%
+* Decompiler improvement (Aggresive simplification) - 100%
 * More labelled CExpression funcs - 100%
 * Clean up UI - 90%
 * Add more templates - 100%
