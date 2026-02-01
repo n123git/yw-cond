@@ -6,7 +6,7 @@ The CExpression system, is a proprietary Base64-encoded, stack-based, recursive 
   * Operators (arithmetic, logical and bitwise)
   * Jumps (conditional and unconditional)
     * These jumps can only move forward and therefore can only be used for if else, NOT complex control flow such as loops. This sadly means the CExpression system is *NOT* turing-complete.
-> Note: invalid CExpressions evaluate to `false` are the reason for the music app being broken in localised versions of Yo-kai Watch 2: Psychic Specters.
+> Note: invalid CExpressions evaluate to `false` - this is the reason why the music app is broken in localised versions of Yo-kai Watch 2: Psychic Specters.
 > Additionally, within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) unless otherwise specified.
 
 ## 1. Cond Structure
