@@ -7,7 +7,7 @@ The CExpression system, is a proprietary Base64-encoded, stack-based, recursive 
   * Jumps (conditional and unconditional)
     * These jumps can only move forward and therefore can only be used for if else, NOT complex control flow such as loops. This sadly means the CExpression system is *NOT* turing-complete.
 > Note: invalid CExpressions evaluate to `false` - this is the reason why the music app is broken in localised versions of Yo-kai Watch 2: Psychic Specters.
-> Additionally, within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) unless otherwise specified.
+> Additionally, within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) format unless otherwise specified.
 
 ## 1. Cond Structure
 Each Cond begins with a header section composed of a 3-byte header of `00 00 00`, and a section previously referred to as the `COND_CODE`. This is composed of a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
