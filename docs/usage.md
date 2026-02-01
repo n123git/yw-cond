@@ -58,7 +58,7 @@ The compiler accepts an expression formatted as `(3 + 1) > 5` - note that there 
 | ++     | 1        | 14         | Unary Arithmetic      | Incrementation     | Unofficial symbol. Unary only.                      |
 | --     | 1        | 14         | Unary Arithmetic      | Decrementation     | Unofficial symbol. Unary only.                      |
 | ~      | 1        | 14         | Misc. Unary           | Bitwise NOT        | Unofficial symbol.                                  |
-| (bool) | 1        | 14         | Misc. Unary           | To Bool            | Returns 1 if operand ≠ 0 else 0. Unofficial symbol. |
+|`(bool)`| 1        | 14         | Misc. Unary           | Boolean Cast       | Returns 1 if operand ≠ 0 else 0. Unofficial symbol. |
 | *      | 2        | 13         | Binary Arithmetic     | Multiply           |                                                     |
 | /      | 2        | 13         | Binary Arithmetic     | Divide             |                                                     |
 | %      | 2        | 13         | Binary Arithmetic     | Modulus            |                                                     |
