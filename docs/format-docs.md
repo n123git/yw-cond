@@ -98,7 +98,7 @@ There are two kinds of jumps supported by the CExpression engine, these can be c
 | `96`     | `150`        | ?->     | Conditional Jump Operator             | Unofficial symbol.                                                                                     |
 | `97`     | `151`        | ->      | Unconditional Jump Operator           | Unofficial symbol.                                                                                     |
 
-Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-section to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed flag byte (`ExtData`) that further controls execution behaviour.
+Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-section to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed `ExtData` (`STACK_PRM`) byte that further controls execution behaviour.
 
 Note that improperly aligned jump lengths may cause the evaluator to skip valid instructions or misinterpret data as opcodes. Unknown opcodes are safely skipped, but malformed jumps can still lead to unintended behaviour so yeah :/
 Additionally, as of writing this `yw-cond` doesn't support these in decompilation, recompilation or parsing so you'll have to manually test and generate them.
@@ -106,9 +106,9 @@ Additionally, as of writing this `yw-cond` doesn't support these in decompilatio
 ### 3.1.1 Conditional Jump
 `0x96`/`150` (`?->`) acts as a conditional execution block, similar to an if/if ... else statement.
 
-It pops one operand from the stack just like any other unary operator (we will call this the stack value for now due to how many values ?-> relies on) and reads its own *CType*. Where `DataSize` specifies the length (in bytes) of the sub-block and `ExtData` is interpreted as a signed flag. Which leads to the following branch of possibilities:
-* If the stack value is truthy (!= 0) *and* the flag byte is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub`, then jumped past.
-* If the stack value is falsy (== 0), or the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past without any execution or otherwise processing.
+It pops one operand from the stack just like any other unary operator (we will call this the stack value for now due to how many values ?-> relies on) and reads its own *CType*. Where `DataSize` specifies the length (in bytes) of the sub-block and `ExtData` is interpreted as a signed count. Which leads to the following branch of possibilities:
+* If the stack value is truthy (!= 0) *and* the `STACK_PRM` is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub`, then jumped past.
+* If the stack value is falsy (== 0), or the `STACK_PRM` is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past without any execution or otherwise processing.
 
 You can simplify this to the following psuedo:
 ```cpp
@@ -123,10 +123,10 @@ skip(ctype.DataSize);
 
 ### 3.1.2 Unconditional Jump
 `0x97` defines a sub-block whose execution depends solely on the `STACK_PRM` of the CType of which it preceeds, rather than any runtime values being consumed or read, therefore we will consider it a nullary operator (0 operands).
-When found the engine will read it's *CType* found right after the jump where `DataSize` (`COND_LENGTH`) gives the length (in bytes) of the sub-block and `ExtData` (`STACK_PRM`) is treated as a *signed* flag.
+When found the engine will read it's *CType* found right after the jump where `DataSize` (`COND_LENGTH`) gives the length (in bytes) of the sub-block.
 This then leaves the engine with the following branch of possibilities:
-* If the flag byte is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub` (recursion since CExpressions are parsed using `CalcSub` in the first place.
-* If the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past entirely.
+* If the `ExtData` (`STACK_PRM`) is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub` (recursion since CExpressions are parsed using `CalcSub` in the first place.
+* If the `STACK_PRM` is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past entirely.
   * Modifying this code to check if it's equivalent to 0 rather than < 1 would make CExpressions turing complete - with the exception of the `0xFFFF` size limit - although that will realistically never be an issue.
 
 Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Additionally since the game executes the CExpression without an intermediary parsing stage you can place invalid bytes without consequence as long as it's jumped past and not executed in all code paths i.e. using a `0 ->`  (falsy value + conditional jump).
