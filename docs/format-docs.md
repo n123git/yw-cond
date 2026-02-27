@@ -1,7 +1,7 @@
 # CExpression Format Documentation
 
 The CExpression system, is a proprietary Base64-encoded, stack-based, recursive RPN (Reverse Polish Notation) binary format with support for forward-only jumps and engine syscalls used for evaluating runtime conditions to a boolean result used in 3DS & Switch level5 games - colloquially referred to as Conds (and before that, PhaseAppear). These Conds are evaluated by `CExpression::CalcSub` internally and contain conditions which consist of:
-  * Literal values (Constants, IDs etc)
+  * Literal value pushes (Floats, Integers etc)
   * Functions (Engine calls)
   * Operators (arithmetic, logical and bitwise)
   * Jumps (conditional and unconditional)
@@ -57,7 +57,7 @@ Operators pop an arbitrary number of values off the stack, equivalent to it's pa
 | `46`     | `70`    | ++     | 1        | Incrementation                        | Unofficial Symbol.                                                                                     |
 | `47`     | `71`    | --     | 1        | Decrementation                        | Unofficial Symbol.                                                                                     |
 | `50`     | `80`    | ~      | 1        | Bitwise NOT                           | Unofficial Symbol.                                                                                     |
-| `51`     | `81`    |`(bool)`| 1        | Boolean Cast                          | Returns 1 if != 0 else 0. Unofficial Symbol.                                                           |
+| `51`     | `81`    |`(bool)`| 1        | Boolean Cast                          | Returns 1 if != 0 else 0. Equivalent to `== 1`/`!= 0`. Unofficial Symbol.                              |
 | `5A`     | `90`    | *      | 2        | Multiply                              |                                                                                                        |
 | `5B`     | `91`    | /      | 2        | Divide                                |                                                                                                        |
 | `5C`     | `92`    | %      | 2        | Modulus                               |                                                                                                        |
