@@ -1,4 +1,4 @@
-# CExpression (Cond) System Documentation
+# CExpression Format Documentation
 
 The CExpression system, is a proprietary Base64-encoded, stack-based, recursive RPN (Reverse Polish Notation) binary format with support for forward-only jumps and engine syscalls used for evaluating runtime conditions to a boolean result used in 3DS & Switch level5 games - colloquially referred to as Conds (and before that, PhaseAppear). These Conds are evaluated by `CExpression::CalcSub` internally and contain conditions which consist of:
   * Literal values (Constants, IDs etc)
@@ -387,4 +387,4 @@ If either condition is met, the engine skips execution of the sub-block and adva
 <note: finish the rest>
 
 ---
-<!-- secret easter egg: n123 is coolz (or am I?) -->
+<!-- secret easter egg: n123 is not coolz (or am I? No, no I'm not) -->
