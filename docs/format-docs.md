@@ -1,6 +1,6 @@
 # CExpression (Cond) System Documentation
 
-The CExpression system, is a proprietary Base64-encoded, stack-based, recursive RPN (Reverse Polish Notation) binary format with support for forward-only jumps and engine syscalls used for evaluating runtime conditions to a boolean result used in 3DS & Switch level5 games - colloquially referred to as Conds. These Conds are evaluated by `CExpression::CalcSub` internally and contain conditions which consist of:
+The CExpression system, is a proprietary Base64-encoded, stack-based, recursive RPN (Reverse Polish Notation) binary format with support for forward-only jumps and engine syscalls used for evaluating runtime conditions to a boolean result used in 3DS & Switch level5 games - colloquially referred to as Conds (and before that, PhaseAppear). These Conds are evaluated by `CExpression::CalcSub` internally and contain conditions which consist of:
   * Literal values (Constants, IDs etc)
   * Functions (Engine calls)
   * Operators (arithmetic, logical and bitwise)
@@ -122,52 +122,53 @@ skip(ctype.DataSize);
 ```
 
 ### 3.1.2 Unconditional Jump
-`0x97` defines an *optional sub-block* whose execution depends solely on a flag and not on any runtime values being consumed or read, therefore we will consider it a nullary operator (0 operands).
-When found the engine will read it's *CType* found right after the jump where `DataSize` gives the length (in bytes) of the sub-block and `ExtData` is treated as a signed flag.
+`0x97` defines a sub-block whose execution depends solely on the `STACK_PRM` of the CType of which it preceeds, rather than any runtime values being consumed or read, therefore we will consider it a nullary operator (0 operands).
+When found the engine will read it's *CType* found right after the jump where `DataSize` (`COND_LENGTH`) gives the length (in bytes) of the sub-block and `ExtData` (`STACK_PRM`) is treated as a *signed* flag.
 This then leaves the engine with the following branch of possibilities:
-* If the flag byte is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub`.
+* If the flag byte is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub` (recursion since CExpressions are parsed using `CalcSub` in the first place.
 * If the flag byte is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past entirely.
+  * Modifying this code to check if it's equivalent to 0 rather than < 1 would make CExpressions turing complete - with the exception of the `0xFFFF` size limit - although that will realistically never be an issue.
 
-Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Although these can most likely be used to get around the 64 stack value limit in select situations.
-Additionally since the game executes the Cond without an intermediary parsing stage you can place invalid bytes without consequence as long as it's jumped past and not executed i.e. using a `0 ->`  (falsy value + conditional jump).
+Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Additionally since the game executes the CExpression without an intermediary parsing stage you can place invalid bytes without consequence as long as it's jumped past and not executed in all code paths i.e. using a `0 ->`  (falsy value + conditional jump).
 
 ## 4. **Read Operations**
 
 ### 4.1 READ_FUNCTION
 
-A READ_FUNCTION entry is structured as shown below where they can have anywhere from 0-255 params:
+A READ_FUNCTION entry is structured as shown below, where they can have anywhere from 0 to, theoretically,  (for basic numeric params) have up to 255 parameters:
 
 ```
 READ_FUNCTION
   LITERAL_VALUE (4 bytes; is the CRC32 of the name of the function to execute)
-  CTYPE (3 bytes; shows size and param count of the function)
+  CTYPE (3 bytes; used for recursion)
   optional:READ_PARAM (1 byte)
      CTYPE (3 bytes; size and data of the below value)
      READ_HASH/READ_LITERAL/READ_FLOAT (1 byte)
      LITERAL_VALUE (4 byte)
-  ... can recursively hold up to 255 READ_PARAMs
+  ... can recursively hold as many READ_PARAMs as can fit in the greater function CType
 ```
 
 > Note: Like all values within Conds, Literal Values are *big-endian*.
 <!-- Optional `READ_PARAM` chains  <!-- for a bit this was chins 😭 --\> allow for unlimited nesting of subsections for multi-param functions. -->
 
 ### 4.2 READ_LITERAL
-* Always followed by a *signed 32-bit integer* (but can also be used for functions that expect a 16-bit, 8-bit, or Boolean value, in which case it should still padded to 4 bytes).
-* Values are **big-endian**.
-* Pushes an integer of type 4 (int32)
+* Always followed by a *signed 32-bit integer*
+  * These can (and are!) also used for functions that expect a 16-bit, 8-bit, or even Boolean value - in which case it should still padded to 4 bytes.
+* Values are *big-endian*.
+* Pushes a `CValue` of type 4 (int32)
 
 ### 4.3 READ_FLOAT
-* Pushes an IEEE-754 (standard float32) float of type 6 (float32)
+* Pushes a `CValue` type 6 (float32; follows the IEEE-754 single-precision float specification)
 * Very rare.
 
 ### 4.4 READ_HASH
-* Pushes an integer of type 4 (int32)
+* Pushes a `CValue` of type 4 (int32)
   * Used for IDs hence the name `READ_HASH`
 
 > Note that there is no runtime distinction between `READ_LITERAL` and `READ_HASH`.
 
-## 5. CExpression Data Types
-These data types are *never directly referenced in the Cond itself* but are used internally by the CExpression engine during evaluation and will therefore be mentioned here.
+## 5. CExpression Data Types 
+These data types define the different types of `CValues` - of which there can be up to 64 on the stack at a time. Also note that these are *never directly referenced in the CExpression format itself* but are used internally by the engine during evaluation and will, as a result of that, be mentioned here.
 | ID | Type   | Description             |
 | -- | ------ | ----------------------- |
 | 0  | int8   | 8-bit signed integer    |
@@ -179,27 +180,16 @@ These data types are *never directly referenced in the Cond itself* but are used
 | 6  | float  | 32-bit floating point   |
 
 ## 6. CTypes
-CTypes are **3-byte descriptors** which act as the defined `COND_LENGTH` and `STACK_PRM` used for subsections of a Cond - this is because `CalcSub` works recursively allowing you to do things like pass complete nested expressions into function parameters. As these declare a subsection they contribute to the `COND_LENGTH` but NOT the `STACK_PRM` of the current subsection. No other element follows this behaviour.
+CTypes are 3-byte descriptors which act as the defined `COND_LENGTH` and `STACK_PRM` used for subsections of a Cond - this is because `CalcSub` works recursively allowing you to do things such as passing complete nested expressions into function parameters. As these declare a subsection they contribute to the `COND_LENGTH` but NOT the `STACK_PRM` of the current subsection. No other element follows this afformentioned behaviour.
 | Byte | Name                     | Data Type |
 | ---- | ------------------------ | --------- |
 | 1-2  | DataSize (`COND_LENGTH`) | uint16    |
 | 3    | ExtData (`STACK_PRM`)    | int8      |
 
-> Notes: ExtData can be simplified for functions to be the function count as `READ_PARAM` is worth 1 within `STACK_PRM` calculation (although functions are their own subsection, as denoted by the CTYPE and therefore do not affect the `STACK_PRM` calculation for the main Cond) and `02` for integer/float function parameters.
-
-### 6.1 Examples
-| CType      | Meaning                                                   |
-| ---------- | --------------------------------------------------------- |
-| `00 06 02` | Integer.                                                  |
-| `00 1C 03` | 3-parameter function                                      |
-| `00 13 02` | 2-parameter function                                      |
-| `00 0A 01` | 1-parameter function                                      |
-| `00 01 00` | 0-parameter function                                      |
-
 ## 7. Example Structures
 
 This example demonstrates how to encode a call to the function `SetGlobalBitFlag(hash FlagID, int Value)`. 
-The function accepts **two parameters**, both numeric, and is (like all others) invoked using the `READ_FUNCTION` opcode.
+The function accepts **two** parameters, both numeric, and is (like all others) invoked using the `READ_FUNCTION` opcode.
 First let's start off with our `READ_FUNCTION` (`35`). Immediately following this is the *function identifier*, stored as the CRC-32 (ISO-HDLC) hash of the function name:
 ```hex
 35 <- READ_FUNCTION
@@ -209,7 +199,7 @@ After the function hash we have the *CType* (See § 6), which describes the size
 
 Numeric parameters occupy 9 bytes each - including their individual CTypes.
 
-Since this function has two numeric parameters, the total parameter size is `(9 × 2) + 1 = 19 bytes = 0x13`. In this case, the extra `+1` accounts for the CType’s ExtData byte which stores the parameter count when referencing a function.
+Since this function has two numeric parameters, the total parameter size is `(9 × 2) + 1 = 19 bytes = 0x13`. Note that the extra `+1` accounts for the CType’s ExtData byte which acts as the functions `STACK_PRM` which counts the number of non-CType elements in the current recursive section (sub-block) of the CExpression.
 Each parameter begins with `READ_PARAM`, followed by its CType and value:
 ```hex
 28 <- READ_PARAM
@@ -240,7 +230,7 @@ Putting everything together, the full byte sequence is:
 00 00 00 01 <- 0x00000001/1 aka the Value
 ```
 
-Optionally, assuming this is the entire Cond we can build the header for that sequence to give us:
+Optionally, assuming this is the entire CExpression we can build the header for that sequence to give us:
 ```hex
 00 00 00 <- HEADER data; this is empty space for the engine to fill
 00 1B <- COND_LENGTH this is 0x1B because there are 0x1B bytes proceeding this within the cond
@@ -290,13 +280,13 @@ Cond Examples:
 28 <-- READ_PARAM
 00 06 02 <-- PARAM CType
 34 <-- READ_HASH
-0E 6B 6F 6B <!-- 0x0E6B6F6B
+0E 6B 6F 6B <-- 0x0E6B6F6B
 ```
-Since `RunTrigger` always returns 1; the cond will always succeed running the trigger `0x0E6B6F6B` as a "byproduct" of the function call (Although the intended purpose of the CExpression)
+Since `RunTrigger` always returns 1; the CExpression will always succeed running the trigger `0x0E6B6F6B` as a "byproduct" of the function call (Although the intended purpose of the CExpression)
 `GameClear` (Has Main Story been completed):
 ```hex
 00 00 00 <-- HEADER
-00 0F <-- COND_LENGTH; this means there are 0xF (15) bytes left in the cond after the COND_LENGTH (including the STACK_PRM)
+00 0F <-- COND_LENGTH; this means there are 0xF (15) bytes left in the CExpression after the COND_LENGTH (including the STACK_PRM)
 05 <-- STACK_PRM is 0x5 because there's 1 function, 1 READ_LITERAL and an OPERATOR which is 2(1 * 1) + 1 aka 5 
 
 35 <-- READ_FUNCTION
@@ -313,25 +303,25 @@ Since `RunTrigger` always returns 1; the cond will always succeed running the tr
 78 <-- OPERATOR: ==
 <-- the == pops the 2 values of the stack and pushes the boolean result -->
 
-<-- finally after the cond has been evaluated the value in stack is checked; if truthy the cond suceeded, else it failed -->
+<-- finally after the CExpression has been evaluated the value in stack is checked; if truthy the CExpression suceeded, else it failed -->
 ```
 
 ### 8. History
 
 * IEGO (2011, December)
-  * IEGO had a very simplistic Cond system, with only 4 used CExpression Functions, and 7 used Operators (including `8F`).
+  * IEGO had a very simplistic CExpression system, with only 4 used CExpression Functions, and 7 used Operators (including `8F`).
 * Yo-kai Watch 1 (2013, July)
   * Level5 made a lot of changes in this game - which makes sense considering how long they were working on it for - proven by the fact that there are files in Yo-kai Watch 2 that haven't been touched since 2011!
   * Yo-kai Watch 1 for smartphone had over 20 operators, multi-param functions and 118 CExpression functions!
-  * Overall this is what truly started the modern Cond system.
+  * Overall this is what truly started the modern CExpression system.
 * ... future games have not changed the format much aside from adding/removing CExpression Functions
 
 ## 9. WIP -- Parsing Flow
-This section documents the runtime evaluation flow of a Cond as implemented by:
+This section documents the runtime evaluation flow of a CExpression as implemented by:
 ```cpp
 bool yw::util::CExpression::CalcSub(char const* cond, short len)
 ```
-Before the Cond even reaches CalcSub it gets decoded and the `HEADER` (first 3 bytes) are stripped, since there isn't much going on we will only document `CalcSub` as mentioned above:
+Before the CExpression even reaches CalcSub it gets decoded and the `HEADER` (first 3 bytes) are stripped, since there isn't much going on we will only document `CalcSub` as mentioned above:
 Unlike what you'd expect, the engine does not perform a full pre-parse of the Cond. Instead, CalcSub validates a minimal header and then executes instructions sequentially while mutating an internal value stack.
 
 ### 9.1 Initial Validation
