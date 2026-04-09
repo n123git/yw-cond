@@ -4,7 +4,7 @@ This guide explains how to use the yw-cond website to parse, analyze, decompile 
 
 To use the tool, open (or download) the website from [here](https://n123git.github.io/yw-cond).
 
-First of all, I should explain **what** a CExpression is. A CExpression (Cond) is a recursive RPN bytecode format used in Level5 games from IEGO onwards to evaluate runtime conditions without the overhead of a scripting language like XQ and without hardcoding into the binary. Read the README for more information and the format documentation for (well its pretty self-explanatory).
+First of all, I should explain **what** a CExpression is. A CExpression (Cond) is a recursive RPN bytecode format used in Level5 games from IEGO onwards to evaluate runtime conditions without the overhead of a scripting language like XQ and without hardcoding into the binary. Read the README for more information and the format documentation for (well its pretty self-explanatory) format documentation)
 
 ## HTML UI Documentation
 
@@ -12,21 +12,21 @@ When you open the site, you should see something like this:
 
 ![yw-cond interface](../tutorial/tutorial_blankslate.png)
 
-The interface is divided into four colour-coded sections:
+The interface is divided into four sections which I've colour-coded above gor reference:
 
 * 🔴 Input Area
   * Paste your CExpression here (supports base64 and hex)
    * Colours are cool (Emojis looked better than plaintext)
 
 * 🟣 Error Section
-  * Displays parsing errors (these should not normally occur)
+  * Displays parsing errors (these should not normally occur but until v1.4 parsing errors could occur in certain valid CExpressions)
 
 * 🟠 Decompiler 
-  * Shows a pseudo C/C++ decompilation of the CExpression
+  * Shows a pseudo C/C++ decompilation of the CExpression - this mostly follows the Compiler Syntax but wraps it into if statements to show the conditional side of CExpressions.
 
 * 🟢 Byte Breakdown
-  * I did NOT spend 10 minutes trying to come up with a good name (I clearly failed :p)
-  * Displays a detailed byte-by-byte structure. This is an advanced section and is mainly used for debugging  - especially historically when the Decompiler wasnt the best.
+  * I totally did NOT spend 10 minutes trying to come up with a good name (I clearly failed :p)
+  * Displays a detailed byte-by-byte structure. This is an advanced section and is mainly used for debugging  - especially historically when the Decompiler wasnt exactly the best.
 
 ## Buttons
 
