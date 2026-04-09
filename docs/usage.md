@@ -16,7 +16,7 @@ However, after clicking Load Sample, you should see something like this:
 
 ![yw-cond interface](assets/tutorial_sampleloaded.png)
 
-The interface is divided into four sections which I've colour-coded above gor reference:
+The interface is divided into four sections which I've colour-coded above for reference:
 
 * 🔴 Input Area
   * Paste your CExpression here (supports base64 and hex)
