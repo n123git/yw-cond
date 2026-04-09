@@ -119,6 +119,7 @@ These are also signed 32-bit integers. These behave identically to integer liter
 0x1234
 0xDEADBEEF
 0xdeadbeef
+0xFFFFFFFF ; you can NOT do -0x1 should probably change that
 ```
 
 ##### Char Literals
