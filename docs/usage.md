@@ -10,7 +10,11 @@ First of all, I should explain **what** a CExpression is. A CExpression (Cond) i
 
 When you open the site, you should see something like this:
 
-![yw-cond interface](../tutorial/tutorial_blankslate.png)
+![yw-cond interface](assets/tutorial_blankslate.png)
+
+However, after clicking Load Sample, you should see something like this:
+
+![yw-cond interface](assets/tutorial_sampleloaded.png)
 
 The interface is divided into four sections which I've colour-coded above gor reference:
 
