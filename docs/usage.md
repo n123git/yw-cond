@@ -27,9 +27,9 @@ The interface is divided into four sections which I've colour-coded above for re
 * (Orange) Decompiler 
   * Shows a pseudo C/C++ decompilation of the CExpression - this mostly follows the Compiler Syntax but wraps it into if statements to show the conditional side of CExpressions.
 
-* (Green) Byte Breakdown
+* (Green) Byte Report
   * I totally did NOT spend 10 minutes trying to come up with a good name (I clearly failed :p)
-  * Displays a detailed byte-by-byte structure. This is an advanced section and is mainly used for debugging  - especially historically when the Decompiler wasnt exactly the best.
+  * Displays a byte-by-byte report of the decoded CExpression. This is an advanced section and is mainly used for debugging - especially historically when the Decompiler wasnt exactly the best.
 
 ## Buttons
 
