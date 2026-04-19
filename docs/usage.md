@@ -188,6 +188,8 @@ Expressions use standard infix notation (e.g. 3 + 2, not 3 2 +). Operator preced
 
 | Symbol | Precedence | Operation |
 |--------|----------|----------|
+| `(float)` ! | 14 | Float Cast Psuedo-op / Logical NOT Psuedo-op |
+| ++ -- ~ `(bool)` | 14 | Increment / Deccrement / Bitwise NOT / Boolean Cast |
 | * / % | 13 | Multiply / Divide / Remainder |
 | + - | 12 | Addition / Subtraction |
 | << >> | 11 | Bit shifting |
