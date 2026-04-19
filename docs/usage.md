@@ -98,7 +98,8 @@ The compiler accepts standard infix expressions similar to C++. Take for instanc
 This checks whether the player:
 * Is at least near the start of Chapter 4
 * Has completed the game
-Of course, the first check is redundant here, this is just for demonstration :p
+
+Of course, the first check is redundant here, this example is just for demonstration :p
 
 
 #### Supported Elements
@@ -112,7 +113,7 @@ Single-line comments beginning with `;`. Everything following ; on that line is 
 ```
 
 ##### Integer Literals
-These are standard signed 32-bit integers. The compiler will automatically error if you attempt to define an out of range Integer literal. Examples include (yes I'm not defining a code block for this one) 1, 0, -3, and -10000
+These are standard signed 32-bit integers. The compiler will automatically error if you attempt to define an out of range Integer literal. Examples include 1, 0, -3, and -10000.
 
 ##### Hex Literals
 
