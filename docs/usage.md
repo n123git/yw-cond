@@ -198,3 +198,5 @@ Expressions use standard infix notation (e.g. 3 + 2, not 3 2 +). Operator preced
 | & ^ \| | 8–6 | Bitwise operations |
 | && | 5 | Logical AND |
 | \|\| | 4 | Logical OR |
+
+> Psuedo-ops are operators that do not actually exist in the CExpression engine, but can (and are) replicated by the compiler e.g. `(float)1` might compile to `1 + 0f` as the implicit type promotion promotes `1` to `1f`.
