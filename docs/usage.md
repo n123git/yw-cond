@@ -190,7 +190,7 @@ Expressions use standard infix notation (e.g. 3 + 2, not 3 2 +). Operator preced
 
 | Symbol | Precedence | Operation |
 |--------|----------|----------|
-| `(float)` ! | 14 | Float Cast Psuedo-op / Logical NOT Psuedo-op |
+| `(float)` ! | 14 | Float Cast / Logical NOT Psuedo-operators |
 | ++ -- ~ `(bool)` | 14 | Increment / Decrement / Bitwise NOT / Boolean Cast |
 | * / % | 13 | Multiply / Divide / Remainder |
 | + - | 12 | Addition / Subtraction |
