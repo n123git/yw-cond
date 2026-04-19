@@ -29,12 +29,11 @@ Format documentation can be found [here](/docs/format-docs.md).
 
 v1.4b release progress and changelog:
 * Float support - 100%
-* Jump support - 30%
+* Jump support - 31%
 * Rewritten cond parser to fix remaining bugs - 100%
-  * Sub-block parsing isn't fully correct yet, runs under old assumptions caused by level5's severe underuse of their own system's capabilities.
-* Readability and maintainability improvements - 93%
-* A cond compiler to create entirely new conds with support for floats, brackets, implicit ordering, scientific notation, advanced recursive subsections and more - 91%
-  * Might implement psuedops such as `(float)` (compiles to `+ 0f`), `!` (compiles to `== 0`), ` ? : ` compiles to jumps
+* Readability and maintainability improvements - 94%
+* A cond compiler to create entirely new conds with support for floats, brackets, implicit ordering, scientific notation, psuedo ops, advanced recursive subsections and more - 100%
+  * Might implement the ternary psuedo-op (` ? : `) which would compile to jumps later
 * ~~Improved light mode - 0%~~
   * Does any sane person use this?
   * Delayed to v1.41b as the scope of the update is getting too large and this will take a lot of time and CSS changes for no benefit to 100% of the 0 people using this tool
