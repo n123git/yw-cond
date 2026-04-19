@@ -98,7 +98,7 @@ The compiler accepts standard infix expressions similar to C++. Take for instanc
 This checks whether the player:
 * Is at least near the start of Chapter 4
 * Has completed the game
-Of course, the first check is redundant but this is just for demonstration :p
+Of course, the first check is redundant here, this is just for demonstration :p
 
 
 #### Supported Elements
@@ -184,6 +184,8 @@ However, hashed function usage may still appear in Nintendo Switch CExpressions 
 
 Expressions use standard infix notation (e.g. 3 + 2, not 3 2 +). Operator precedence follows C++ rules, with brackets being supported.
 
+> Note: CExpression operators behave like their C++ counterparts, with the exception of the added implicit type promotion the CExpression engine brings.
+
 ##### Operator Table
 
 | Symbol | Precedence | Operation |
@@ -199,4 +201,6 @@ Expressions use standard infix notation (e.g. 3 + 2, not 3 2 +). Operator preced
 | && | 5 | Logical AND |
 | \|\| | 4 | Logical OR |
 
-> Psuedo-ops are operators that do not actually exist in the CExpression engine, but can (and are) replicated by the compiler e.g. `(float)1` might compile to `1 + 0f` as the implicit type promotion promotes `1` to `1f`.
+> Psuedo-ops are operators that do not actually exist in the CExpression engine, but can (and are) replicated by the compiler e.g. `(float)1` might compile to `1 + 0f` as the implicit type promotion in the CExpression engine promotes `1` to `1f`.
+
+<!-- TODO: Document operator type promotion -->
