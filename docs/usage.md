@@ -168,7 +168,7 @@ Functions are written as identifiers followed by parentheses, optionally contain
 
 ```js
 GetMoney()
-SetGlobalByteFlag(0x12345678, GetGlobalByteFlag(0x12345678) + 1)
+SetGlobalByteFlag(0x12345678, ++GetGlobalByteFlag(0x12345678)) ; ++ does NOT mutate
 ```
 
 Additionally, unknown functions can be referenced using their CRC-32 hash (I moved it down here for the next part):
