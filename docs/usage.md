@@ -197,7 +197,7 @@ Expressions use standard infix notation (e.g. 3 + 2, not 3 2 +). Operator preced
 | << >> | 11 | Bit shifting |
 | < <= > >= | 10 | Relational comparison |
 | == != | 9 | Equality comparison |
-| & ^ \| | 8–6 | Bitwise operations |
+| & ^ \| | 8 / 7 / 6 | Bitwise operations |
 | && | 5 | Logical AND |
 | \|\| | 4 | Logical OR |
 
