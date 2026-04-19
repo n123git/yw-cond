@@ -29,14 +29,15 @@ Format documentation can be found [here](/docs/format-docs.md).
 
 v1.4b release progress and changelog:
 * Float support - 100%
-* Jump support - 31%
+* ~~Jump support - 31%~~
+  * Delayed to v1.4
 * Rewritten cond parser to fix remaining bugs - 100%
 * Readability and maintainability improvements - 94%
 * A cond compiler to create entirely new conds with support for floats, brackets, implicit ordering, scientific notation, psuedo ops, advanced recursive subsections and more - 100%
   * Might implement the ternary psuedo-op (` ? : `) which would compile to jumps later
 * ~~Improved light mode - 0%~~
   * Does any sane person use this?
-  * Delayed to v1.41b as the scope of the update is getting too large and this will take a lot of time and CSS changes for no benefit to 100% of the 0 people using this tool
+  * Delayed to v1.4 as the scope of the update is getting too large and this will take a lot of time and CSS changes for no benefit to 100% of the 0 people using this tool
 * More config options for safety - 100%
 * Decompiler improvement (Aggresive simplification) - 100%
 * More labelled CExpression funcs - 100%
