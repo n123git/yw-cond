@@ -1,6 +1,6 @@
 # CExpression Format Specification
 
-The CExpression system is a proprietary, stack-based, big-endian, recursive Reverse Polish Notation (RPN) binary format used to evaluate runtime conditions in Level5's engines from IEGO onwards. Colloquially referred to as "Conds" (historically "PhaseAppear"), they are evaluated by the internal `CExpression::CalcSub` function.
+The CExpression system is a proprietary, stack-based, big-endian, recursive Reverse Polish Notation (RPN) binary format used to evaluate runtime conditions in Level5's engines from IEGO onwards. Colloquially referred to as "Conds" (historically "PhaseAppear"), they are evaluated by the internal `yw::util::CExpression::CalcSub` function.
 
 Because jumps can only move forward, the system can express `if`/`if-else` logic but is **not Turing-complete** (loops are impossible).
 
