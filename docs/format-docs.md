@@ -1,390 +1,214 @@
-# CExpression Format Documentation
+# CExpression Format Specification
 
-The CExpression system, is a proprietary Base64-encoded, stack-based, recursive RPN (Reverse Polish Notation) binary format with support for forward-only jumps and engine syscalls used for evaluating runtime conditions to a boolean result used in 3DS & Switch level5 games - colloquially referred to as Conds (and before that, PhaseAppear). These Conds are evaluated by `CExpression::CalcSub` internally and contain conditions which consist of:
-  * Literal value pushes (Floats, Integers etc)
-  * Functions (Engine calls)
-  * Operators (arithmetic, logical and bitwise)
-  * Jumps (conditional and unconditional)
-    * These jumps can only move forward and therefore can only be used for if else, NOT complex control flow such as loops. This sadly means the CExpression system is *NOT* turing-complete.
-> Note: invalid CExpressions evaluate to `false` - this is the reason why the music app is broken in localised versions of Yo-kai Watch 2: Psychic Specters.
-> Additionally, within the following documentation assume all numbers encased in a code block i.e. `02` are in hexadecimal (base-16) format unless otherwise specified.
+**Version:** 1.4b  
+**Context:** Level-5 3DS/Switch Engine (Yo-kai Watch series, etc.)
 
-## 1. Cond Structure
-Each Cond begins with a header section composed of a 3-byte header of `00 00 00`, and a section previously referred to as the `COND_CODE`. This is composed of a uint16 `COND_LENGTH` and a uint8 `STACK_PRM`.
-> This header will always be `00 00 00` in the Cond itself; the engine will fill it in with the appropriate data during parsing.
+The CExpression system is a proprietary, stack-based, big-endian, recursive Reverse Polish Notation (RPN) binary format used to evaluate runtime conditions in Level5's engines from IEGO onwards. Colloquially referred to as "Conds" (historically "PhaseAppear"), they are evaluated by the internal `CExpression::CalcSub` function.
+
+Because jumps can only move forward, the system can express `if`/`if-else` logic but is **not Turing-complete** (loops are impossible).
+
+> Note: Invalid CExpressions evaluate to `false`. This is the reason the music app is broken in localized versions of *Yo-kai Watch 2: Psychic Specters*. Additionally, within this specification, numbers enclosed in code blocks (e.g., `02`) are in hexadecimal format unless otherwise specified.
+
+## 1. Binary Structure
+
+Every CExpression begins with a 6-byte header, followed by the instruction payload.
 
 ### 1.1 Header (3 bytes)
-The header is a 3 byte region at the start of a Cond - this should *always* be `00 00 00` in the actual Cond itself - the engine will process it accordingly.
+The first 3 bytes of a Cond are reservedg. In the raw state, this must be `00 00 00`.
 
-### 1.2 Cond Code (3 bytes)
-a `COND_CODE` is the name given to a 3-byte (previously thought to be 2-byte) section of a Cond's header composed of a uint16 `COND_LENGTH` and uint8 `STACK_PRM.` Sections describing the layout of this section can be found below:
+### 1.2 Root CType (3 bytes)
+Immediately following the header is a 3-byte block. This block is really just a root `CType` (see Section 2), however for simplicity one may treat it differently.
 
-#### 1.2.1 COND_LENGTH
-This uint16 defines the total length excluding itself (and all prior bytes) but including all subsequent bytes within the Cond - including the `STACK_PRM`.
+* `COND_LENGTH` (`uint16`): Defines the total length of the remaining bytes in this Cond block, including the `STACK_PRM` byte itself, but excluding the `COND_LENGTH` bytes.
+* `STACK_PRM` (`int8`): Specifies the quantity of elements in the current recursed subsection. 
 
-#### 1.2.2 STACK_PRM
-A `STACK_PRM` is a singular byte that specifies the quantity of elements proceeding it in the current Cond subsection.
-An *element* is any non-CTYPE instruction or value. Take for instance:
-* Read instructions (`READ_LITERAL`, `READ_FLOAT`, `READ_HASH`, `READ_FUNCTION`)
-* Operators (arithmetic, logical, bitwise, etc) & Jumps
-* `READ_PARAM`, `LITERAL_VALUE` etc
-However one value does not contribute to the `STACK_PRM` - this is:
-* CTypes
-  * CTypes act purely as subsection descriptors, declaring the `STACK_PRM` and `COND_LENGTH` of subsections but have no other meaning and therefore are the only element to contribute to *no* `STACK_PRM` - neither the parent's nor their own.
+## 2. CTypes (3 bytes)
 
-> Note: subsections do not contribute to the `STACK_PRM` of higher or lower subsections, but they do contribute to the `COND_LENGTH` of parent (higher) subsections.
+CTypes are 3-byte structural descriptors used to define the recursive subsections, the CExpression system relies on (take for instance, function parameters or jump bodies). Because of said recursive implementation, CTypes allow passing complete nested expressions as parameters.
 
-> Example: `00 00 00 - 00 0F - 05 - 35 10 B1 40 96 00 01 00 32 00 00 00 01 78`
+| Offset | Size | Field | Type | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | 2 | `Length` | `uint16` | Length of the subsection in bytes (excluding these 2 bytes). |
+| 2 | 1 | `STACK_PRM` | `int8` | The `STACK_PRM` for this specific subsection. |
 
-## 2. Data Identifiers
+> Note: CTypes contribute to the `Length` of their parent block, but they **do not** increment the parent's `STACK_PRM`, nor do the CType's contents (however they do contribute to the `Length`). Every element except CTypes contributes to their direct parent CType's `STACK_PRM`.
 
-### 2.1 Reads
+## 3. Opcodes
 
-| Type            | Hex Code | Decimal Code | Description                                                                                     |
-| --------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| READ_PARAM      | `28`     | `40`         | Reads a param within a `READ_FUNCTION` call. Followed by a CTYPE.                               |
-| READ_LITERAL    | `32`     | `50`         | Pushes an integer of type 4.                                                                    |
-| READ_FLOAT      | `33`     | `51`         | Pushes an IEEE 754 float of type 6.                                                             |
-| READ_HASH       | `34`     | `52`         | Similar to a READ_LITERAL but is used to push a hash instead. Internally functions identically. |
-| READ_FUNCTION   | `35`     | `53`         | Reads and pushes a function. Followed by a CTYPE representing the function as a whole.          |
+All instructions fall between `0x28` and `0x97`. The stack has a hard limit of 64 values.
 
-> Note that the reads aside from `READ_PARAM` follow a limit of a maximum of 64 stack values at a time. Additionally note that all of these contribute 1 to the `STACK_PRM` of the current subsection, not including the following `LITERAL_VALUE` which also contributes 1 as they are both seperate elements.
-## 3. **Operators**
+### 3.1 Read Operations
 
-Operators pop an arbitrary number of values off the stack, equivalent to it's param count, perform a logical, arithmetic or bitwise operation on those values and then push the output to the stack. Operators pop the *most recent* values off of the stack (LIFO: Last In, First Out) as is common for similar systems. Additionally, like all non-CTYPE elements they contribute 1 to the `STACK_PRM` of the current subsection.
-| Hex Code | Decimal | Symbol | Op Count | Operation                             | Notes                                                                                                  |
-| -------- | ------- | ------ | -------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `46`     | `70`    | ++     | 1        | Incrementation                        | Unofficial Symbol.                                                                                     |
-| `47`     | `71`    | --     | 1        | Decrementation                        | Unofficial Symbol.                                                                                     |
-| `50`     | `80`    | ~      | 1        | Bitwise NOT                           | Unofficial Symbol.                                                                                     |
-| `51`     | `81`    |`(bool)`| 1        | Boolean Cast                          | Returns 1 if != 0 else 0. Equivalent to `== 1`/`!= 0`. Unofficial Symbol.                              |
-| `5A`     | `90`    | *      | 2        | Multiply                              |                                                                                                        |
-| `5B`     | `91`    | /      | 2        | Divide                                |                                                                                                        |
-| `5C`     | `92`    | %      | 2        | Modulus                               |                                                                                                        |
-| `5D`     | `93`    | +      | 2        | Addition                              |                                                                                                        |
-| `5E`     | `94`    | -      | 2        | Subtraction                           |                                                                                                        |
-| `64`     | `100`   | <<     | 2        | Left shift                            |                                                                                                        |
-| `65`     | `101`   | >>     | 2        | Right shift                           |                                                                                                        |
-| `6E`     | `110`   | <      | 2        | Less than                             |                                                                                                        |
-| `6F`     | `111`   | <=     | 2        | Less or equal                         |                                                                                                        |
-| `70`     | `112`   | >      | 2        | Greater than                          |                                                                                                        |
-| `71`     | `113`   | >=     | 2        | Greater or equal                      |                                                                                                        |
-| `78`     | `120`   | ==     | 2        | Equal                                 |                                                                                                        |
-| `79`     | `121`   | !=     | 2        | Not equal                             |                                                                                                        |
-| `82`     | `130`   | &      | 2        | Bitwise AND                           |                                                                                                        |
-| `83`     | `131`   | \|     | 2        | Bitwise OR                            |                                                                                                        |
-| `84`     | `132`   | ^      | 2        | Bitwise XOR                           |                                                                                                        |
-| `8F`     | `143`   | &&     | 2        | Logical AND                           | By far the most common.                                                                                |
-| `90`     | `144`   | \|\|   | 2        | Logical OR                            | Frequently combined with `8F`.                                                                         |
+These instructions push values onto the stack. 
 
-Operators are grouped by the multiple of ten in their decimal opcode. Each `x0–x9` range represents a distinct operator class, and operators within a range are closely related in behaviour as shown by the table below:
+| Value | Name | STACK_PRM Contribution | Description |
+| :--- | :--- | :--- | :--- |
+| `0x28 / 40` | `READ_PARAM` | +1 | Reads a parameter within a `READ_FUNCTION` call. Followed by a `CType` defining the parameter's sub-block. |
+| `0x32 / 50` | `READ_LITERAL` | +2 | Pushes a signed 32-bit integer (`CValue` type 4). The opcode contributes +1, and the accompanying 4-byte literal value contributes +1. Value is Big-Endian and padded even if the target function expects a smaller type (e.g., bool, int8). |
+| `0x33 / 51` | `READ_FLOAT` | +2 | Pushes an IEEE 754 single-precision float (`CValue` type 6). The opcode contributes +1, and the accompanying 4-byte float value contributes +1. Extremely rare pre Yo-kai Watch 2. |
+| `0x34 / 52` | `READ_HASH` | +2 | Pushes a signed 32-bit integer (`CValue` type 4). The opcode contributes +1, and the accompanying 4-byte hash value contributes +1. Functionally identical to `READ_LITERAL`, but semantically used for IDs (e.g., FlagIDs, BaseIDs). |
 
-| Range | Category                | Operators Included      |
-| ----- | ----------------------- | ----------------------- |
-| `7X`  | Unary Arithmetic        | `++`, `--`              |
-| `8X`  | Unary Bitwise / Logical | `~`, `(bool)`           |
-| `9X`  | Binary Arithmetic       | `*`, `/`, `%`, `+`, `-` |
-| `1X`  | Bit Shifting            | `<<`, `>>`              |
-| `11X` | Relational Comparison   | `<`, `<=`, `>`, `>=`    |
-| `12X` | Equality Comparison     | `==`, `!=`              |
-| `13X` | Bitwise Binary Logic    | `&`, `\|`, `^`          |
-| `14X` | Logical Binary Logic    | `&&`, `\|\|`            |
+### 3.2 Function Calls
 
-## 3.1 Jumps
-There are two kinds of jumps supported by the CExpression engine, these can be considered as pseudo-ops as they allow conditional or optional execution of sub-blocks. Note that these jumps are *forward-only*, meaning they can be used to express `if` / `if-else`–style logic, but sadly *cannot* implement loops or any other arbitrary control flow. Additionally note that the jumps themselves contribute 1 to the `STACK_PRM` of the current subsection although the rest of the jump body does not as they are enclosed in a subsection defined by the CType.
+| Value | Name | STACK_PRM Contribution | Description |
+| :--- | :--- | :--- | :--- |
+| `0x35 / 53` | `READ_FUNCTION` | +2 | Executes a CExpression function and pushes the result. The opcode contributes +1, and the accompanying 4-byte CRC-32 hash contributes +1. |
 
-| Hex Code | Decimal Code | Symbol  | Operation                             | Notes                                                                                                  |
-| -------- | ------------ | ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `96`     | `150`        | ?->     | Conditional Jump Operator             | Unofficial symbol.                                                                                     |
-| `97`     | `151`        | ->      | Unconditional Jump Operator           | Unofficial symbol.                                                                                     |
-
-Both jump opcodes are immediately followed by a *CType* (See § 6 - CTypes), which determines both the length of the sub-section to skip or execute (aka how many bytes from the end of the CType to jump past) using the `DataSize` and a signed `ExtData` (`STACK_PRM`) byte that further controls execution behaviour.
-
-Note that improperly aligned jump lengths may cause the evaluator to skip valid instructions or misinterpret data as opcodes. Unknown opcodes are safely skipped, but malformed jumps can still lead to unintended behaviour so yeah :/
-Additionally, as of writing this `yw-cond` doesn't support these in decompilation, recompilation or parsing so you'll have to manually test and generate them.
-
-### 3.1.1 Conditional Jump
-`0x96`/`150` (`?->`) acts as a conditional execution block, similar to an if/if ... else statement.
-
-It pops one operand from the stack just like any other unary operator (we will call this the stack value for now due to how many values ?-> relies on) and reads its own *CType*. Where `DataSize` specifies the length (in bytes) of the sub-block and `ExtData` is interpreted as a signed count. Which leads to the following branch of possibilities:
-* If the stack value is truthy (!= 0) *and* the `STACK_PRM` is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub`, then jumped past.
-* If the stack value is falsy (== 0), or the `STACK_PRM` is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past without any execution or otherwise processing.
-
-You can simplify this to the following psuedo:
-```cpp
-value = pop(); // pop a value off the stack, and grab it
-ctype = readCType(); // simplified CType read because I'm lazy :p
-
-if (value != 0 && ctype.ExtData > 0) { // != 0 is how level5 determines truthiness within all their systems
-    CalcSub(ctype.DataSize);
-}
-skip(ctype.DataSize);
+**Structure:**
+```text
+0x35             <- READ_FUNCTION Opcode
+[4 bytes]        <- CRC-32 (ISO-HDLC) hash of the function name
+[CType]          <- Defines the Length and STACK_PRM of the function call
+[PARAMS...]      <- Zero or more READ_PARAM blocks
 ```
 
-### 3.1.2 Unconditional Jump
-`0x97` defines a sub-block whose execution depends solely on the `STACK_PRM` of the CType of which it preceeds, rather than any runtime values being consumed or read, therefore we will consider it a nullary operator (0 operands).
-When found the engine will read it's *CType* found right after the jump where `DataSize` (`COND_LENGTH`) gives the length (in bytes) of the sub-block.
-This then leaves the engine with the following branch of possibilities:
-* If the `ExtData` (`STACK_PRM`) is > 0 (`0x01–0x7F`), the sub-block is executed via `CalcSub` (recursion since CExpressions are parsed using `CalcSub` in the first place.
-* If the `STACK_PRM` is < 1 (`0x00`/`0x80–0xFF`), the sub-block is jumped past entirely.
-  * Modifying this code to check if it's equivalent to 0 rather than < 1 would make CExpressions turing complete - with the exception of the `0xFFFF` size limit - although that will realistically never be an issue.
+### 3.3 Operators
 
-Despite being confirmed to have existed as early as Yo-kai Watch 1, these jumps are rarely used in practice. Additionally since the game executes the CExpression without an intermediary parsing stage you can place invalid bytes without consequence as long as it's jumped past and not executed in all code paths i.e. using a `0 ->`  (falsy value + conditional jump).
+Operators pop values from the stack (LIFO), perform an operation, and push the result. They are grouped logically by their decimal ranges. All operators contribute +1 to their parent's `STACK_PRM`.
+> Note that operators employ implicit type promotion so, for instance, adding a `uint8` and a `float` will produce a `float`.
 
-## 4. **Read Operations**
+#### Unary Operators
+| Value | Symbol | STACK_PRM Contribution | Operation |
+| :--- | :--- | :--- | :--- |
+| `0x46 / 70` | `++` | +1 | Non-mutating increment (pops value, adds 1, pushes result). |
+| `0x47 / 71` | `--` | +1 | Non-mutating decrement (pops value, subtracts 1, pushes result). |
+| `0x50 / 80` | `~` | +1 | Bitwise NOT |
+| `0x51 / 81` | `(bool)` | +1 | Boolean Cast (Returns `1` if != 0, else `0`) |
 
-### 4.1 READ_FUNCTION
+#### Binary Arithmetic
+| Value | Symbol | STACK_PRM Contribution | Operation |
+| :--- | :--- | :--- | :--- |
+| `0x5A / 90` | `*` | +1 | Multiply |
+| `0x5B / 91` | `/` | +1 | Divide |
+| `0x5C / 92` | `%` | +1 | Modulus |
+| `0x5D / 93` | `+` | +1 | Add |
+| `0x5E / 94` | `-` | +1 | Subtract |
 
-A READ_FUNCTION entry is structured as shown below, where they can have anywhere from 0 to, theoretically,  (for basic numeric params) have up to 255 parameters:
+#### Bitwise & Shift
+| Value | Symbol | STACK_PRM Contribution | Operation |
+| :--- | :--- | :--- | :--- |
+| `0x64 / 100` | `<<` | +1 | Left Shift |
+| `0x65 / 101` | `>>` | +1 | Right Shift |
+| `0x82 / 130` | `&` | +1 | Bitwise AND |
+| `0x83 / 131` | `\|` | +1 | Bitwise OR |
+| `0x84 / 132` | `^` | +1 | Bitwise XOR |
 
-```
-READ_FUNCTION
-  LITERAL_VALUE (4 bytes; is the CRC32 of the name of the function to execute)
-  CTYPE (3 bytes; used for recursion)
-  optional:READ_PARAM (1 byte)
-     CTYPE (3 bytes; size and data of the below value)
-     READ_HASH/READ_LITERAL/READ_FLOAT (1 byte)
-     LITERAL_VALUE (4 byte)
-  ... can recursively hold as many READ_PARAMs as can fit in the greater function CType
-```
+#### Comparison
+| Value | Symbol | STACK_PRM Contribution | Operation |
+| :--- | :--- | :--- | :--- |
+| `0x6E / 110` | `<` | +1 | Less Than |
+| `0x6F / 111` | `<=` | +1 | Less or Equal |
+| `0x70 / 112` | `>` | +1 | Greater Than |
+| `0x71 / 113` | `>=` | +1 | Greater or Equal |
+| `0x78 / 120` | `==` | +1 | Equal |
+| `0x79 / 121` | `!=` | +1 | Not Equal |
 
-> Note: Like all values within Conds, Literal Values are *big-endian*.
-<!-- Optional `READ_PARAM` chains  <!-- for a bit this was chins 😭 --\> allow for unlimited nesting of subsections for multi-param functions. -->
+#### Logical
+| Value | Symbol | STACK_PRM Contribution | Operation |
+| :--- | :--- | :--- | :--- |
+| `0x8F / 143` | `&&` | +1 | Logical AND (Most common operator) |
+| `0x90 / 144` | `\|\|` | +1 | Logical OR |
 
-### 4.2 READ_LITERAL
-* Always followed by a *signed 32-bit integer*
-  * These can (and are!) also used for functions that expect a 16-bit, 8-bit, or even Boolean value - in which case it should still padded to 4 bytes.
-* Values are *big-endian*.
-* Pushes a `CValue` of type 4 (int32)
+### 3.4 Control Flow (Jumps)
 
-### 4.3 READ_FLOAT
-* Pushes a `CValue` type 6 (float32; follows the IEEE-754 single-precision float specification)
-* Very rare.
+Jumps are forward-only pseudo-ops used for conditional execution. They are immediately followed by a `CType` which dictates the size of the jump body and execution behavior via its `Length` and `STACK_PRM`. Both jumps contribute +1 to their parent's `STACK_PRM`, as you'd expect.
 
-### 4.4 READ_HASH
-* Pushes a `CValue` of type 4 (int32)
-  * Used for IDs hence the name `READ_HASH`
+| Value | Symbol | STACK_PRM Contribution | Description |
+| :--- | :--- | :--- | :--- |
+| `0x96 / 150` | `?->` | +1 | Conditional Jump. Pops a value. If the value is truthy (!= 0) AND the CType's `STACK_PRM` > 0, the sub-block is executed then skipped. Otherwise, it is skipped entirely. |
+| `0x97 / 151` | `->` | +1 | Unconditional Jump. If the CType's `STACK_PRM` > 0, the sub-block is executed then skipped. Otherwise, it is skipped. |
 
-> Note that there is no runtime distinction between `READ_LITERAL` and `READ_HASH`.
+## 4. Internal Data Types (CValues)
 
-## 5. CExpression Data Types 
-These data types define the different types of `CValues` - of which there can be up to 64 on the stack at a time. Also note that these are *never directly referenced in the CExpression format itself* but are used internally by the engine during evaluation and will, as a result of that, be mentioned here.
-| ID | Type   | Description             |
-| -- | ------ | ----------------------- |
-| 0  | int8   | 8-bit signed integer    |
-| 1  | uint8  | 8-bit unsigned integer  |
-| 2  | int16  | 16-bit signed integer   |
-| 3  | uint16 | 16-bit unsigned integer |
-| 4  | int32  | 32-bit signed integer   |
-| 5  | uint32 | 32-bit unsigned integer |
-| 6  | float  | 32-bit floating point   |
+CValues exist purely *at runtime* on the stack; they are not explicitly defined in this format.
 
-## 6. CTypes
-CTypes are 3-byte descriptors which act as the defined `COND_LENGTH` and `STACK_PRM` used for subsections of a Cond - this is because `CalcSub` works recursively allowing you to do things such as passing complete nested expressions into function parameters. As these declare a subsection they contribute to the `COND_LENGTH` but NOT the `STACK_PRM` of the current subsection. No other element follows this afformentioned behaviour.
-| Byte | Name                     | Data Type |
-| ---- | ------------------------ | --------- |
-| 1-2  | DataSize (`COND_LENGTH`) | uint16    |
-| 3    | ExtData (`STACK_PRM`)    | int8      |
+| ID | Type | Description |
+| :--- | :--- | :--- |
+| 0 | `int8` | 8-bit signed integer |
+| 1 | `uint8` | 8-bit unsigned integer |
+| 2 | `int16` | 16-bit signed integer |
+| 3 | `uint16` | 16-bit unsigned integer |
+| 4 | `int32` | 32-bit signed integer (Default) |
+| 5 | `uint32` | 32-bit unsigned integer |
+| 6 | `float` | 32-bit IEEE 754 float |
 
-## 7. Example Structures
+> Aside from `int32` and `float`, these other types can only be obtained through function calls and type promotion, descending from a function call.
 
-This example demonstrates how to encode a call to the function `SetGlobalBitFlag(hash FlagID, int Value)`. 
-The function accepts **two** parameters, both numeric, and is (like all others) invoked using the `READ_FUNCTION` opcode.
-First let's start off with our `READ_FUNCTION` (`35`). Immediately following this is the *function identifier*, stored as the CRC-32 (ISO-HDLC) hash of the function name:
+## 5. Examples
+
+### 5.1 Function Call: `SetGlobalBitFlag(FlagID, Value)`
+This function sets a global bit flag. It requires two numeric parameters.
+*   CRC-32 of `"SetGlobalBitFlag"` = `0x182B375A`
+*   Parameter 1 (FlagID): `0x12345678` (using `READ_HASH`)
+*   Parameter 2 (Value): `0x00000001` (using `READ_LITERAL`)
+*   Param size: 9 bytes * 2 params = 18 bytes. Add 1 for the function CType's `STACK_PRM` byte = 19 (`0x13`).
+
+**Raw Hex:**
 ```hex
-35 <- READ_FUNCTION
-18 2B 37 5A <- 0x182B375A is the CRC32 of "SetGlobalBitFlag"
+00 00 00       <- Header
+00 1B          <- COND_LENGTH (27 bytes remaining)
+02             <- STACK_PRM (2 elements: the function opcode, and the function hash)
+35             <- READ_FUNCTION
+18 2B 37 5A    <- CRC-32 Hash
+00 13 02       <- CType: Length 19, STACK_PRM 2 (two params)
+  28           <- READ_PARAM
+  00 06 02     <- Param CType: Length 6, STACK_PRM 2 (read op + value)
+  34           <- READ_HASH
+  12 34 56 78  <- FlagID
+  28           <- READ_PARAM
+  00 06 02     <- Param CType: Length 6, STACK_PRM 2
+  32           <- READ_LITERAL
+  00 00 00 01  <- Value (1)
+ ; we then end up with SetGlobalBitFlag(0x12345678, 1)
 ```
-After the function hash we have the *CType* (See § 6), which describes the size and other data of the function and its parameters.
+In Base64, this would be `AAAAABsCNRgrN1oAEwIoAAYCNBI0VngoAAYCMgAAAAE=`.
 
-Numeric parameters occupy 9 bytes each - including their individual CTypes.
-
-Since this function has two numeric parameters, the total parameter size is `(9 × 2) + 1 = 19 bytes = 0x13`. Note that the extra `+1` accounts for the CType’s ExtData byte which acts as the functions `STACK_PRM` which counts the number of non-CType elements in the current recursive section (sub-block) of the CExpression.
-Each parameter begins with `READ_PARAM`, followed by its CType and value:
-```hex
-28 <- READ_PARAM
-00 06 02 <- CType for a numeric value
-34 <- READ_HASH
-12 34 56 78 <- 0x12345678 is the example FlagID we will be using
-```
-Repeating this for the second parameter yields:
-```hex
-28 <- READ_PARAM
-00 06 02 <- CType
-32 <- READ_LITERAL
-00 00 00 01 <- Value; 0x00000001 = 1
-```
-Putting everything together, the full byte sequence is:
+### 5.2 Condition Check: `GameClear() == 1`
+Checks if the main story is completed.
+* CRC-32 of `"GameClear"` = `0x10B14096`
 
 ```hex
-35 <- READ_FUNCTION
-18 2B 37 5A <- 0x182B375A is the CRC32 of "SetGlobalBitFlag"
-00 13 02 <- CType for this function
-28 <- READ_PARAM
-00 06 02 <- CType for this param
-34 <- READ_HASH
-12 34 56 78 <- 0x12345678 aka the FlagID
-28 <- READ_PARAM
-00 06 02 <- Ctype for the second param
-32 <- READ_LITERAL
-00 00 00 01 <- 0x00000001/1 aka the Value
+00 00 00       <- Header
+00 0F          <- COND_LENGTH (15 bytes)
+05             <- STACK_PRM (5: Function opcode, Function hash, Literal opcode, Literal value, Operator)
+35           <- READ_FUNCTION
+10 B1 40 96    <- CRC-32 Hash
+00 01 00       <- CType: Length 1, STACK_PRM 0 (no params)
+0x32           <- READ_LITERAL
+00 00 00 01    <- Value (1)
+78           <- OPERATOR: ==
 ```
 
-Optionally, assuming this is the entire CExpression we can build the header for that sequence to give us:
-```hex
-00 00 00 <- HEADER data; this is empty space for the engine to fill
-00 1B <- COND_LENGTH this is 0x1B because there are 0x1B bytes proceeding this within the cond
-02 <- STACK_PRM see § 1.2.2 for the formula
-35 <- READ_FUNCTION
-18 2B 37 5A <- 0x182B375A is the CRC32 of "SetGlobalBitFlag"
-00 13 02 <- CType for this function
-28 <- READ_PARAM
-00 06 02 <- CType for this param
-34 <- READ_HASH
-12 34 56 78 <- 0x12345678 aka the FlagID
-28 <- READ_PARAM
-00 06 02 <- Ctype for the second param
-32 <- READ_LITERAL
-00 00 00 01 <- 0x00000001/1 aka the Value
-```
-Or `AAAAABsCNRgrN1oAEwIoAAYCNBI0VngoAAYCMgAAAAE=` when converted to Base64.
+<!--## 6. Runtime Evaluation Flow (`CalcSub`)
 
-TLDR:
-* The function hash identifies the target.
-* The function CType defines parameter count and total size.
-* Each parameter is encoded independently using `READ_PARAM`.
+CExpressions are evaluated via `yw::util::CExpression::CalcSub(char const* cond, short len)`. The engine does *not* build an AST; it executes sequentially, mutating an internal value stack.
 
-### Examples and Notes
-Due to the lack of an array data type functions are often used to emulate this, take for instance the function `0x77B463E5`. It accepts the param(s): `(int: index)` and returns a Boolean output. To be specific this function allows you to input the index of a Psychic Blasters "Stage" and it returns a value representing whether the boss has/hasn't been defeated yet.
-CExpression Functions aren't always read only tools used for runtime conditionals - they can be general purpose expressions that mutate values as a side effect - take for instance `RunTrigger` (`0x6984E3AF`). In this function you can pass a hash representing a `TriggerID` and it will run the trigger, returning `1` (`true`) to make sure the conditionals pass.
+### 7.1 Initialization & Validation
+Upon entry, `CalcSub` receives a pointer to a sub-block and its remaining length. It performs strict validation. Failure at any point returns `false`.
+1.  **Length Check:** `len` must be $\ge 3$.
+2.  **Parse Header:** Read `COND_LENGTH` (`uint16` BE) and `STACK_PRM` (`int8`).
+3.  **State Validation:**
+    *   `COND_LENGTH` cannot be `0` (must at least fit the `STACK_PRM` byte).
+    *   `len - 2` must be $\ge$ `COND_LENGTH`.
+    *   `STACK_PRM` cannot be `0`.
+4.  **Setup:** Decrement `blockLength` by 1, set instruction pointer `ptr = cond + 3`.
 
-The naming schema used in CExpression Functions (just like level5 favours in general) can be shown as follows:
-* Level5 uses Pascal Case
-* A mix of English and Hepburn romanisation.
-  * The English is usually not the same localised name's used in game; similar to `cfg.bin`s. Take for instance, Orge ("typo" intentional) instead of Oni.
-* Typos, take for instance: `IsApeearMitibiki()`; these are thought to be intentional decisions to avoid collisions due to the level5 engine's extreme reliance on CRC-32 hashes.
-* Abbreviations used such as `Util`, `Cnt` etc.
-* Common prefixes include `"Get"`, `"Set"`, `"Is"`, `"Common"`, `"Target"`, `"Run"`, `""` and `"Has"`.
-* Common suffixes include `"Cnt"`, `"Num"`, `"Now"` and `"Rate"`.
+### 7.2 Execution Loop
+The engine iterates based on `STACK_PRM`. Before executing, it verifies the opcode is within the valid range: `0x28 <= *ptr <= 0x97`.
 
-Cond Examples:
-`RunTrigger`:
-```hex
-00 00 00 <-- Header
-00 12 <-- COND_LENGTH (0x12 / 18) bytes after this left within the cond
-02 <-- STACK_PRM
+*   **`0x28` (READ_PARAM):** Reads the subsequent `CType` to get the parameter block `Length`. Calls `CalcSub` recursively on this sub-block. If the parameter size is 0 or invalid, it skips execution and advances the pointer.
+*   **`0x32` - `0x34` (READ_LITERAL/FLOAT/HASH):** Advances the pointer by 5 bytes (1 opcode + 4 value bytes) and pushes the value to the stack.
+*   **`0x35` (READ_FUNCTION):** Reads the 4-byte hash, resolves the function pointer, reads its `CType`, recursively processes any `READ_PARAM` blocks attached to it, and invokes the engine syscall. The return value is pushed to the stack.
+*   **`0x46` - `0x90` (Operators):** Pops the required operands (1 or 2), performs the math/logic, and pushes the result.
+*   **`0x96` - `0x97` (Jumps):** Reads the corresponding `CType`. Evaluates the condition (for `0x96`) and the `STACK_PRM` byte. If execution is required, calls `CalcSub` recursively on the jump body. Finally, advances the pointer past the jump body.
 
-35 <-- READ_FUNCTION
-69 84 E3 AF <-- BE CRC-32 of RunTrigger
-00 0A 01 <-- Function CType
-28 <-- READ_PARAM
-00 06 02 <-- PARAM CType
-34 <-- READ_HASH
-0E 6B 6F 6B <-- 0x0E6B6F6B
-```
-Since `RunTrigger` always returns 1; the CExpression will always succeed running the trigger `0x0E6B6F6B` as a "byproduct" of the function call (Although the intended purpose of the CExpression)
-`GameClear` (Has Main Story been completed):
-```hex
-00 00 00 <-- HEADER
-00 0F <-- COND_LENGTH; this means there are 0xF (15) bytes left in the CExpression after the COND_LENGTH (including the STACK_PRM)
-05 <-- STACK_PRM is 0x5 because there's 1 function, 1 READ_LITERAL and an OPERATOR which is 2(1 * 1) + 1 aka 5 
+Once the loop completes, the final value left on the stack determines the success or failure of the Cond.
+-->
 
-35 <-- READ_FUNCTION
-10 B1 40 96 <-- CRC32 of "GameClear" - aka the function to be executed
-00 01 00 <-- Function CType for a function without any parameters
+## 6. Historical Context
 
-<-- function is ran and it's value is pushed to stack -->
+* IEGO (Dec 2011): Utilised a very simple subset of the system, utilizing only 4 known functions and 7 operators.
+* Yo-kai Watch 1 (Jul 2013): Ushered in the modern CExpression format. The smartphone port featured over 20 operators, multi-param function support, and roughly 118 documented functions.
+* In later titles, the binary format and opcode structure have remained largely static. Changes between titles (YW2, YWB, YW3) seem to be restricted exclusively to the addition, removal, or modification of the underlying CExpression functions, not the RPN evaluator itself.
 
-32 <-- READ_LITERAL
-00 00 00 01 <-- 0x00000001/1
-
-<-- the 1 is pushed to stack -->
-
-78 <-- OPERATOR: ==
-<-- the == pops the 2 values of the stack and pushes the boolean result -->
-
-<-- finally after the CExpression has been evaluated the value in stack is checked; if truthy the CExpression suceeded, else it failed -->
-```
-
-### 8. History
-
-* IEGO (2011, December)
-  * IEGO had a very simplistic CExpression system, with only 4 used CExpression Functions, and 7 used Operators (including `8F`).
-* Yo-kai Watch 1 (2013, July)
-  * Level5 made a lot of changes in this game - which makes sense considering how long they were working on it for - proven by the fact that there are files in Yo-kai Watch 2 that haven't been touched since 2011!
-  * Yo-kai Watch 1 for smartphone had over 20 operators, multi-param functions and 118 CExpression functions!
-  * Overall this is what truly started the modern CExpression system.
-* ... future games have not changed the format much aside from adding/removing CExpression Functions
-
-## 9. WIP -- Parsing Flow
-This section documents the runtime evaluation flow of a CExpression as implemented by:
-```cpp
-bool yw::util::CExpression::CalcSub(char const* cond, short len)
-```
-Before the CExpression even reaches CalcSub it gets decoded and the `HEADER` (first 3 bytes) are stripped, since there isn't much going on we will only document `CalcSub` as mentioned above:
-Unlike what you'd expect, the engine does not perform a full pre-parse of the Cond. Instead, CalcSub validates a minimal header and then executes instructions sequentially while mutating an internal value stack.
-
-### 9.1 Initial Validation
-Upon entry, CalcSub receives:
-* `cond`: a pointer to the start of a Cond sub-block
-* `len`: the number of bytes remaining in the parent context
-
-The function immediately performs a series of important structural checks for safety. If *any* of these checks fail, the Cond will stop being processed any further, returning `false`.
-First it performs a minimum length check:
-```cpp
-if (len < 3)
-    return false;
-```
-A valid Cond by the time it's sent to CalcSub must start with the following 3 bytes at the minimum:
-* `COND_LENGTH` (2 bytes)
-* `STACK_PRM` (1 byte)
-Any shorter buffer will immediately return `false`.
-The first two bytes of `cond` are interpreted as a BE uint16:
-```cpp
-blockLength = (cond[0] << 8) | cond[1];
-```
-This value represents the number of bytes remaining after the length field itself, including:
-* `STACK_PRM`
-* all opcodes/instructions within the entire Cond
-
-The following conditions immediately invalidate the Cond:
-* `COND_LENGTH == 0`
-  * At the *absolute minimum* `COND_LENGTH` must be `1` to fit `STACK_PRM`. 
-* `len - 2 < COND_LENGTH` (`COND_LENGTH` is shorter than the Cond without itself)
-
-The third byte (`cond[2]`) is read as `STACK_PRM`:
-```c
-STACK_PRM = cond[2];
-if (STACK_PRM == 0)
-    return false;
-```
-A `STACK_PRM` of `0` is considered invalid and causes immediate failure.
-
-### 9.2 Initial well.. Initialisation
-Once the header is validated:
-* `blockLength` is decremented by 1.
-* An instruction pointer is initialized to `cond + 3`.
-  * This is right after the `STACK_PRM` aka where the main Cond actually starts.
-* A loop counter is derived from `STACK_PRM`.
-```cpp
-blockLength -= 1;
-ptr = cond + 3;
-```
-Before executing an opcode, the engine performs a range check on the current byte:
-```cpp
-if (*ptr < 0x28 || *ptr > 0x97)
-    return false;
-```
-### 9.3 OPCODEs
-Since opcodes are checked in ascending order, the first opcode is `READ_PARAM (0x28)`:
-
-Once encountered a nested block length is extracted from the two bytes following the `READ_PARAM` (The `DataSize` section of the CTYPE). Then `CalcSub` is called recursively on the parameter sub-block and execution resumes after the sub-block unless either:
-  * The parameter count is invalid
-  * The declared size is zero
-
-If either condition is met, the engine skips execution of the sub-block and advances the instruction pointer. Since the params are sub-blocks processed by a different `CalcSub` instance that contains the same stack function parameters are evaluated as mostly isolated sub-Cond blocks
-
-<note: finish the rest>
-
----
 <!-- secret easter egg: n123 is not coolz (or am I? No, no I'm not) -->
