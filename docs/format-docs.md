@@ -11,7 +11,7 @@ Because jumps can only move forward, the system can express `if`/`if-else` logic
 Every CExpression begins with a 6-byte header, followed by the instruction payload.
 
 ### 1.1 Header (3 bytes)
-The first 3 bytes of a Cond are reservedg. In the raw state, this must be `00 00 00`.
+The first 3 bytes of a Cond are reserved. In the raw state, this must be `00 00 00`.
 
 ### 1.2 Root CType (3 bytes)
 Immediately following the header is a 3-byte block. This block is really just a root `CType` (see Section 2), however for simplicity one may treat it differently.
