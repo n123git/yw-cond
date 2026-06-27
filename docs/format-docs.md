@@ -1,6 +1,6 @@
 # CExpression Format Specification
 
-The CExpression system is a proprietary, stack-based, big-endian, recursive Reverse Polish Notation (RPN) binary format used to evaluate runtime conditions in Level5's engines from IEGO onwards. Colloquially referred to as "Conds" (historically "PhaseAppear"), they are evaluated by the internal `yw::util::CExpression::CalcSub` function.
+The CExpression system is a proprietary, stack-based, big-endian, recursive Reverse Polish Notation (RPN) binary format used to evaluate runtime conditions in Level5's engines from IEGO onwards. Colloquially referred to as "Conds" (historically "PhaseAppear"), they are evaluated by the internal `yw::util::CExpression::CalcSub` function. For the usage of CExpressions in the Yo-kai Watch series, please refer to the project README, for usage of `yw-cond`, refer to the usage docs. This documentation assumes you have pre-requisite knowledge on binary formats.
 
 Because jumps can only move forward, the system can express `if`/`if-else` logic but is **not Turing-complete** (loops are impossible).
 
@@ -28,7 +28,7 @@ CTypes are 3-byte structural descriptors used to define the recursive subsection
 | 0 | 2 | `Length` | `uint16` | Length of the subsection in bytes (excluding these 2 bytes). |
 | 2 | 1 | `STACK_PRM` | `int8` | The `STACK_PRM` for this specific subsection. |
 
-> Note: CTypes contribute to the `Length` of their parent block, but they **do not** increment the parent's `STACK_PRM`, nor do the CType's contents (however they do contribute to the `Length`). Every element except CTypes contributes to their direct parent CType's `STACK_PRM`.
+> Note: CTypes contribute to the `Length` of their parent block, but they **do NOT** increment the parent's `STACK_PRM`, nor do the CType's contents (however they do contribute to the `Length`). Every element except CTypes contributes to their direct parent CType's `STACK_PRM`.
 
 ## 3. Opcodes
 
@@ -51,12 +51,12 @@ These instructions push values onto the stack.
 | :--- | :--- | :--- | :--- |
 | `0x35 / 53` | `READ_FUNCTION` | +2 | Executes a CExpression function and pushes the result. The opcode contributes +1, and the accompanying 4-byte CRC-32 hash contributes +1. |
 
-**Structure:**
+Structure:
 ```text
-0x35             <- READ_FUNCTION Opcode
-[4 bytes]        <- CRC-32 (ISO-HDLC) hash of the function name
-[CType]          <- Defines the Length and STACK_PRM of the function call
-[PARAMS...]      <- Zero or more READ_PARAM blocks
+35               ; READ_FUNCTION Opcode
+[4 bytes]        ; CRC-32 (ISO-HDLC) hash of the function name
+[CType]          ; Defines the Length and STACK_PRM of the function call
+[PARAMS...]      ; Zero or more READ_PARAM blocks
 ```
 
 ### 3.3 Operators
@@ -168,10 +168,10 @@ Checks if the main story is completed.
 00 00 00       <- Header
 00 0F          <- COND_LENGTH (15 bytes)
 05             <- STACK_PRM (5: Function opcode, Function hash, Literal opcode, Literal value, Operator)
-35           <- READ_FUNCTION
+35             <- READ_FUNCTION
 10 B1 40 96    <- CRC-32 Hash
 00 01 00       <- CType: Length 1, STACK_PRM 0 (no params)
-0x32           <- READ_LITERAL
+32             <- READ_LITERAL
 00 00 00 01    <- Value (1)
 78           <- OPERATOR: ==
 ```
