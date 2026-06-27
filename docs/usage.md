@@ -73,7 +73,7 @@ See Compiler Syntax in its respective section.
 
 ## Common CExpression Functions
 
-Yo-kai Watch 1 alone supports over 100 CExpression functions. The table below lists some of the most commonly used ones, their parameters, and functions:
+Yo-kai Watch 1 alone supports over 100 CExpression functions, with Yo-kai Watch 3 nearly supporting 300! The table below lists some of the most commonly used ones, their parameters, and functions:
 
 | Function | Parameters | Return Type | Description |
 |----------|-----------|------------|-------------|
@@ -86,6 +86,7 @@ Yo-kai Watch 1 alone supports over 100 CExpression functions. The table below li
 | `SetGlobalByteFlag(hash, value)` | FlagID, Value | Constant `1` | Sets a GlobalByteFlag (0–255) |
 | `GetGlobalBitFlag(hash)` | FlagID | Integer (Boolean) | Gets a GlobalBitFlag (0/1) |
 | `SetGlobalBitFlag(hash, value)` | FlagID, Value | Constant `1` | Sets a GlobalBitFlag (0/1) |
+| `Random(float\|int)` | p | Integer (Boolaen) | *Does NOT exist in Yo-kai Watch 1*. Has a p% chance to return 1, otherwise 0.  |
 
 ### Compiler Syntax
 
